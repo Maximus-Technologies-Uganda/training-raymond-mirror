@@ -1,0 +1,22 @@
+name: Mirror to Public Repository
+
+on:
+  push:
+    branches:
+      - development
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code with full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Mirror push to public repository
+        env:
+          MIRROR_REPO: https://x-access-token:${{ secrets.MIRROR_TOKEN }}@github.com/Maximus-Technologies-Uganda/training-raymond-mirror.git
+        run: |
+          git push --force --all $MIRROR_REPO
+          git push --force --tags $MIRROR_REPO
