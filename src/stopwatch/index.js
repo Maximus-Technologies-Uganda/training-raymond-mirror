@@ -57,18 +57,18 @@ function main() {
   try {
     let result;
     switch (command) {
-      case 'start':
-        result = stopwatch.start();
-        break;
-      case 'lap':
-        result = stopwatch.lap();
-        break;
-      case 'stop':
-        result = stopwatch.stop();
-        break;
-      default:
-        console.log('Usage: stopwatch <start|lap|stop>');
-        process.exit(0);
+    case 'start':
+      result = stopwatch.start();
+      break;
+    case 'lap':
+      result = stopwatch.lap();
+      break;
+    case 'stop':
+      result = stopwatch.stop();
+      break;
+    default:
+      console.log('Usage: stopwatch <start|lap|stop>');
+      process.exit(0);
     }
     console.log(result);
   } catch (error) {
@@ -78,4 +78,8 @@ function main() {
 }
 
 export { Stopwatch };
-main();
+
+// Only run main if this file is executed directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main();
+}
