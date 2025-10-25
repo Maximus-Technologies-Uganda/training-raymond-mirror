@@ -116,8 +116,11 @@ jobs:
           cd ..
 
       - name: Upload to release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: review-package-${{ github.event.release.tag_name }}.zip
+        uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./review-package-${{ github.event.release.tag_name }}.zip
+          asset_name: review-package-${{ github.event.release.tag_name }}.zip
+          asset_content_type: application/zip
