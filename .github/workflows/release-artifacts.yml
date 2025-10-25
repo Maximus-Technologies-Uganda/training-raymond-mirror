@@ -1,0 +1,123 @@
+name: Create Review Package
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  create-review-package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Run linting
+        run: npm run lint
+
+      - name: Create review package
+        run: |
+          mkdir -p review-package
+          
+          # Copy source code
+          cp -r src review-package/
+          cp -r tests review-package/
+          cp -r docs review-package/
+          
+          # Copy configuration files
+          cp package.json package-lock.json README.md .eslintrc.json review-package/
+          
+          # Create installation script for Unix/Linux/Mac
+          cat > review-package/install.sh << 'EOF'
+          #!/bin/bash
+          echo "=== Training Raymond Review Package ==="
+          echo "Installing dependencies..."
+          npm install
+          echo ""
+          echo "Running tests..."
+          npm test
+          echo ""
+          echo "Running linter..."
+          npm run lint
+          echo ""
+          echo "=== Installation Complete! ==="
+          echo "Test the CLIs:"
+          echo "  node src/hello/index.js --name Raymond --shout"
+          echo "  node src/stopwatch/index.js start"
+          echo "  node src/temperature/index.js --from C --to F 32"
+          EOF
+          chmod +x review-package/install.sh
+          
+          # Create Windows installation script
+          cat > review-package/install.bat << 'EOF'
+          @echo off
+          echo === Training Raymond Review Package ===
+          echo Installing dependencies...
+          npm install
+          echo.
+          echo Running tests...
+          npm test
+          echo.
+          echo Running linter...
+          npm run lint
+          echo.
+          echo === Installation Complete! ===
+          echo Test the CLIs:
+          echo   node src/hello/index.js --name Raymond --shout
+          echo   node src/stopwatch/index.js start
+          echo   node src/temperature/index.js --from C --to F 32
+          EOF
+
+          # Create a quick start guide
+          cat > review-package/QUICK_START.md << 'EOF'
+          # Quick Start Guide
+          
+          ## Installation
+          - **Linux/Mac:** `./install.sh`
+          - **Windows:** `install.bat`
+          
+          ## Test the CLIs
+          ```bash
+          # Hello CLI
+          node src/hello/index.js --name Raymond --shout
+          
+          # Stopwatch CLI
+          node src/stopwatch/index.js start
+          node src/stopwatch/index.js lap
+          node src/stopwatch/index.js stop
+          
+          # Temperature Converter
+          node src/temperature/index.js --from C --to F 32
+          node src/temperature/index.js --from F --to C 0
+          ```
+          
+          ## Review Materials
+          - Review Packet: `docs/review-packet-week1.md`
+          - Daily Journals: `docs/journals/`
+          - Test Results: Run `npm test` to see all 14 tests
+          EOF
+
+      - name: Create ZIP package
+        run: |
+          cd review-package
+          zip -r ../review-package-${{ github.event.release.tag_name }}.zip .
+          cd ..
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: review-package-${{ github.event.release.tag_name }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

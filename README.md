@@ -90,3 +90,39 @@ node src/temperature/index.js --from F --to C 0
 - **Mentor:** Paul Mwanje
 - **Duration:** Week 1 (5 days)
 - **Mirror:** This repo is mirrored to [training-raymond-mirror](https://github.com/Maximus-Technologies-Uganda/training-raymond-mirror)
+
+## 👨‍🏫 For Mentors & Reviewers
+
+### 📦 Download Review Package
+Get a complete, self-contained package with all work and artifacts:
+
+- **[Download Latest Release](https://github.com/Maximus-Technologies-Uganda/training-raymond/releases/latest)** - Ready-to-review ZIP package
+- **[Review Packet](docs/review-packet-week1.md)** - Detailed assessment and rubric
+- **[Public Mirror](https://github.com/Maximus-Technologies-Uganda/training-raymond-mirror)** - Live public repository
+
+### Quick Review Process
+1. Download the review package from releases
+2. Extract and run installation script:
+   ```bash
+   # Linux/Mac
+   ./install.sh
+   
+   # Windows
+   install.bat
+   ```
+3. Verify all tests pass: `npm test`
+4. Test the CLIs manually (see examples above)
+5. Review the review packet for detailed assessment
+
+### Package Contents
+- ✅ Complete source code (3 CLIs)
+- ✅ 14 unit tests (100% passing)
+- ✅ Installation scripts for all platforms
+- ✅ Documentation and daily journals
+- ✅ ESLint configuration and results
+- ✅ All configuration files
+
+### Continuous Updates
+The public mirror is automatically synchronized whenever changes are pushed to the `development` branch. No manual action needed!
+
+---
