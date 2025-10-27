@@ -19,8 +19,8 @@
   "author": "Raymond Suuna",
   "license": "MIT",
   "devDependencies": {
-    "vitest": "^1.0.4",
+    "@vitest/coverage-v8": "^1.6.1",
     "eslint": "^8.54.0",
-    "@vitest/coverage-v8": "^1.0.4"
+    "vitest": "^1.0.4"
   }
 }
