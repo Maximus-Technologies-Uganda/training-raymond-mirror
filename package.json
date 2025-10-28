@@ -9,7 +9,7 @@
     "dev": "node --watch src/hello/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage --coverage.reporter=html --coverage.reporter=text-summary",
+    "test:coverage": "vitest run --coverage",
     "lint": "eslint src tests"
   },
   "keywords": [
@@ -21,6 +21,6 @@
   "devDependencies": {
     "@vitest/coverage-v8": "^1.6.1",
     "eslint": "^8.54.0",
-    "vitest": "^1.0.4"
+    "vitest": "^1.6.1"
   }
 }
