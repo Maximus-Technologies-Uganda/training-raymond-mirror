@@ -79,6 +79,98 @@ node src/temperature/index.js --from F --to C 0
 - **Commits:** Small, focused commits with clear messages
 - **CI:** All PRs must pass checks before merging
 
+## Week 2 - Linear + GitHub Integration
+
+### Branch Naming & PR Discipline
+
+All features must follow this naming convention to integrate with Linear:
+
+**Branch Pattern:**
+```
+feature/RAY-###-short-scope
+```
+
+Where:
+- `RAY-###` = Linear issue ID (e.g., RAY-1, RAY-3, RAY-5)
+- `short-scope` = Brief description in kebab-case (e.g., `expenses-cli`, `integration-proof`)
+
+**Example Branches:**
+```bash
+feature/RAY-1-integration-proof
+feature/RAY-3-expenses-cli
+feature/RAY-4-todo-cli
+feature/RAY-6-temperature-hardening
+```
+
+**Commit Message Pattern:**
+```
+type: description (RAY-###)
+```
+
+Where `type` should align with the [Conventional Commits](https://www.conventionalcommits.org/) vocabulary so the automation can categorize work correctly:
+
+- `feat` – New user-facing functionality
+- `fix` – Bug fixes or regressions
+- `docs` – Documentation-only updates
+- `test` – Adding or improving automated tests
+- `chore` – Repository maintenance (deps, scripts, config)
+- `refactor` – Code changes that neither fix a bug nor add a feature
+
+Examples:
+```
+feat: implement Expenses CLI with month/category filters (RAY-3)
+test: add comprehensive Expenses unit tests (RAY-3)
+docs: update README with CLI usage examples (RAY-3)
+```
+
+**PR Title & Body:**
+
+Title:
+```
+feat(scope): short description (RAY-###)
+```
+
+Example:
+```
+feat(expenses): implement month/category filtering (RAY-3)
+```
+
+Body (use this template):
+```
+## What changed
+- Implemented Expenses CLI core logic
+- Added CSV/JSON parsing
+- Created comprehensive unit tests
+
+## How I tested
+```bash
+node src/expenses/index.js --use-sample --month January
+node src/expenses/index.js --use-sample --category Groceries
+```
+
+## Coverage
+- Statements: 52%
+- Branches: 48%
+
+## Related Issues
+Closes RAY-3
+```
+
+### CI & Branch Protection
+
+- All PRs to `development` must pass the `checks` workflow (lint + tests + coverage)
+- Branch protection is enabled on `development`:
+  - ✅ Require PR before merging
+  - ✅ Require status checks to pass (checks workflow)
+  - ✅ Require branches to be up to date before merging
+- Direct pushes to `development` are blocked
+
+### Why this matters
+
+Properly linking Linear issues to branches, commits, and PRs gives the team live status visibility and reduces manual status updates. Conventional commit types feed release-notes tooling, while the `RAY-###` identifier keeps work traceable back to Linear. Combined with branch protection and CI enforcement, the integration keeps the roadmap accurate and ensures only reviewed, verified changes get merged.
+
+---
+
 ## Dependencies
 
 - **vitest** - Testing framework

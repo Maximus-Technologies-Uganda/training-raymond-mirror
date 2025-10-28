@@ -9,6 +9,7 @@
     "dev": "node --watch src/hello/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "lint": "eslint src tests"
   },
   "keywords": [
@@ -18,7 +19,8 @@
   "author": "Raymond Suuna",
   "license": "MIT",
   "devDependencies": {
-    "vitest": "^1.0.4",
-    "eslint": "^8.54.0"
+    "@vitest/coverage-v8": "^1.6.1",
+    "eslint": "^8.54.0",
+    "vitest": "^1.6.1"
   }
 }
