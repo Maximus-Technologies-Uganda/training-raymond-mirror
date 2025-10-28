@@ -81,6 +81,8 @@ node src/temperature/index.js --from F --to C 0
 
 ## Week 2 - Linear + GitHub Integration
 
+See the Week 2 workbook: [docs/workbooks/Raymond_Week2_Workbook.md](docs/workbooks/Raymond_Week2_Workbook.md)
+
 ### Branch Naming & PR Discipline
 
 All features must follow this naming convention to integrate with Linear:
