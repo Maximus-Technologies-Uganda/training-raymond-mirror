@@ -107,6 +107,15 @@ feature/RAY-6-temperature-hardening
 type: description (RAY-###)
 ```
 
+Where `type` should align with the [Conventional Commits](https://www.conventionalcommits.org/) vocabulary so the automation can categorize work correctly:
+
+- `feat` – New user-facing functionality
+- `fix` – Bug fixes or regressions
+- `docs` – Documentation-only updates
+- `test` – Adding or improving automated tests
+- `chore` – Repository maintenance (deps, scripts, config)
+- `refactor` – Code changes that neither fix a bug nor add a feature
+
 Examples:
 ```
 feat: implement Expenses CLI with month/category filters (RAY-3)
@@ -155,6 +164,10 @@ Closes RAY-3
   - ✅ Require status checks to pass (checks workflow)
   - ✅ Require branches to be up to date before merging
 - Direct pushes to `development` are blocked
+
+### Why this matters
+
+Properly linking Linear issues to branches, commits, and PRs gives the team live status visibility and reduces manual status updates. Conventional commit types feed release-notes tooling, while the `RAY-###` identifier keeps work traceable back to Linear. Combined with branch protection and CI enforcement, the integration keeps the roadmap accurate and ensures only reviewed, verified changes get merged.
 
 ---
 
