@@ -12,6 +12,12 @@ npm install
 ### Running CLIs
 ```bash
 node src/hello/index.js --name Raymond --shout
+
+# TypeScript CLIs – use ts-node (installed via devDependencies)
+npx ts-node src/cli/expenses.ts --sample --month Feb
+npx ts-node src/cli/todo.ts add --title "Pay bills" --priority high
+npx ts-node src/cli/stopwatch.ts status
+npx ts-node src/cli/temperature.ts --from c --to f --value 37
 ```
 
 ### Testing
@@ -29,9 +35,13 @@ npm run lint
 
 ```
 ├── src/
+│   ├── cli/                # CLI entry points (expenses, todo, stopwatch, temperature)
+│   ├── expenses/           # Expenses domain core (parsing, filtering, summaries)
 │   ├── hello/              # Hello CLI (greeting utility)
-│   ├── stopwatch/          # Stopwatch CLI (timing utility)
-│   └── temperature/        # Temperature Converter CLI
+│   ├── helpers/            # Shared helpers (argument parsing)
+│   ├── stopwatch/          # Stopwatch domain core (timing logic)
+│   ├── temperature/        # Temperature conversion domain core
+│   └── todo/               # Todo domain core
 ├── tests/                  # Test suite
 ├── docs/
 │   ├── journals/          # Daily work journals
@@ -53,23 +63,43 @@ node src/hello/index.js --name Raymond     # Greets Raymond
 node src/hello/index.js --name John --shout # Shouts
 ```
 
-### 2. Stopwatch CLI
-Tracks elapsed time with lap functionality.
+### 2. Expenses CLI
+Parses CSV/JSON inputs, filters by month/category, and prints summaries.
 
 **Usage:**
 ```bash
-node src/stopwatch/index.js start
-node src/stopwatch/index.js lap
-node src/stopwatch/index.js stop
+npx ts-node src/cli/expenses.ts --sample --month Feb
+npx ts-node src/cli/expenses.ts --input data/expenses.csv --category Groceries
 ```
 
-### 3. Temperature Converter CLI
-Converts between Celsius and Fahrenheit.
+### 3. ToDo CLI
+Manages todos with priorities, due dates, and completion tracking.
 
 **Usage:**
 ```bash
-node src/temperature/index.js --from C --to F 32
-node src/temperature/index.js --from F --to C 0
+npx ts-node src/cli/todo.ts add --title "Pay bills" --priority high --due 2025-10-30
+npx ts-node src/cli/todo.ts list --dueToday
+npx ts-node src/cli/todo.ts complete 3
+```
+
+### 4. Stopwatch CLI
+Tracks elapsed time with injectable clocks and lap management.
+
+**Usage:**
+```bash
+npx ts-node src/cli/stopwatch.ts start
+npx ts-node src/cli/stopwatch.ts lap --label Warmup
+npx ts-node src/cli/stopwatch.ts stop
+npx ts-node src/cli/stopwatch.ts status
+```
+
+### 5. Temperature Converter CLI
+Converts between Celsius and Fahrenheit with normalized units and rounding.
+
+**Usage:**
+```bash
+npx ts-node src/cli/temperature.ts --from c --to f --value 37
+npx ts-node src/cli/temperature.ts --from F --to C 98.6
 ```
 
 ## Development Notes
@@ -146,8 +176,8 @@ Body (use this template):
 
 ## How I tested
 ```bash
-node src/expenses/index.js --use-sample --month January
-node src/expenses/index.js --use-sample --category Groceries
+npx ts-node src/cli/expenses.ts --sample --month January
+npx ts-node src/cli/expenses.ts --sample --category Groceries
 ```
 
 ## Coverage
@@ -170,6 +200,19 @@ Closes RAY-3
 ### Why this matters
 
 Properly linking Linear issues to branches, commits, and PRs gives the team live status visibility and reduces manual status updates. Conventional commit types feed release-notes tooling, while the `RAY-###` identifier keeps work traceable back to Linear. Combined with branch protection and CI enforcement, the integration keeps the roadmap accurate and ensures only reviewed, verified changes get merged.
+
+### Step-by-step: linking Linear issues to your work
+
+Follow this checklist each time you pick up a Linear ticket so the integration stitches everything together automatically:
+
+1. **Assign yourself the Linear issue** and move it to “In Progress.” This lets Linear watch for matching Git activity.
+2. **Create the Git branch from `development`** using the Linear key inside the branch name (for example, `feature/RAY-14-expenses-cli`). When the first push lands, Linear will detect and display the branch in the issue sidebar.
+3. **Include the Linear key in every commit message** using the Conventional Commit pattern (`feat: add CSV parser (RAY-14)`). Linear links commits as soon as they appear on the remote branch.
+4. **Reference the issue in your PR title and body.** Use the title pattern `feat(expenses): add filters (RAY-14)` and add a `Closes RAY-14` line in the body. When you open the PR, GitHub shows the Linear issue in the right-hand panel and marks it as “In Review.”
+5. **Paste the PR URL back into Linear** if the automatic link hasn’t appeared yet. The issue will transition to “Review” and display the PR status directly on the ticket.
+6. **Merge only after checks pass.** Once the PR is merged, Linear moves the issue to “Done” and attaches the merge commit so the roadmap stays up to date.
+
+By repeating these steps, every branch, commit, and PR stays bi-directionally linked with its Linear issue—no manual spreadsheet updates required.
 
 ---
 
