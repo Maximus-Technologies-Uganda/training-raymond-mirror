@@ -1,94 +1,100 @@
-#!/usr/bin/env node
+import { promises as fs } from 'node:fs';
+import { extname } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { getIntegerFlag, getStringFlag, parseArgs, requireStringFlag } from '../helpers/args.js';
+import { formatQuote, parseQuotes, QuoteError, selectQuote } from '../quote/core.js';
 
-import fs from 'node:fs';
-import path from 'node:path';
-import { parseArgs, getStringFlag, getNumberFlag } from '../helpers/args.js';
-import { selectQuote } from '../quote/core.js';
-
-function parseCsv(content) {
-  // Minimal CSV: header expected: text,author,tags
-  const lines = content.split(/\r?\n/).filter(Boolean);
-  if (lines.length === 0) return [];
-  const header = lines[0].split(',').map((h) => h.trim().toLowerCase());
-  const idxText = header.indexOf('text');
-  const idxAuthor = header.indexOf('author');
-  const idxTags = header.indexOf('tags');
-  const out = [];
-  for (let i = 1; i < lines.length; i++) {
-    const cols = lines[i].split(',');
-    const text = (cols[idxText] ?? '').trim();
-    const author = (cols[idxAuthor] ?? '').trim();
-    const tags = (cols[idxTags] ?? '').trim();
-    if (!text) continue;
-    out.push({ text, author, tags });
+function determineFormat(path) {
+  const extension = extname(path).toLowerCase();
+  if (extension === '.json') {
+    return 'json';
   }
-  return out;
+  if (extension === '.csv') {
+    return 'csv';
+  }
+  return undefined;
 }
 
-function loadQuotesFromFile(inputPath) {
+async function loadQuotes(path, env) {
+  const reader = env && env.readFile ? env.readFile : fs.readFile;
   try {
-    const ext = path.extname(inputPath).toLowerCase();
-    const raw = fs.readFileSync(inputPath, 'utf8');
-    if (ext === '.json') {
-      const data = JSON.parse(raw);
-      if (!Array.isArray(data)) throw new Error('JSON must be an array of quotes');
-      return data;
+    const raw = await reader(path, 'utf8');
+    const format = determineFormat(path);
+    return parseQuotes(raw, format);
+  } catch (error) {
+    if (error instanceof QuoteError) {
+      throw error;
     }
-    if (ext === '.csv') {
-      return parseCsv(raw);
-    }
-    throw new Error('Unsupported input format. Use .json or .csv');
-  } catch (err) {
-    const e = new Error(`Failed to load input: ${err.message}`);
-    e.code = 'INPUT_ERROR';
-    throw e;
+
+    const message =
+      error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT'
+        ? `Could not read quotes file: ${path}`
+        : (error && error.message) || 'Failed to read quotes file.';
+    const failure = new Error(message);
+    failure.exitCode = 2;
+    throw failure;
   }
 }
 
-function main() {
-  const spec = {
-    flags: {
-      author: { alias: 'a' },
-      tag: { alias: 't' },
-      input: { alias: 'i' },
-      seed: { alias: 's' },
-      help: { alias: 'h' },
-    },
-  };
+function mapReasonToExitCode(reason) {
+  switch (reason) {
+    case 'author-not-found':
+    case 'tag-not-found':
+      return 1;
+    case 'no-quotes':
+      return 2;
+    default:
+      return 2;
+  }
+}
+
+export async function runQuoteCli(
+  argv,
+  io = { stdout: (message) => console.log(message), stderr: (message) => console.error(message) },
+  env = {},
+) {
+  const { flags } = parseArgs(argv);
+
+  let inputPath;
+  let author;
+  let tag;
+  let seed;
 
   try {
-    const { flags } = parseArgs(process.argv.slice(2), spec);
-    if (flags.help) {
-      console.log('Usage: quote --input <file.[json|csv]> [--author <name>] [--tag <tag>] [--seed <n>]');
-      process.exit(0);
-    }
+    inputPath = requireStringFlag(flags, 'input', 'Provide --input <path> to specify a quotes file.', {
+      label: 'Input path',
+    });
+    author = getStringFlag(flags, 'author', { label: 'Author' });
+    tag = getStringFlag(flags, 'tag', { label: 'Tag' });
+    seed = getIntegerFlag(flags, 'seed', { label: 'Seed' });
+  } catch (error) {
+    io.stderr?.(error.message);
+    return 1;
+  }
 
-    const input = getStringFlag(flags, 'input');
-    if (!input) {
-      throw new Error('Missing required --input <path>');
-    }
+  let quotes;
+  try {
+    quotes = await loadQuotes(inputPath, env);
+  } catch (error) {
+    io.stderr?.(error.message);
+    return error.exitCode ?? 2;
+  }
 
-    const author = getStringFlag(flags, 'author');
-    const tag = getStringFlag(flags, 'tag');
-    const seed = getNumberFlag(flags, 'seed', null);
-
-    const dataset = loadQuotesFromFile(input);
-    const quote = selectQuote(dataset, { author, tag, seed });
-
-    const tagsOut = Array.isArray(quote.tags) && quote.tags.length > 0 ? ` [${quote.tags.join(', ')}]` : '';
-    console.log(`"${quote.text}" — ${quote.author}${tagsOut}`);
-  } catch (err) {
-    const msg = err && err.message ? err.message : String(err);
-    if (err && err.code === 'INPUT_ERROR') {
-      console.error(`Error: ${msg}`);
-      process.exit(2);
-    }
-    console.error(`Error: ${msg}`);
-    process.exit(1);
+  try {
+    const quote = selectQuote(quotes, { author, tag, seed });
+    io.stdout?.(formatQuote(quote));
+    return 0;
+  } catch (error) {
+    const reason = error && error.reason;
+    const exitCode = mapReasonToExitCode(reason);
+    const message = (error && error.message) || 'Failed to select quote.';
+    io.stderr?.(message);
+    return exitCode;
   }
 }
 
-// Only run main if executed directly
-if (import.meta.url === `file://${process.argv[1]}`) {
-  main();
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  runQuoteCli(process.argv.slice(2)).then((code) => {
+    process.exitCode = code;
+  });
 }
