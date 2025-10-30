@@ -1,29 +1,4 @@
-const MONTHS = new Map<string, number>([
-  ['jan', 1],
-  ['january', 1],
-  ['feb', 2],
-  ['february', 2],
-  ['mar', 3],
-  ['march', 3],
-  ['apr', 4],
-  ['april', 4],
-  ['may', 5],
-  ['jun', 6],
-  ['june', 6],
-  ['jul', 7],
-  ['july', 7],
-  ['aug', 8],
-  ['august', 8],
-  ['sep', 9],
-  ['sept', 9],
-  ['september', 9],
-  ['oct', 10],
-  ['october', 10],
-  ['nov', 11],
-  ['november', 11],
-  ['dec', 12],
-  ['december', 12],
-]);
+import { normalizeMonth } from '../helpers/args.js';
 
 const TWO_DECIMAL_FORMATTER = new Intl.NumberFormat('en-US', {
   minimumFractionDigits: 2,
@@ -59,38 +34,7 @@ export interface ExpenseReport {
   summary: ExpenseSummary;
 }
 
-export function normalizeMonth(input: number | string | null | undefined): number | null {
-  if (input === null || input === undefined) {
-    return null;
-  }
-
-  if (typeof input === 'number') {
-    if (Number.isInteger(input) && input >= 1 && input <= 12) {
-      return input;
-    }
-    throw new Error('Month must be an integer between 1 and 12.');
-  }
-
-  const value = String(input).trim();
-  if (value === '') {
-    throw new Error('Month cannot be empty.');
-  }
-
-  if (/^\d+$/.test(value)) {
-    const numeric = Number.parseInt(value, 10);
-    if (numeric >= 1 && numeric <= 12) {
-      return numeric;
-    }
-    throw new Error('Month must be an integer between 1 and 12.');
-  }
-
-  const normalized = value.toLowerCase();
-  if (MONTHS.has(normalized)) {
-    return MONTHS.get(normalized)!;
-  }
-
-  throw new Error('Invalid month value. Use Jan-Dec or 1-12.');
-}
+export { normalizeMonth };
 
 function assertString(value: unknown, label: string): string {
   if (typeof value !== 'string' || value.trim() === '') {
@@ -198,8 +142,9 @@ function parseCsvExpenses(raw: string): ExpenseRecord[] {
   for (let index = startIndex; index < rows.length; index += 1) {
     const columns = rows[index].split(',').map((column) => column.trim());
     if (columns.length < 3) {
-      throw new Error(`Malformed CSV row at line ${index + 1}.`);
+      throw new Error(`CSV row at index ${index} must have date, category, and amount.`);
     }
+
     const [date, category, amount] = columns;
     entries.push({
       date: parseDate(date, index),
@@ -212,75 +157,83 @@ function parseCsvExpenses(raw: string): ExpenseRecord[] {
   return entries;
 }
 
-export function filterExpenses(records: readonly ExpenseRecord[], filters: ExpenseFilters = {}): ExpenseRecord[] {
-  const month = filters.month !== undefined && filters.month !== null ? normalizeMonth(filters.month) : null;
-  const category = typeof filters.category === 'string' ? filters.category.trim().toLowerCase() : null;
-
-  return records.filter((record) => {
-    const recordMonth = record.date.getMonth() + 1;
-    const matchesMonth = month === null || recordMonth === month;
-    const matchesCategory = category === null || record.category.toLowerCase() === category;
-    return matchesMonth && matchesCategory;
-  });
-}
-
-function roundCurrency(amount: number): number {
-  return Number.parseFloat(TWO_DECIMAL_FORMATTER.format(amount));
-}
-
-export function summarizeExpenses(records: readonly ExpenseRecord[]): ExpenseSummary {
-  const totals = new Map<string, number>();
-  let totalAmount = 0;
-
-  for (const record of records) {
-    const key = record.category;
-    const nextTotal = (totals.get(key) ?? 0) + record.amount;
-    totals.set(key, nextTotal);
-    totalAmount += record.amount;
+function filterByMonth(records: ExpenseRecord[], month: number | null): ExpenseRecord[] {
+  if (month === null) {
+    return records;
   }
-
-  const totalsByCategory = Array.from(totals.entries()).map(([category, amount]) => ({
-    category,
-    amount: roundCurrency(amount),
-  }));
-
-  totalsByCategory.sort((a, b) => a.category.localeCompare(b.category));
-
-  return {
-    total: roundCurrency(totalAmount),
-    totalsByCategory,
-  };
+  return records.filter((record) => record.date.getUTCMonth() + 1 === month);
 }
 
-export function buildExpenseReport(records: readonly ExpenseRecord[], filters: ExpenseFilters = {}): ExpenseReport {
+function filterByCategory(records: ExpenseRecord[], category: string | null): ExpenseRecord[] {
+  if (!category) {
+    return records;
+  }
+  const normalized = category.toLowerCase();
+  return records.filter((record) => record.category.toLowerCase() === normalized);
+}
+
+export function filterExpenses(records: ExpenseRecord[], filters: ExpenseFilters = {}): ExpenseRecord[] {
+  const month = filters.month !== undefined && filters.month !== null ? normalizeMonth(filters.month) : null;
+  const category = filters.category ? String(filters.category).trim() : null;
+  return filterByCategory(filterByMonth(records, month), category);
+}
+
+export function summarizeExpenses(records: ExpenseRecord[]): ExpenseSummary {
+  const total = records.reduce((sum, record) => sum + record.amount, 0);
+  const totalsByCategory = records.reduce<ExpenseSummaryEntry[]>((acc, record) => {
+    const existing = acc.find((entry) => entry.category.toLowerCase() === record.category.toLowerCase());
+    if (existing) {
+      existing.amount += record.amount;
+      return acc;
+    }
+    return [...acc, { category: record.category, amount: record.amount }];
+  }, []);
+  return { total, totalsByCategory };
+}
+
+export function buildExpenseReport(records: ExpenseRecord[], filters: ExpenseFilters = {}): ExpenseReport {
   const filtered = filterExpenses(records, filters);
+  const total = filtered.reduce((sum, record) => sum + record.amount, 0);
+
+  const totalsByCategory = filtered.reduce<ExpenseSummaryEntry[]>((acc, record) => {
+    const existing = acc.find((entry) => entry.category.toLowerCase() === record.category.toLowerCase());
+    if (existing) {
+      existing.amount += record.amount;
+      return acc;
+    }
+    return [...acc, { category: record.category, amount: record.amount }];
+  }, []);
+
   return {
     entries: filtered,
-    summary: summarizeExpenses(filtered),
+    summary: {
+      total,
+      totalsByCategory,
+    },
   };
 }
 
-export function formatExpenseEntry(entry: ExpenseRecord): string {
-  const date = entry.date.toISOString().slice(0, 10);
-  const amount = TWO_DECIMAL_FORMATTER.format(entry.amount);
-  return `${date} | ${entry.category} | ${amount}`;
+function formatCurrency(value: number): string {
+  return `$${TWO_DECIMAL_FORMATTER.format(value)}`;
 }
 
 export function formatExpenseReport(report: ExpenseReport): string {
-  const lines: string[] = [];
-  lines.push(`Total: ${TWO_DECIMAL_FORMATTER.format(report.summary.total)}`);
-  if (report.summary.totalsByCategory.length > 0) {
-    lines.push('By category:');
-    for (const { category, amount } of report.summary.totalsByCategory) {
-      lines.push(`- ${category}: ${TWO_DECIMAL_FORMATTER.format(amount)}`);
-    }
+  if (report.entries.length === 0) {
+    return 'No expenses found.';
   }
 
-  if (report.entries.length > 0) {
-    lines.push('Entries:');
-    for (const entry of report.entries) {
-      lines.push(`  ${formatExpenseEntry(entry)}`);
-    }
+  const lines: string[] = [];
+  for (const record of report.entries) {
+    lines.push(
+      `${record.date.toISOString().slice(0, 10)} – ${record.category}: ${formatCurrency(record.amount)}`,
+    );
+  }
+
+  lines.push('');
+  lines.push('Summary:');
+  lines.push(`  Total: ${formatCurrency(report.summary.total)}`);
+  for (const entry of report.summary.totalsByCategory) {
+    lines.push(`  ${entry.category}: ${formatCurrency(entry.amount)}`);
   }
 
   return lines.join('\n');

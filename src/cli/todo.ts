@@ -1,7 +1,14 @@
 import { promises as fs } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { getFlag, parseArgs, FlagMap } from '../helpers/args.js';
+import {
+  FlagMap,
+  getDateFlag,
+  getEnumFlag,
+  getStringFlag,
+  parseArgs,
+  requireStringFlag,
+} from '../helpers/args.js';
 import {
   addTodo,
   completeTodo,
@@ -61,8 +68,7 @@ function createFileStorage(basePath: string): TodoStorage {
 }
 
 function resolveStorage(flags: FlagMap, env: TodoEnvironment): TodoStorage {
-  const storageFlag = getFlag(flags, 'storage');
-  const storagePath = typeof storageFlag === 'string' ? storageFlag : '.data/todo.json';
+  const storagePath = getStringFlag(flags, 'storage', { label: 'Storage path' }) ?? '.data/todo.json';
   return env.storage ?? createFileStorage(storagePath);
 }
 
@@ -71,28 +77,35 @@ function buildClock(env: TodoEnvironment): Clock {
 }
 
 function parsePriority(flags: FlagMap): string | undefined {
-  const value = getFlag(flags, 'priority');
-  return value && typeof value === 'string' ? value.toLowerCase() : undefined;
+  return getEnumFlag(flags, 'priority', ['low', 'med', 'high'], {
+    label: 'Priority',
+    caseInsensitive: true,
+  });
 }
 
 function parseDueDate(flags: FlagMap): string | undefined {
-  const value = getFlag(flags, 'due');
-  return typeof value === 'string' ? value : undefined;
+  return getDateFlag(flags, 'due', { label: 'Due date' });
 }
 
 async function handleAdd(state: TodoState, flags: FlagMap, env: RuntimeDependencies, io: CliIO): Promise<number> {
-  const title = getFlag(flags, 'title');
-  if (title === undefined || title === true) {
-    io.stderr?.('The add command requires --title.');
+  let title: string;
+  try {
+    title = requireStringFlag(flags, 'title', 'The add command requires --title.', { label: 'Title' });
+  } catch (error: unknown) {
+    io.stderr?.((error as Error).message);
     return 1;
   }
 
   try {
-    const result = addTodo(state, {
-      title,
-      priority: parsePriority(flags),
-      dueDate: parseDueDate(flags),
-    }, env);
+    const result = addTodo(
+      state,
+      {
+        title,
+        priority: parsePriority(flags),
+        dueDate: parseDueDate(flags),
+      },
+      env,
+    );
     await env.storage.write(result.state);
     io.stdout?.(`Added todo ${result.todo.id}: ${result.todo.title}`);
     return 0;
@@ -104,11 +117,15 @@ async function handleAdd(state: TodoState, flags: FlagMap, env: RuntimeDependenc
 
 async function handleList(state: TodoState, flags: FlagMap, env: RuntimeDependencies, io: CliIO): Promise<number> {
   try {
-    const todos = listTodos(state, {
-      priority: parsePriority(flags),
-      dueDate: parseDueDate(flags),
-      dueToday: flags.has('dueToday'),
-    }, env);
+    const todos = listTodos(
+      state,
+      {
+        priority: parsePriority(flags),
+        dueDate: parseDueDate(flags),
+        dueToday: flags.has('dueToday'),
+      },
+      env,
+    );
     io.stdout?.(describeTodos(todos));
     return 0;
   } catch (error: unknown) {

@@ -1,5 +1,5 @@
 import { pathToFileURL } from 'node:url';
-import { getFlag, parseArgs } from '../helpers/args.js';
+import { getStringFlag, parseArgs, requireStringFlag } from '../helpers/args.js';
 import { convertTemperature, formatConversion, parseUnits } from '../temperature/core.js';
 
 interface CliIO {
@@ -13,14 +13,18 @@ export function runTemperatureCli(
 ): number {
   const { flags, positionals } = parseArgs(argv);
 
-  const from = getFlag(flags, 'from');
-  const to = getFlag(flags, 'to');
-  const value = getFlag(flags, 'value') ?? positionals[0];
-
-  if (!from || !to) {
-    io.stderr?.('Both --from and --to flags are required.');
+  let from: string;
+  let to: string;
+  try {
+    from = requireStringFlag(flags, 'from', 'Both --from and --to flags are required.', { label: '--from' });
+    to = requireStringFlag(flags, 'to', 'Both --from and --to flags are required.', { label: '--to' });
+  } catch (error: unknown) {
+    io.stderr?.((error as Error).message);
     return 1;
   }
+
+  const valueFlag = getStringFlag(flags, 'value', { label: 'Value' });
+  const value = valueFlag ?? positionals[0];
 
   if (value === undefined) {
     io.stderr?.('Provide a value to convert using --value or a positional argument.');
