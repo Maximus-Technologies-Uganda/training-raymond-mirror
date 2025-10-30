@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [development]
+  push:
+    branches: [development]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Test with coverage
+        run: npm run test:coverage
+
+      - name: Build Review Packet index
+        run: npm run packet
+
+      - name: Write review.md (placeholder)
+        run: |
+          mkdir -p review-artifacts
+          cat > review-artifacts/review.md << 'EOF'
+          # Week 2 Review
+
+          ## What changed
+          - Summarize changes across CLIs
+
+          ## How I tested
+          - Commands and outputs
+
+          ## Risks / Next steps
+          - Known caveats and planned follow-ups
+          EOF
+
+      - name: Create Review Package ZIP
+        run: |
+          mkdir -p out
+          zip -r out/review-package.zip review-artifacts coverage || true
+
+      - name: Upload Coverage HTML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-html
+          path: coverage/**
+          if-no-files-found: ignore
+
+      - name: Upload Review Packet
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: review-artifacts
+          path: review-artifacts/**
+          if-no-files-found: ignore
+
+      - name: Upload Review Package ZIP
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: review-package
+          path: out/review-package.zip
+          if-no-files-found: warn
