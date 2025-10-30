@@ -17,7 +17,7 @@ describe('expenses CLI', () => {
     const io = createStubIO();
     const code = await runExpensesCli(['--sample', '--month', 'Feb'], io);
     expect(code).toBe(0);
-    expect(io.out.join('\n')).toContain('Total: 132.10');
+    expect(io.out.join('\n')).toContain('Total: $132.10');
   });
 
   it('fails when input file cannot be read', async () => {

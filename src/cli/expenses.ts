@@ -1,10 +1,14 @@
 import { promises as fs } from 'node:fs';
 import { pathToFileURL } from 'node:url';
-import { getFlag, parseArgs, FlagMap } from '../helpers/args.js';
+import {
+  FlagMap,
+  getMonthFlag,
+  getStringFlag,
+  parseArgs,
+} from '../helpers/args.js';
 import {
   buildExpenseReport,
   formatExpenseReport,
-  normalizeMonth,
   parseExpenses,
 } from '../expenses/core.js';
 
@@ -29,22 +33,18 @@ interface ExpensesOptions {
 function parseOptions(flags: FlagMap): ExpensesOptions {
   const options: ExpensesOptions = { month: null, useSample: false };
 
-  const monthValue = getFlag(flags, 'month');
-  if (monthValue !== undefined && monthValue !== true) {
-    options.month = normalizeMonth(monthValue as string | number);
+  const month = getMonthFlag(flags, 'month', { label: 'Month' });
+  if (month !== undefined) {
+    options.month = month;
   }
 
-  const categoryValue = getFlag(flags, 'category');
-  if (categoryValue !== undefined && categoryValue !== true) {
-    if (String(categoryValue).trim() === '') {
-      throw new Error('Category cannot be empty.');
-    }
-    options.category = String(categoryValue).trim();
+  const category = getStringFlag(flags, 'category', { label: 'Category' });
+  if (category !== undefined) {
+    options.category = category;
   }
 
   const useSample = flags.has('sample');
-  const inputPathValue = getFlag(flags, 'input');
-  const inputPath = typeof inputPathValue === 'string' ? inputPathValue : undefined;
+  const inputPath = getStringFlag(flags, 'input', { label: 'Input path' });
 
   if (useSample && inputPath) {
     throw new Error('Use either --sample or --input, not both.');
@@ -75,9 +75,13 @@ async function loadRawData(options: ExpensesOptions, env: ExpensesEnvironment): 
   try {
     return await reader(options.inputPath, 'utf8');
   } catch (error: unknown) {
-    const message = typeof error === 'object' && error !== null && 'code' in error && (error as { code?: string }).code === 'ENOENT'
-      ? `Could not read input file: ${options.inputPath}`
-      : 'Failed to read input file.';
+    const message =
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      (error as { code?: string }).code === 'ENOENT'
+        ? `Could not read input file: ${options.inputPath}`
+        : 'Failed to read input file.';
     const failure = new Error(message);
     (failure as { exitCode?: number }).exitCode = 2;
     throw failure;

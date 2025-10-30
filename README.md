@@ -13,11 +13,12 @@ npm install
 ```bash
 node src/hello/index.js --name Raymond --shout
 
-# TypeScript CLIs – use ts-node (installed via devDependencies)
-npx ts-node src/cli/expenses.ts --sample --month Feb
-npx ts-node src/cli/todo.ts add --title "Pay bills" --priority high
-npx ts-node src/cli/stopwatch.ts status
-npx ts-node src/cli/temperature.ts --from c --to f --value 37
+# TypeScript CLIs – run with Node's ts-node loader
+node --loader ts-node/esm src/cli/expenses.ts --sample --month Feb
+node --loader ts-node/esm src/cli/todo.ts list
+node --loader ts-node/esm src/cli/stopwatch.ts status
+node --loader ts-node/esm src/cli/temperature.ts --from c --to f --value 37
+node --loader ts-node/esm src/cli/quote.ts --input data/quotes.json --author "Maya Angelou"
 ```
 
 ### Testing
@@ -35,10 +36,11 @@ npm run lint
 
 ```
 ├── src/
-│   ├── cli/                # CLI entry points (expenses, todo, stopwatch, temperature)
+│   ├── cli/                # CLI entry points (expenses, todo, stopwatch, temperature, quote)
 │   ├── expenses/           # Expenses domain core (parsing, filtering, summaries)
 │   ├── hello/              # Hello CLI (greeting utility)
-│   ├── helpers/            # Shared helpers (argument parsing)
+│   ├── helpers/            # Shared helpers (argument parsing & validation)
+│   ├── quote/              # Quote domain core (parsing, selection)
 │   ├── stopwatch/          # Stopwatch domain core (timing logic)
 │   ├── temperature/        # Temperature conversion domain core
 │   └── todo/               # Todo domain core
@@ -68,8 +70,19 @@ Parses CSV/JSON inputs, filters by month/category, and prints summaries.
 
 **Usage:**
 ```bash
-npx ts-node src/cli/expenses.ts --sample --month Feb
-npx ts-node src/cli/expenses.ts --input data/expenses.csv --category Groceries
+node --loader ts-node/esm src/cli/expenses.ts --sample --month Feb
+```
+
+_Output:_
+
+```
+2025-02-01 – Groceries: $42.10
+2025-02-07 – Utilities: $90.00
+
+Summary:
+  Total: $132.10
+  Groceries: $42.10
+  Utilities: $90.00
 ```
 
 ### 3. ToDo CLI
@@ -77,9 +90,23 @@ Manages todos with priorities, due dates, and completion tracking.
 
 **Usage:**
 ```bash
-npx ts-node src/cli/todo.ts add --title "Pay bills" --priority high --due 2025-10-30
-npx ts-node src/cli/todo.ts list --dueToday
-npx ts-node src/cli/todo.ts complete 3
+node --loader ts-node/esm src/cli/todo.ts add --title "Pay bills" --priority high
+```
+
+_Output:_
+
+```
+Added todo 1: Pay bills
+```
+
+```bash
+node --loader ts-node/esm src/cli/todo.ts list
+```
+
+_Output:_
+
+```
+No todos found.
 ```
 
 ### 4. Stopwatch CLI
@@ -87,10 +114,23 @@ Tracks elapsed time with injectable clocks and lap management.
 
 **Usage:**
 ```bash
-npx ts-node src/cli/stopwatch.ts start
-npx ts-node src/cli/stopwatch.ts lap --label Warmup
-npx ts-node src/cli/stopwatch.ts stop
-npx ts-node src/cli/stopwatch.ts status
+node --loader ts-node/esm src/cli/stopwatch.ts start
+```
+
+_Output:_
+
+```
+Stopwatch started.
+```
+
+```bash
+node --loader ts-node/esm src/cli/stopwatch.ts lap --label Warmup
+```
+
+_Output:_
+
+```
+Lap #1: 0ms
 ```
 
 ### 5. Temperature Converter CLI
@@ -98,8 +138,27 @@ Converts between Celsius and Fahrenheit with normalized units and rounding.
 
 **Usage:**
 ```bash
-npx ts-node src/cli/temperature.ts --from c --to f --value 37
-npx ts-node src/cli/temperature.ts --from F --to C 98.6
+node --loader ts-node/esm src/cli/temperature.ts --from c --to f --value 37
+```
+
+_Output:_
+
+```
+37°C = 98.60°F
+```
+
+### 6. Quote CLI
+Displays inspirational quotes with author and tag filters plus deterministic randomness via seeds.
+
+**Usage:**
+```bash
+node --loader ts-node/esm src/cli/quote.ts --input data/quotes.json --author "Maya Angelou"
+```
+
+_Output:_
+
+```
+"Success is liking yourself, liking what you do, and liking how you do it." — Maya Angelou (tags: inspiration, success)
 ```
 
 ## Development Notes

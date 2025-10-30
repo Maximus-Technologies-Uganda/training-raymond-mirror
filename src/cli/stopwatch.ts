@@ -1,7 +1,11 @@
 import { promises as fs } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { getFlag, parseArgs, FlagMap } from '../helpers/args.js';
+import {
+  FlagMap,
+  getStringFlag,
+  parseArgs,
+} from '../helpers/args.js';
 import {
   buildReport,
   Clock,
@@ -57,8 +61,7 @@ function createFileStore(path: string): StopwatchStorage {
 }
 
 function resolveStorage(flags: FlagMap, env: StopwatchEnvironment): StopwatchStorage {
-  const storagePathValue = getFlag(flags, 'storage');
-  const storagePath = typeof storagePathValue === 'string' ? storagePathValue : '.data/stopwatch.json';
+  const storagePath = getStringFlag(flags, 'storage', { label: 'Storage path' }) ?? '.data/stopwatch.json';
   return env.storage ?? createFileStore(storagePath);
 }
 
@@ -101,8 +104,7 @@ async function handleStart(state: StopwatchState, storage: StopwatchStorage, io:
 
 async function handleLap(state: StopwatchState, storage: StopwatchStorage, io: CliIO, flags: FlagMap): Promise<number> {
   try {
-    const labelValue = getFlag(flags, 'label');
-    const label = typeof labelValue === 'string' ? labelValue : null;
+    const label = getStringFlag(flags, 'label', { label: 'Label' }) ?? null;
     const next = lapStopwatch(state, label);
     if (await persistState(storage, next, io)) {
       const lastLap = next.laps[next.laps.length - 1];

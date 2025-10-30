@@ -70,7 +70,7 @@ describe('filter and summarize', () => {
     const report = buildExpenseReport(records, { month: 'Feb' });
     expect(report.entries).toHaveLength(2);
     const formatted = formatExpenseReport(report);
-    expect(formatted).toContain('Total: 32.50');
+    expect(formatted).toContain('Total: $32.50');
     expect(formatted).toContain('Transport');
   });
 });
