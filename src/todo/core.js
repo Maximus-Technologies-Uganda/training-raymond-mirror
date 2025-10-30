@@ -1,53 +1,6 @@
-/* c8 ignore start */
-export type TodoPriority = 'low' | 'med' | 'high';
+const PRIORITIES = new Set(['low', 'med', 'high']);
 
-export interface Clock {
-  now(): number;
-}
-
-export interface TodoItem {
-  id: string;
-  title: string;
-  priority: TodoPriority;
-  completed: boolean;
-  createdAt: string;
-  dueDate?: string;
-  completedAt?: string;
-}
-
-export interface TodoState {
-  todos: TodoItem[];
-  nextId: number;
-}
-
-export interface AddTodoInput {
-  title: string;
-  priority?: string;
-  dueDate?: string;
-}
-
-export interface TodoDependencies {
-  clock?: Clock;
-}
-
-const PRIORITIES: ReadonlySet<TodoPriority> = new Set(['low', 'med', 'high']);
-
-export function createInitialState(raw: unknown): TodoState {
-  if (!raw || typeof raw !== 'object') {
-    return { todos: [], nextId: 1 };
-  }
-
-  const record = raw as { todos?: unknown; nextId?: unknown };
-  const todos = Array.isArray(record.todos)
-    ? record.todos.map(normalizeStoredTodo)
-    : [];
-  const nextId = typeof record.nextId === 'number' && Number.isInteger(record.nextId) && record.nextId > 0
-    ? record.nextId
-    : determineNextId(todos);
-  return { todos, nextId };
-}
-
-function determineNextId(todos: TodoItem[]): number {
+function determineNextId(todos) {
   if (todos.length === 0) {
     return 1;
   }
@@ -55,16 +8,28 @@ function determineNextId(todos: TodoItem[]): number {
   return highest + 1;
 }
 
-function normalizeStoredTodo(todo: unknown): TodoItem {
+function validateDueDate(input) {
+  const value = String(input).trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    throw new Error('Due date must use YYYY-MM-DD format.');
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error('Invalid due date.');
+  }
+  return value;
+}
+
+function normalizeStoredTodo(todo) {
   if (!todo || typeof todo !== 'object') {
     throw new Error('Stored todo must be an object.');
   }
 
-  const record = todo as Record<string, unknown>;
-  const normalized: TodoItem = {
+  const record = todo;
+  const normalized = {
     id: String(record.id ?? ''),
     title: String(record.title ?? '').trim(),
-    priority: String(record.priority ?? 'med').toLowerCase() as TodoPriority,
+    priority: String(record.priority ?? 'med').toLowerCase(),
     completed: Boolean(record.completed),
     createdAt: String(record.createdAt ?? new Date().toISOString()),
   };
@@ -90,43 +55,45 @@ function normalizeStoredTodo(todo: unknown): TodoItem {
   return normalized;
 }
 
-export function serializeState(state: TodoState): string {
+export function createInitialState(raw) {
+  if (!raw || typeof raw !== 'object') {
+    return { todos: [], nextId: 1 };
+  }
+
+  const record = raw;
+  const todos = Array.isArray(record.todos) ? record.todos.map(normalizeStoredTodo) : [];
+  const nextId =
+    typeof record.nextId === 'number' && Number.isInteger(record.nextId) && record.nextId > 0
+      ? record.nextId
+      : determineNextId(todos);
+  return { todos, nextId };
+}
+
+export function serializeState(state) {
   return JSON.stringify(state, null, 2);
 }
 
-function validateTitle(title: unknown): string {
+function validateTitle(title) {
   if (typeof title !== 'string' || title.trim() === '') {
     throw new Error('Title must be a non-empty string.');
   }
   return title.trim();
 }
 
-function validatePriority(priority: unknown = 'med'): TodoPriority {
+function validatePriority(priority = 'med') {
   const value = String(priority).toLowerCase();
-  if (!PRIORITIES.has(value as TodoPriority)) {
+  if (!PRIORITIES.has(value)) {
     throw new Error('Priority must be one of low, med, or high.');
-  }
-  return value as TodoPriority;
-}
-
-function validateDueDate(input: unknown): string {
-  const value = String(input).trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    throw new Error('Due date must use YYYY-MM-DD format.');
-  }
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    throw new Error('Invalid due date.');
   }
   return value;
 }
 
-function findDuplicateTitle(state: TodoState, title: string): TodoItem | undefined {
+function findDuplicateTitle(state, title) {
   const normalized = title.toLowerCase();
   return state.todos.find((todo) => todo.title.toLowerCase() === normalized);
 }
 
-export function addTodo(state: TodoState, input: AddTodoInput, deps: TodoDependencies = {}): { state: TodoState; todo: TodoItem } {
+export function addTodo(state, input, deps = {}) {
   const title = validateTitle(input.title);
   if (findDuplicateTitle(state, title)) {
     throw new Error('A todo with the same title already exists.');
@@ -139,7 +106,7 @@ export function addTodo(state: TodoState, input: AddTodoInput, deps: TodoDepende
   const createdAt = now.toISOString();
 
   const id = String(state.nextId);
-  const todo: TodoItem = {
+  const todo = {
     id,
     title,
     priority,
@@ -151,7 +118,7 @@ export function addTodo(state: TodoState, input: AddTodoInput, deps: TodoDepende
     todo.dueDate = dueDate;
   }
 
-  const nextState: TodoState = {
+  const nextState = {
     todos: [...state.todos, todo],
     nextId: state.nextId + 1,
   };
@@ -159,7 +126,7 @@ export function addTodo(state: TodoState, input: AddTodoInput, deps: TodoDepende
   return { state: nextState, todo };
 }
 
-export function completeTodo(state: TodoState, id: string, deps: TodoDependencies = {}): { state: TodoState; todo: TodoItem } {
+export function completeTodo(state, id, deps = {}) {
   const targetId = String(id);
   const index = state.todos.findIndex((todo) => todo.id === targetId);
   if (index === -1) {
@@ -174,17 +141,17 @@ export function completeTodo(state: TodoState, id: string, deps: TodoDependencie
     return { state, todo };
   }
 
-  const updated: TodoItem = { ...todo, completed: true, completedAt };
+  const updated = { ...todo, completed: true, completedAt };
   const todos = [...state.todos];
   todos[index] = updated;
   return { state: { todos, nextId: state.nextId }, todo: updated };
 }
 
-function toDateOnly(date: Date): string {
+function toDateOnly(date) {
   return date.toISOString().slice(0, 10);
 }
 
-function isDueToday(todo: TodoItem, clock?: Clock): boolean {
+function isDueToday(todo, clock) {
   if (!todo.dueDate) {
     return false;
   }
@@ -192,13 +159,7 @@ function isDueToday(todo: TodoItem, clock?: Clock): boolean {
   return todo.dueDate === toDateOnly(now);
 }
 
-export interface ListFilters {
-  priority?: string;
-  dueDate?: string;
-  dueToday?: boolean;
-}
-
-export function listTodos(state: TodoState, filters: ListFilters = {}, deps: TodoDependencies = {}): TodoItem[] {
+export function listTodos(state, filters = {}, deps = {}) {
   let result = [...state.todos];
 
   if (filters.priority) {
@@ -222,14 +183,14 @@ export function listTodos(state: TodoState, filters: ListFilters = {}, deps: Tod
     if (a.priority === b.priority) {
       return a.id.localeCompare(b.id);
     }
-    const priorityOrder: Record<TodoPriority, number> = { high: 0, med: 1, low: 2 };
+    const priorityOrder = { high: 0, med: 1, low: 2 };
     return priorityOrder[a.priority] - priorityOrder[b.priority];
   });
 
   return result;
 }
 
-export function formatTodo(todo: TodoItem): string {
+export function formatTodo(todo) {
   const pieces = [`[${todo.id}] ${todo.title}`];
   pieces.push(`priority=${todo.priority}`);
   if (todo.dueDate) {
@@ -239,10 +200,9 @@ export function formatTodo(todo: TodoItem): string {
   return pieces.join(' ');
 }
 
-export function describeTodos(todos: TodoItem[]): string {
+export function describeTodos(todos) {
   if (todos.length === 0) {
     return 'No todos found.';
   }
   return todos.map((todo) => `- ${formatTodo(todo)}`).join('\n');
 }
-/* c8 ignore stop */

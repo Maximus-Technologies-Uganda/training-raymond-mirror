@@ -1,26 +1,20 @@
-/* c8 ignore start */
 import { pathToFileURL } from 'node:url';
 import { getStringFlag, parseArgs, requireStringFlag } from '../helpers/args.js';
 import { convertTemperature, formatConversion, parseUnits } from '../temperature/core.js';
 
-interface CliIO {
-  stdout?: (message: string) => void;
-  stderr?: (message: string) => void;
-}
-
 export function runTemperatureCli(
-  argv: readonly string[],
-  io: CliIO = { stdout: (message) => console.log(message), stderr: (message) => console.error(message) },
-): number {
+  argv,
+  io = { stdout: (message) => console.log(message), stderr: (message) => console.error(message) },
+) {
   const { flags, positionals } = parseArgs(argv);
 
-  let from: string;
-  let to: string;
+  let from;
+  let to;
   try {
     from = requireStringFlag(flags, 'from', 'Both --from and --to flags are required.', { label: '--from' });
     to = requireStringFlag(flags, 'to', 'Both --from and --to flags are required.', { label: '--to' });
-  } catch (error: unknown) {
-    io.stderr?.((error as Error).message);
+  } catch (error) {
+    io.stderr?.(error.message);
     return 1;
   }
 
@@ -38,8 +32,8 @@ export function runTemperatureCli(
     const numericValue = Number.parseFloat(String(value));
     io.stdout?.(formatConversion(numericValue, result, normalizedFrom, normalizedTo));
     return 0;
-  } catch (error: unknown) {
-    io.stderr?.((error as Error).message);
+  } catch (error) {
+    io.stderr?.(error.message);
     return 2;
   }
 }
@@ -48,4 +42,3 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const code = runTemperatureCli(process.argv.slice(2));
   process.exitCode = code;
 }
-/* c8 ignore stop */

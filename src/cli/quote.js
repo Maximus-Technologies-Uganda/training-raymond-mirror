@@ -38,13 +38,13 @@ async function loadQuotes(path, env) {
 
 function mapReasonToExitCode(reason) {
   switch (reason) {
-    case 'author-not-found':
-    case 'tag-not-found':
-      return 1;
-    case 'no-quotes':
-      return 2;
-    default:
-      return 2;
+  case 'author-not-found':
+  case 'tag-not-found':
+    return 1;
+  case 'no-quotes':
+    return 2;
+  default:
+    return 2;
   }
 }
 

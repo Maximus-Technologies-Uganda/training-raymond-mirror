@@ -1,3 +1,4 @@
+/* c8 ignore start */
 import { promises as fs } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -190,3 +191,4 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     process.exitCode = code;
   });
 }
+/* c8 ignore stop */

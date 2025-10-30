@@ -1,35 +1,4 @@
-/* c8 ignore start */
-export type StopwatchStatus = 'idle' | 'running' | 'stopped';
-
-export interface Clock {
-  now(): number;
-}
-
-export interface StopwatchLap {
-  index: number;
-  duration: number;
-  total: number;
-  label?: string;
-}
-
-export interface StopwatchState {
-  status: StopwatchStatus;
-  startedAt: number | null;
-  lastLapMark: number;
-  elapsedBefore: number;
-  laps: StopwatchLap[];
-  clock?: Clock;
-}
-
-export interface SerializedStopwatch {
-  status?: StopwatchStatus;
-  startedAt?: number | null;
-  lastLapMark?: number;
-  elapsedBefore?: number;
-  laps?: Partial<StopwatchLap>[];
-}
-
-export function createStopwatch(clock?: Clock): StopwatchState {
+function createStopwatch(clock) {
   return {
     status: 'idle',
     startedAt: null,
@@ -40,17 +9,19 @@ export function createStopwatch(clock?: Clock): StopwatchState {
   };
 }
 
-function now(clock?: Clock): number {
-  return clock?.now ? clock.now() : Date.now();
+export { createStopwatch };
+
+function now(clock) {
+  return clock && clock.now ? clock.now() : Date.now();
 }
 
-function assertRunning(state: StopwatchState): asserts state is StopwatchState & { startedAt: number } {
+function assertRunning(state) {
   if (state.status !== 'running' || state.startedAt === null) {
     throw new Error('Stopwatch is not running. Start it first.');
   }
 }
 
-export function startStopwatch(state: StopwatchState): StopwatchState {
+export function startStopwatch(state) {
   if (state.status === 'running') {
     throw new Error('Stopwatch already started.');
   }
@@ -66,7 +37,7 @@ export function startStopwatch(state: StopwatchState): StopwatchState {
   };
 }
 
-export function lapStopwatch(state: StopwatchState, label: string | null = null): StopwatchState {
+export function lapStopwatch(state, label = null) {
   assertRunning(state);
   const timestamp = now(state.clock);
   const totalElapsed = state.elapsedBefore + (timestamp - state.startedAt);
@@ -74,7 +45,7 @@ export function lapStopwatch(state: StopwatchState, label: string | null = null)
   if (lapDuration < 0) {
     throw new Error('Lap duration cannot be negative.');
   }
-  const lap: StopwatchLap = {
+  const lap = {
     index: state.laps.length + 1,
     duration: lapDuration,
     total: totalElapsed,
@@ -89,7 +60,7 @@ export function lapStopwatch(state: StopwatchState, label: string | null = null)
   };
 }
 
-export function stopStopwatch(state: StopwatchState): StopwatchState {
+export function stopStopwatch(state) {
   assertRunning(state);
   const timestamp = now(state.clock);
   const totalElapsed = state.elapsedBefore + (timestamp - state.startedAt);
@@ -105,7 +76,7 @@ export function stopStopwatch(state: StopwatchState): StopwatchState {
   };
 }
 
-export function resetStopwatch(state: StopwatchState): StopwatchState {
+export function resetStopwatch(state) {
   return {
     ...state,
     status: 'idle',
@@ -116,7 +87,7 @@ export function resetStopwatch(state: StopwatchState): StopwatchState {
   };
 }
 
-export function getElapsed(state: StopwatchState): number {
+export function getElapsed(state) {
   if (state.status === 'running' && state.startedAt !== null) {
     const timestamp = now(state.clock);
     return state.elapsedBefore + (timestamp - state.startedAt);
@@ -124,11 +95,11 @@ export function getElapsed(state: StopwatchState): number {
   return state.elapsedBefore;
 }
 
-function pad(number: number): string {
+function pad(number) {
   return number.toString().padStart(2, '0');
 }
 
-export function formatDuration(milliseconds: number): string {
+export function formatDuration(milliseconds) {
   const totalSeconds = Math.floor(milliseconds / 1000);
   const remainingMilliseconds = Math.floor(milliseconds % 1000);
   const seconds = totalSeconds % 60;
@@ -137,9 +108,9 @@ export function formatDuration(milliseconds: number): string {
   return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}.${remainingMilliseconds.toString().padStart(3, '0')}`;
 }
 
-export function buildReport(state: StopwatchState): string {
+export function buildReport(state) {
   const elapsed = getElapsed(state);
-  const lines: string[] = [];
+  const lines = [];
   lines.push(`Status: ${state.status}`);
   lines.push(`Elapsed: ${formatDuration(elapsed)}`);
   if (state.laps.length > 0) {
@@ -152,17 +123,21 @@ export function buildReport(state: StopwatchState): string {
   return lines.join('\n');
 }
 
-export function serializeStopwatch(state: StopwatchState): string {
-  return JSON.stringify({
-    status: state.status,
-    startedAt: state.startedAt,
-    lastLapMark: state.lastLapMark,
-    elapsedBefore: state.elapsedBefore,
-    laps: state.laps,
-  }, null, 2);
+export function serializeStopwatch(state) {
+  return JSON.stringify(
+    {
+      status: state.status,
+      startedAt: state.startedAt,
+      lastLapMark: state.lastLapMark,
+      elapsedBefore: state.elapsedBefore,
+      laps: state.laps,
+    },
+    null,
+    2,
+  );
 }
 
-export function deserializeStopwatch(raw: SerializedStopwatch | null | undefined, clock?: Clock): StopwatchState {
+export function deserializeStopwatch(raw, clock) {
   if (!raw) {
     return createStopwatch(clock);
   }
@@ -182,4 +157,3 @@ export function deserializeStopwatch(raw: SerializedStopwatch | null | undefined
     clock,
   };
 }
-/* c8 ignore stop */
