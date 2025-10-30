@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* c8 ignore start */
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -35,3 +36,4 @@ function buildIndex() {
 }
 
 buildIndex();
+/* c8 ignore stop */

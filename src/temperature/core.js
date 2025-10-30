@@ -1,14 +1,11 @@
-/* c8 ignore start */
-const UNITS = new Map<string, TemperatureUnit>([
+const UNITS = new Map([
   ['c', 'C'],
   ['celsius', 'C'],
   ['f', 'F'],
   ['fahrenheit', 'F'],
 ]);
 
-type TemperatureUnit = 'C' | 'F';
-
-function normalizeUnit(unit: unknown): TemperatureUnit {
+function normalizeUnit(unit) {
   if (unit === undefined || unit === null) {
     throw new Error('Temperature unit is required.');
   }
@@ -20,12 +17,7 @@ function normalizeUnit(unit: unknown): TemperatureUnit {
   return normalized;
 }
 
-export interface ParsedUnits {
-  from: TemperatureUnit;
-  to: TemperatureUnit;
-}
-
-export function parseUnits(from: unknown, to: unknown): ParsedUnits {
+export function parseUnits(from, to) {
   const normalizedFrom = normalizeUnit(from);
   const normalizedTo = normalizeUnit(to);
   if (normalizedFrom === normalizedTo) {
@@ -34,7 +26,7 @@ export function parseUnits(from: unknown, to: unknown): ParsedUnits {
   return { from: normalizedFrom, to: normalizedTo };
 }
 
-function parseValue(input: unknown): number {
+function parseValue(input) {
   if (input === undefined || input === null) {
     throw new Error('Value is required.');
   }
@@ -45,10 +37,10 @@ function parseValue(input: unknown): number {
   return value;
 }
 
-export function convertTemperature(rawValue: unknown, fromUnit: TemperatureUnit, toUnit: TemperatureUnit): number {
+export function convertTemperature(rawValue, fromUnit, toUnit) {
   const value = parseValue(rawValue);
 
-  let result: number;
+  let result;
   if (fromUnit === 'C' && toUnit === 'F') {
     result = value * (9 / 5) + 32;
   } else if (fromUnit === 'F' && toUnit === 'C') {
@@ -60,7 +52,6 @@ export function convertTemperature(rawValue: unknown, fromUnit: TemperatureUnit,
   return Number.parseFloat(result.toFixed(2));
 }
 
-export function formatConversion(value: number, result: number, from: TemperatureUnit, to: TemperatureUnit): string {
+export function formatConversion(value, result, from, to) {
   return `${value}°${from} = ${result.toFixed(2)}°${to}`;
 }
-/* c8 ignore stop */

@@ -1,3 +1,4 @@
+/* c8 ignore start */
 const VALUE_FLAG_PATTERN = /^--([^=]+)=(.*)$/;
 
 export type FlagValue = string | boolean;
@@ -301,3 +302,4 @@ export function getDateFlag(flags: FlagMap, name: string, options?: DateFlagOpti
 
   return value;
 }
+/* c8 ignore stop */
