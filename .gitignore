@@ -13,3 +13,9 @@ build/
 *.swo
 .coverage/
 coverage/
+uv.exe
+uvx.exe
+uvw.exe
+uv.zip
+.cursor/
+.codex/

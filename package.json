@@ -12,7 +12,8 @@
     "test:coverage": "vitest run --coverage",
     "lint": "eslint src tests",
     "prepare": "husky",
-    "packet": "node scripts/build-review-packet.js"
+    "packet": "node scripts/build-review-packet.js",
+    "specify:init": ".\\uvx.exe --from git+https://github.com/github/spec-kit.git specify init --here --force --ai cursor-agent --script ps"
   },
   "keywords": [
     "training",
