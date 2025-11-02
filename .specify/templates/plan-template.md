@@ -31,7 +31,16 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+- Tests first (TDD) with Vitest; coverage ≥ 60% (statements/branches/functions/lines).
+- CLI contract: text I/O (args/stdin → stdout; errors → stderr; exit codes set).
+- ESM modules; `import.meta.url` guard; no external CLI frameworks.
+- Core logic separated from CLI entry; functions are small, pure where possible.
+- Branch discipline: `feature/RAY-###-short-scope`, Conventional Commits.
+- PRs target `development`; CI checks (lint + tests + coverage) must pass.
+- Secrets are not committed; agent folders (`.cursor/`, `.claude/`, `.codex/`) ignored.
+- If feature includes UI: React (Vite/Next allowed), UI unit coverage ≥ 50% per
+  tool (Vitest + RTL), and one Playwright smoke test per tool.
+- Capstone PRs include Review Packet Release + Pages links and a Coverage Table.
 
 ## Project Structure
 
