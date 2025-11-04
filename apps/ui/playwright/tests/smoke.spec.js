@@ -13,5 +13,5 @@ test('UI scaffold renders welcome heading @smoke', async ({ page }) => {
   await expect(heading).toHaveText('Training Raymond UI');
 
   // Verify content loaded
-  await expect(page.getByText(/Week 3 UI workspace/i)).toBeVisible();
+  await expect(page.getByText(/Foundations for the Expenses, ToDo, and Quote experiences/i)).toBeVisible();
 });
