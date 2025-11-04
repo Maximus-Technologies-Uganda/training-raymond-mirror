@@ -1,0 +1,62 @@
+name: Project - Mark Done on Issue Close
+
+on:
+  issues:
+    types: [closed]
+
+permissions:
+  contents: read
+  issues: read
+
+jobs:
+  mark-done:
+    runs-on: ubuntu-latest
+    env:
+      ORG: Maximus-Technologies-Uganda
+      PROJECT_NUMBER: 4
+      # Prefer a classic PAT or fine-grained PAT with org Project write access
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
+    steps:
+      - name: Validate token
+        run: |
+          if [ -z "${GH_TOKEN}" ]; then
+            echo "GH_TOKEN is not set. Create a repo secret GH_TOKEN with org Project write access (Projects v2)." >&2
+            exit 0
+          fi
+
+      - name: Resolve Project + Status field IDs
+        id: proj
+        run: |
+          Q='query($org:String!,$num:Int!){organization(login:$org){projectV2(number:$num){id fields(first:50){nodes{__typename id name ... on ProjectV2SingleSelectField { options { id name } }}}}}}'
+          RESP=$(gh api graphql -f query="$Q" -F org="$ORG" -F num="$PROJECT_NUMBER")
+          echo "$RESP" | jq -c . > resp.json
+          PROJECT_ID=$(jq -r '.data.organization.projectV2.id' resp.json)
+          STATUS_FIELD_ID=$(jq -r '.data.organization.projectV2.fields.nodes[] | select(.name=="Status") | .id' resp.json)
+          DONE_OPTION_ID=$(jq -r '.data.organization.projectV2.fields.nodes[] | select(.name=="Status") | .options[] | select(.name=="Done") | .id' resp.json)
+          echo "project_id=$PROJECT_ID" >> $GITHUB_OUTPUT
+          echo "status_field_id=$STATUS_FIELD_ID" >> $GITHUB_OUTPUT
+          echo "done_option_id=$DONE_OPTION_ID" >> $GITHUB_OUTPUT
+
+      - name: Find Project item for closed issue
+        id: item
+        run: |
+          OWNER=${{ github.repository_owner }}
+          REPO=${{ github.event.repository.name }}
+          NUM=${{ github.event.issue.number }}
+          Q='query($owner:String!,$repo:String!,$num:Int!){repository(owner:$owner,name:$repo){issue(number:$num){id projectItems(first:50){nodes{id project{number}}}}}}'
+          RESP=$(gh api graphql -f query="$Q" -F owner="$OWNER" -F repo="$REPO" -F num="$NUM")
+          echo "$RESP" | jq -c . > i.json
+          ITEM_ID=$(jq -r --arg pn "$PROJECT_NUMBER" '.data.repository.issue.projectItems.nodes[] | select(.project.number == ($pn|tonumber)) | .id' i.json)
+          echo "item_id=$ITEM_ID" >> $GITHUB_OUTPUT
+
+      - name: Set Status=Done on Project item
+        if: steps.item.outputs.item_id != ''
+        run: |
+          MID='mutation($project:ID!,$item:ID!,$field:ID!,$opt:String!){updateProjectV2ItemFieldValue(input:{projectId:$project,itemId:$item,fieldId:$field,value:{singleSelectOptionId:$opt}}){clientMutationId}}'
+          gh api graphql -f query="$MID" \
+            -F project='${{ steps.proj.outputs.project_id }}' \
+            -F item='${{ steps.item.outputs.item_id }}' \
+            -F field='${{ steps.proj.outputs.status_field_id }}' \
+            -F opt='${{ steps.proj.outputs.done_option_id }}'
+
+
