@@ -7,7 +7,7 @@ on:
     branches: [development]
 
 jobs:
-  build-test:
+  cli-quality:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,9 +16,13 @@ jobs:
         with:
           node-version: 20
           cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: Install deps
-        run: npm ci
+        run: npm install
+
+      - name: Lint CLI packages
+        run: npm run lint
 
       - name: Test with coverage
         run: npm run test:coverage
@@ -29,7 +33,7 @@ jobs:
       - name: Write review.md (placeholder)
         run: |
           mkdir -p review-artifacts
-          cat > review-artifacts/review.md << 'EOF'
+          cat > review-artifacts/review.md << 'EOF_REVIEW'
           # Week 2 Review
 
           ## What changed
@@ -40,7 +44,7 @@ jobs:
 
           ## Risks / Next steps
           - Known caveats and planned follow-ups
-          EOF
+          EOF_REVIEW
 
       - name: Create Review Package ZIP
         run: |
@@ -70,3 +74,102 @@ jobs:
           name: review-package
           path: out/review-package.zip
           if-no-files-found: warn
+
+  ui-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/ui/package-lock.json
+
+      - name: Install UI deps
+        run: npm install
+        working-directory: apps/ui
+
+      - name: Lint UI workspace
+        run: npm run lint
+        working-directory: apps/ui
+
+      - name: Run UI unit tests with coverage
+        run: npm run test:coverage
+        working-directory: apps/ui
+
+      - name: Collect UI coverage for review artifacts
+        run: |
+          mkdir -p review-artifacts/ui
+          if [ -d "apps/ui/coverage/unit" ]; then
+            cp -R apps/ui/coverage/unit review-artifacts/ui/unit
+            echo "✓ UI coverage collected successfully"
+          else
+            echo "Error: UI coverage not found at apps/ui/coverage/unit"
+            exit 1
+          fi
+
+      - name: Upload UI coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-coverage
+          path: apps/ui/coverage/unit
+          if-no-files-found: ignore
+
+      - name: Upload UI review artifact slice
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-review-artifacts
+          path: review-artifacts/ui
+          if-no-files-found: ignore
+
+  ui-smoke:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/ui/package-lock.json
+
+      - name: Install UI deps
+        run: npm install
+        working-directory: apps/ui
+
+      - name: Get Playwright version
+        id: playwright-version
+        run: echo "version=$(npm list @playwright/test --depth=0 --json | jq -r '.dependencies["@playwright/test"].version')" >> $GITHUB_OUTPUT
+        working-directory: apps/ui
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.version }}
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+        working-directory: apps/ui
+
+      - name: Build UI for smoke tests
+        run: npm run build
+        working-directory: apps/ui
+
+      - name: Run Playwright smoke tests
+        run: npm run test:e2e -- --project=chromium --grep @smoke
+        working-directory: apps/ui
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-playwright-report
+          path: apps/ui/playwright/report
+          if-no-files-found: ignore

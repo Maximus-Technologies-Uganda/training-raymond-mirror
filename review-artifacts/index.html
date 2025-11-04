@@ -1,15 +1,91 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8"/>
-  <title>Week 2 Review Packet</title>
-  <style>body{font-family:system-ui,Segoe UI,Segoe UI Variable,Arial,sans-serif;margin:2rem;max-width:900px} a{color:#0b5fff;text-decoration:none}</style>
-</head>
-<body>
-  <h1>Week 2 Review Packet</h1>
-  <p>This packet aggregates coverage artifacts for CLIs.</p>
-  <ul>
-    <li><a href="../coverage/index.html">Coverage Index (global)</a></li>
-  </ul>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <title>Week 3 Coverage Index (Placeholder)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        line-height: 1.6;
+      }
+
+      body {
+        margin: 0;
+        padding: 3rem 1.5rem 4rem;
+        background: #f4f6fb;
+        color: #1f2933;
+        display: flex;
+        justify-content: center;
+      }
+
+      main {
+        max-width: 960px;
+        width: 100%;
+        background: #ffffff;
+        border-radius: 16px;
+        box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.12);
+        padding: 3rem;
+      }
+
+      h1 {
+        font-size: 2.5rem;
+        margin-top: 0;
+      }
+
+      section + section {
+        margin-top: 2.5rem;
+      }
+
+      ul {
+        padding-left: 1.2rem;
+      }
+
+      .coming-soon {
+        display: inline-block;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        background: #e5edff;
+        color: #1e40af;
+        padding: 0.25rem 0.75rem;
+        border-radius: 999px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Week 3 Coverage Index</h1>
+      <p>
+        This is a placeholder index that will link CLI and UI coverage exports as Phase 2+
+        tasks land. Generated automatically by CI while scaffolding is underway.
+      </p>
+
+      <section>
+        <h2>CLI Coverage</h2>
+        <p class="coming-soon">Week 2 exports remain available</p>
+        <ul>
+          <li><a href="../coverage/index.html">Existing CLI coverage index</a></li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>UI Coverage</h2>
+        <p class="coming-soon">Coming soon</p>
+        <ul>
+          <li>Vitest UI coverage HTML → <code>review-artifacts/ui/unit/index.html</code></li>
+          <li>Playwright report → <code>apps/ui/playwright/report/index.html</code></li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Review Packet Assembly</h2>
+        <p>
+          CI aggregates these artifacts into the Review Packet ZIP uploaded on every run.
+          Replace this copy once Week 3 features provide real data.
+        </p>
+      </section>
+    </main>
+  </body>
 </html>

@@ -18,6 +18,13 @@ This README is the single source of truth for **Week 3** scope, acceptance bars,
 
 Build **reviewable UIs** for your existing CLIs. Drive the work via **SpecKit** (`/specify → /plan → /tasks`) and raise your **evidence bar** (coverage, e2e smoke, Releases, Pages) so reviewers can verify everything fast.
 
+> ### How to review me (Week 3 placeholder)
+> - **Release (Packet):** _TBD — link will point to the Week 3 Review Packet once generated._
+> - **GitHub Pages:** _TBD — GitHub Pages deployment will surface the Coverage Index & UI demo._
+> - **Capstone PR:** _TBD — Week 3 capstone PR will summarize coverage tables, screenshots, and links._
+>
+> _Replace the TBD items with live links as soon as Phase 3+ deliverables are available._
+
 ---
 
 ## Go/No‑Go Gate (All must be true by **Fri 7 Nov EOD**)
