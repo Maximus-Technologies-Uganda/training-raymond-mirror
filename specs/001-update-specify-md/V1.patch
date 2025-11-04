@@ -1,0 +1,624 @@
+diff --git a/README_Week3.md b/README_Week3.md
+index 88dae091731341924927c9fee2e68beb4d38a7dc..f3fecd5a8cbd4aa17ca9026330c6afdaca44d989 100644
+--- a/README_Week3.md
++++ b/README_Week3.md
+@@ -1,85 +1,85 @@
+ # Maximus Technologies — Week 3 README (Raymond)
+ 
+ **Cohort:** AI‑powered Developer Learning • **Trainee:** Raymond • **Week:** 3  
+ **Dates:** Monday **3 Nov 2025** → Friday **7 Nov 2025** (Africa/Kampala)  
+ **Version:** v1.0 • **Mentor:** Paul / Maximus Technologies Mentors
+ 
+ ---
+ 
+ ## Purpose
+ 
+ This README is the single source of truth for **Week 3** scope, acceptance bars, artifacts, and daily checklists. It also contains a reviewer guide so mentors can verify outcomes quickly.
+ 
+-> **Workflow mantra:** _Issue-first._ Create/claim a Linear issue → branch → PR → **Review Packet**. Ship **one capstone PR by Friday EOD** that aggregates the week’s work and links to the generated Review Packet.
++> **Workflow mantra:** _Issue-first._ Create/claim a GitHub Issue → branch → PR → **Review Packet**. Ship **one capstone PR by Friday EOD** that aggregates the week’s work and links to the generated Review Packet.
+ 
+ ---
+ 
+ ## Week 3 Theme — UI, SpecKit & Reviewability
+ 
+ Build **reviewable UIs** for your existing CLIs. Drive the work via **SpecKit** (`/specify → /plan → /tasks`) and raise your **evidence bar** (coverage, e2e smoke, Releases, Pages) so reviewers can verify everything fast.
+ 
+ > ### How to review me (Week 3 placeholder)
+ > - **Release (Packet):** _TBD — link will point to the Week 3 Review Packet once generated._
+ > - **GitHub Pages:** _TBD — GitHub Pages deployment will surface the Coverage Index & UI demo._
+ > - **Capstone PR:** _TBD — Week 3 capstone PR will summarize coverage tables, screenshots, and links._
+ >
+ > _Replace the TBD items with live links as soon as Phase 3+ deliverables are available._
+ 
+ ---
+ 
+ ## Go/No‑Go Gate (All must be true by **Fri 7 Nov EOD**)
+ 
+ - **Week 2 finishers** complete and evidenced (see **Day 0** below).
+ - **UI for three tools** (Expenses, ToDo, Quote) built in a small React app (Vite or Next OK) with:
+   - Deterministic **unit tests** (Vitest + RTL) and **UI statements coverage ≥ 50% per tool**.
+   - **Playwright** smoke: one happy‑path e2e per tool.
+   - **Input validation** mirrors CLI rules (non‑zero/inline error equivalents).
+ - **SpecKit discipline**: `/specify` (problem + rules), `/plan` (design + test plan), `/tasks` (implementation steps) added/updated for each tool.
+ - **Reviewability uplift** complete:
+   - **GitHub Release** with the **Review Packet** ZIP (coverage HTML + `review.md` + e2e report).
+   - **GitHub Pages** (or Cloud Run preview) exposing **Coverage Index** and **UI demo link(s)**.
+   - **README** contains a **“How to review me”** box that points to Releases/Pages and lists Week 3 artifacts.
+-- **Linear discipline**: issues link to PRs; branches follow `feature/LIN-####-scope`; PR screenshots prove the linking.
+-- **Branch protection** on `development` still enforced; **green checks required**.
+-- **Capstone PR** merged to `development` including: Review Packet link, **Coverage Table (CLI + UI)**, Pages/preview links, Linear screenshots.
++- **GitHub Projects discipline**: Issues link to PRs; branches follow `feature/GH-####-scope`; PR screenshots prove the linking.
++- **Branch protection** on `development` remains enforced with required checks (see **CI & Reviewability** section).
++- **Capstone PR** merged to `development` including: Review Packet link, **Coverage Table (CLI + UI)**, Pages/preview links, GitHub Projects screenshots.
+ 
+ ---
+ 
+ ## Day 0 — Mon 3 Nov (Close Week 2 gaps)
+ 
+ **Goal:** Close Week 2 reviewability gaps before touching Week 3 features.
+ 
+ ### Tasks
+ - Publish a **Release** containing Week 2 **Review Packet** (`review-artifacts/` ZIP).
+ - Update **README** with a **“How to review me”** box (Release link → Coverage Index + list of Week 2 CLIs).
+-- Capstone PR evidence: paste **branch‑protection screenshot**, **Linear autolink proof**, **Coverage table**, and **Packet link**.
++- Capstone PR evidence: paste **branch‑protection screenshot**, **GitHub Project issue autolink proof**, **Coverage table**, and **Packet link**.
+ 
+ ### Evidence to capture
+ - Screenshot of the Release showing the Packet asset.
+ - README diff snippet with the new review box.
+-- PR body screenshots (branch protection, Linear link) + Coverage table rendered.
++- PR body screenshots (branch protection, GitHub Issue link) + Coverage table rendered.
+ 
+ ---
+ 
+ ## Daily Plan & Checklists
+ 
+ ### **Day 1 — Mon 3 Nov: SpecKit & UI Foundations**
+ 
+ **Goals:** Lock the plan before code; scaffold the UI project; wire CI for tests/Pages.
+ 
+ **Tasks**
+ - **SpecKit**: create/update `/specify`, `/plan`, `/tasks` for **Expenses UI**, **ToDo UI**, **Quote UI**. Each `/plan` must include an explicit **test plan (unit + e2e)** and **accessibility** notes.
+ - **Scaffold UI app** (Vite React or Next). Commit to `apps/ui/` (or `ui/`) with baseline routes/components.
+ - **Testing harness**: Vitest + React Testing Library; Playwright installed with **one blank smoke test**.
+ - **CI jobs**:
+   1. Lint + unit tests + coverage export to `review-artifacts/`.
+   2. **Playwright smoke** on PRs to `development`.
+ - **Pages/Preview**: Configure **GitHub Pages** (or Cloud Run) to publish **Coverage Index** and a **UI demo** (passwordless or demo creds).
+ 
+ **Proof**
+ - Screenshots: Pages settings/URL; CI green checks; SpecKit diffs.
+ 
+ ---
+ 
+ ### **Day 2 — Tue 4 Nov: Expenses UI (+ tests)**
+ 
+@@ -126,97 +126,105 @@ Build **reviewable UIs** for your existing CLIs. Drive the work via **SpecKit**
+ - **README refresh**: add Week 3 **“How to review me”** with Pages/preview links and Release link to the Packet.
+ 
+ **Proof**
+ - Coverage HTML for Quote UI; e2e artifact; README diff.
+ 
+ ---
+ 
+ ### **Day 5 — Fri 7 Nov: Capstone & Review Packet**
+ 
+ - Export **Coverage Index** (CLI + UI) to `review-artifacts/index.html`; ensure per‑tool HTML present.
+ - Update **`review.md`** with this week’s changes, **test coverage summary**, **risks**, **next steps**.
+ - Prepare **Coverage Table** (paste in PR):
+ 
+ | Tool | Statements % | Branches % | Functions % | Lines % |
+ |---|---:|---:|---:|---:|
+ | Expenses (CLI) |  |  |  |  |
+ | ToDo (CLI) |  |  |  |  |
+ | Stopwatch (CLI) |  |  |  |  |
+ | Temperature (CLI) |  |  |  |  |
+ | Quote (CLI) |  |  |  |  |
+ | Expenses (UI) |  |  |  |  |
+ | ToDo (UI) |  |  |  |  |
+ | Quote (UI) |  |  |  |  |
+ 
+ - **GitHub Release**: attach the new **Week 3 Review Packet** ZIP (Coverage HTML, Playwright report, `review.md`).
+-- **Capstone PR** to `development`: title `feat(week3): UI + SpecKit + reviewability (LIN####)`; body includes **Packet/Pages links**, **Coverage Table**, **Linear screenshots**.  
++- **Capstone PR** to `development`: title `feat(week3): UI + SpecKit + reviewability (GH-####)`; body includes **Packet/Pages links**, **Coverage Table**, **GitHub Projects screenshots**.
+ - Merge when **checks are green**.
+ 
+ ---
+ 
+ ## Technical Requirements & Patterns
+ 
+ ### SpecKit discipline
+ - **`/specify`**: problem statement, scope, user stories, **acceptance rules**.
+ - **`/plan`**: UI flows, state shape, **test plan (unit + e2e)**, accessibility notes, risks.
+ - **`/tasks`**: granular steps; each task links to PRs/commits.
+ 
+ ### UI architecture
+ - **Pure core logic** shared between CLI/UI where practical.
+ - **Thin view components**; container components own data/IO.
+ - **Determinism**: inject clocks/seeds; mock network/IO.
+ - **Accessibility**: label controls, announce errors, keyboard focus order.
+ 
+ ### Testing
+ - **Unit**: Vitest + RTL; table‑driven tests; **no real time/date — use injected clock**.
+ - **e2e smoke**: Playwright with deterministic fixtures; one happy path per tool.
+ - **Coverage**: collect **separate coverage for CLI and UI**; export HTML to `review-artifacts/` with an index.
+ 
+ ### CI & Reviewability
+-- **Branch protection**: require lint, unit tests, e2e smoke, and **packet‑build** before merge.
++#### Branch protection on `development`
++- Protected branch: `development` (no direct pushes).
++- Required status checks:
++  - `CI / cli-quality` (lint + CLI unit tests + coverage export + review packet build).
++  - `CI / ui-quality` (UI lint + Vitest with coverage export into review artifacts).
++  - `CI / ui-smoke` (Playwright @smoke suite on PRs to `development`).
++- Required reviews: at least one mentor approval before merge.
++
++#### Review evidence
+ - **Releases**: every capstone PR publishes a **Packet ZIP**.
+ - **Pages/Preview**: Coverage Index + demo links surfaced in README’s **How to review me**.
+ 
+ ### PR Discipline
+-- **Branch**: `feature/LIN-####-short-scope`  
+-- **Title**: `feat(scope): short description (LIN-####)`  
+-- **Body**: _What changed_ / _How I tested_ (real outputs) / _Artifacts_ (Release & Pages links) / **Coverage Table** / **Screenshots** (Linear + branch protection) / **Linked issues**.
++- **Branch**: `feature/GH-####-short-scope`
++- **Title**: `feat(scope): short description (GH-####)`
++- **Body**: _What changed_ / _How I tested_ (real outputs) / _Artifacts_ (Release & Pages links) / **Coverage Table** / **Screenshots** (GitHub Projects + branch protection) / **Linked issues**.
+ 
+ ---
+ 
+ ## Deliverables (What to Submit)
+ 
+-- **Screenshots**: Release asset, Pages URL, Linear link proof, branch‑protection rules.
++- **Screenshots**: Release asset, Pages URL, GitHub Project issue link proof, branch‑protection rules.
+ - **Review Packet**: Coverage HTML (CLI + UI), Playwright report, `review.md` (summary).
+ - **Capstone PR merged** into `development` with Coverage Table and artifact links.
+ 
+ ---
+ 
+ ## Mentor Review Rubric (Pass/Revise)
+ 
+-**Discipline (SpecKit, Linear, PR hygiene)**  
+-- **Pass**: Issues → branches → PRs; Screenshots in PR; SpecKit updated for each tool.  
++**Discipline (SpecKit, GitHub Projects, PR hygiene)**
++- **Pass**: Issues → branches → PRs; Screenshots in PR; SpecKit updated for each tool.
+ - **Revise**: Missing links/screens; ad‑hoc branches; stale specs.
+ 
+ **Correctness (UI parity with CLI)**  
+ - **Pass**: UI mirrors CLI rules; helpful inline errors; seeded/clocked determinism.  
+ - **Revise**: Happy‑path only; mismatched validation; flaky behavior.
+ 
+ **Tests & Coverage**  
+ - **Pass**: Targets met (UI ≥ 50%); deterministic unit + e2e smoke; readable tests.  
+ - **Revise**: Targets missed; lack of smoke; brittle tests.
+ 
+ **Artifacts & Reviewability**  
+ - **Pass**: Release with Packet; Pages/preview; README review box current.  
+ - **Revise**: Missing Release/Pages; hard‑to‑find artifacts.
+ 
+ ---
+ 
+ ## “How to review this project (Week 3)” (Copy/Paste Box)
+ 
+ > ### How to review this project (Week 3)
+ > - **Release (Packet):** Download the **Review Packet ZIP** from the latest Release → open `review-artifacts/index.html`.
+ > - **Live demo:** Visit **GitHub Pages** (link below) for the UI demo.
+ > - **What changed:** See the **Week 3 Capstone PR** body for coverage, screenshots, and links.
+ 
+ Add this box near the top of your repo README and keep links fresh each day.
+ 
+@@ -249,35 +257,35 @@ xdg-open coverage/index.html || open coverage/index.html
+ ```
+ 
+ ### C. PR body template (copy/paste)
+ **What changed**  
+ - Implemented Week 3 UIs + SpecKit + reviewability uplift
+ 
+ **How I tested**  
+ - Unit + Playwright smoke; links below
+ 
+ **Artifacts**  
+ - Release (Packet): <link>  
+ - Pages (Coverage Index & demo): <link>
+ 
+ **Coverage Table (CLI + UI)**  
+ | Tool | Stmts | Branches | Funcs | Lines |
+ | --- | ---:| ---:| ---:| ---:|
+ | Expenses (CLI) |  |  |  |  |
+ | ToDo (CLI) |  |  |  |  |
+ | Stopwatch (CLI) |  |  |  |  |
+ | Temperature (CLI) |  |  |  |  |
+ | Quote (CLI) |  |  |  |  |
+ | Expenses (UI) |  |  |  |  |
+ | ToDo (UI) |  |  |  |  |
+ | Quote (UI) |  |  |  |  |
+ 
+-**Screenshots**  
+-- Branch protection rules  
+-- Linear autolink proof
++**Screenshots**
++- Branch protection rules
++- GitHub Project issue autolink proof
+ 
+-**Links**  
+-- Linear issue(s): LIN####
++**Links**
++- GitHub issue(s): GH-####
+ 
+ ---
+ 
+ > _End of Week 3 README (Raymond)_
+diff --git a/apps/ui/src/components/expenses/ExpensesPlaceholder.tsx b/apps/ui/src/components/expenses/ExpensesPlaceholder.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..33fd74c9f9bbae6f5c1b55d1896c1702d627e83f
+--- /dev/null
++++ b/apps/ui/src/components/expenses/ExpensesPlaceholder.tsx
+@@ -0,0 +1,7 @@
++export function ExpensesPlaceholder(): JSX.Element {
++  return (
++    <section aria-label="Expenses components placeholder" data-testid="expenses-components-placeholder">
++      <p>Expenses components will render filters and totals once the UI logic is ready.</p>
++    </section>
++  );
++}
+diff --git a/apps/ui/src/components/expenses/index.ts b/apps/ui/src/components/expenses/index.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..49d9a3e0cb594b5a8547304c8798bfbdb42a7997
+--- /dev/null
++++ b/apps/ui/src/components/expenses/index.ts
+@@ -0,0 +1 @@
++export { ExpensesPlaceholder } from './ExpensesPlaceholder.js';
+diff --git a/apps/ui/src/components/index.ts b/apps/ui/src/components/index.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..959219e3953586da56fb0fb5309c7a21d9f116cc
+--- /dev/null
++++ b/apps/ui/src/components/index.ts
+@@ -0,0 +1,3 @@
++export * from './expenses/index.js';
++export * from './todo/index.js';
++export * from './quote/index.js';
+diff --git a/apps/ui/src/components/quote/QuotePlaceholder.tsx b/apps/ui/src/components/quote/QuotePlaceholder.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..544f1374b622beb6f3559bd7b99b6107f1ab042a
+--- /dev/null
++++ b/apps/ui/src/components/quote/QuotePlaceholder.tsx
+@@ -0,0 +1,7 @@
++export function QuotePlaceholder(): JSX.Element {
++  return (
++    <section aria-label="Quote components placeholder" data-testid="quote-components-placeholder">
++      <p>Quote components will provide seeded filtering and deterministic selection later in the sprint.</p>
++    </section>
++  );
++}
+diff --git a/apps/ui/src/components/quote/index.ts b/apps/ui/src/components/quote/index.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..62e278396ffab0bc7e36e052029fdd44c5a17217
+--- /dev/null
++++ b/apps/ui/src/components/quote/index.ts
+@@ -0,0 +1 @@
++export { QuotePlaceholder } from './QuotePlaceholder.js';
+diff --git a/apps/ui/src/components/todo/ToDoPlaceholder.tsx b/apps/ui/src/components/todo/ToDoPlaceholder.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..1c80cce02d98c8883e95650dd1e4f84d69a24373
+--- /dev/null
++++ b/apps/ui/src/components/todo/ToDoPlaceholder.tsx
+@@ -0,0 +1,7 @@
++export function ToDoPlaceholder(): JSX.Element {
++  return (
++    <section aria-label="ToDo components placeholder" data-testid="todo-components-placeholder">
++      <p>ToDo components will manage task lists, priorities, and deterministic clocks in later phases.</p>
++    </section>
++  );
++}
+diff --git a/apps/ui/src/components/todo/index.ts b/apps/ui/src/components/todo/index.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..e3be812ab484fc8564092a6bb3a3ff5a54d4e9b1
+--- /dev/null
++++ b/apps/ui/src/components/todo/index.ts
+@@ -0,0 +1 @@
++export { ToDoPlaceholder } from './ToDoPlaceholder.js';
+diff --git a/apps/ui/src/pages/Expenses.tsx b/apps/ui/src/pages/Expenses.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..6df02ae6ae21a88fd440fe5565c4abf09ff5d333
+--- /dev/null
++++ b/apps/ui/src/pages/Expenses.tsx
+@@ -0,0 +1,10 @@
++export function ExpensesPage(): JSX.Element {
++  return (
++    <main aria-labelledby="expenses-heading">
++      <h1 id="expenses-heading">Expenses</h1>
++      <p data-testid="expenses-page-placeholder">
++        Expenses UI will render totals, filters, and validation in Phase 3.
++      </p>
++    </main>
++  );
++}
+diff --git a/apps/ui/src/pages/Quote.tsx b/apps/ui/src/pages/Quote.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..bdc43fbfeabaa6bbba4129eb966dd90c1265d887
+--- /dev/null
++++ b/apps/ui/src/pages/Quote.tsx
+@@ -0,0 +1,10 @@
++export function QuotePage(): JSX.Element {
++  return (
++    <main aria-labelledby="quote-heading">
++      <h1 id="quote-heading">Quote</h1>
++      <p data-testid="quote-page-placeholder">
++        Quote UI will deliver seeded filtering and deterministic random picks in Phase 5.
++      </p>
++    </main>
++  );
++}
+diff --git a/apps/ui/src/pages/ToDo.tsx b/apps/ui/src/pages/ToDo.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..67918138465b6c9e952b854785605cbb0aaaf55a
+--- /dev/null
++++ b/apps/ui/src/pages/ToDo.tsx
+@@ -0,0 +1,10 @@
++export function ToDoPage(): JSX.Element {
++  return (
++    <main aria-labelledby="todo-heading">
++      <h1 id="todo-heading">ToDo</h1>
++      <p data-testid="todo-page-placeholder">
++        ToDo UI will handle task entry, completion, and injected clock checks in Phase 4.
++      </p>
++    </main>
++  );
++}
+diff --git a/apps/ui/src/pages/index.ts b/apps/ui/src/pages/index.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..d7aeb8a31c46e354d1a858f5e3374a54532f3105
+--- /dev/null
++++ b/apps/ui/src/pages/index.ts
+@@ -0,0 +1,3 @@
++export { ExpensesPage } from './Expenses.js';
++export { ToDoPage } from './ToDo.js';
++export { QuotePage } from './Quote.js';
+diff --git a/apps/ui/src/tests/helpers.test.ts b/apps/ui/src/tests/helpers.test.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..7b8bcb69b98fb3c474cc815d4c469afa600e31eb
+--- /dev/null
++++ b/apps/ui/src/tests/helpers.test.ts
+@@ -0,0 +1,50 @@
++import { describe, expect, it } from 'vitest';
++import { createSeededRandom, createTestClock } from './helpers.js';
++
++describe('createSeededRandom', () => {
++  it('produces deterministic sequences for the same seed', () => {
++    const first = createSeededRandom('week3');
++    const second = createSeededRandom('week3');
++
++    const firstSequence = [first(), first(), first()];
++    const secondSequence = [second(), second(), second()];
++
++    expect(firstSequence).toEqual(secondSequence);
++  });
++
++  it('produces different sequences for different seeds', () => {
++    const first = createSeededRandom('week3-a');
++    const second = createSeededRandom('week3-b');
++
++    expect(first()).not.toEqual(second());
++  });
++});
++
++describe('createTestClock', () => {
++  it('returns the baseline date on now()', () => {
++    const baseline = new Date('2025-11-03T08:00:00Z');
++    const clock = createTestClock(baseline);
++
++    expect(clock.now()).toEqual(baseline);
++  });
++
++  it('advances forward deterministically', () => {
++    const clock = createTestClock('2025-11-03T08:00:00Z');
++
++    const afterAdvance = clock.advanceBy(60_000);
++
++    expect(afterAdvance.toISOString()).toBe('2025-11-03T08:01:00.000Z');
++    expect(clock.now().toISOString()).toBe('2025-11-03T08:01:00.000Z');
++  });
++
++  it('supports setting and resetting the time', () => {
++    const clock = createTestClock('2025-11-03T08:00:00Z');
++
++    clock.advanceBy(1_000);
++    clock.set('2025-11-04T09:30:00Z');
++    expect(clock.now().toISOString()).toBe('2025-11-04T09:30:00.000Z');
++
++    clock.reset();
++    expect(clock.now().toISOString()).toBe('2025-11-03T08:00:00.000Z');
++  });
++});
+diff --git a/apps/ui/src/tests/helpers.ts b/apps/ui/src/tests/helpers.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..bbfe8caf6604b327715aadd0dd13299e31c9cb48
+--- /dev/null
++++ b/apps/ui/src/tests/helpers.ts
+@@ -0,0 +1,79 @@
++export type SeededRandom = () => number;
++
++function normalizeSeed(input: number | string): number {
++  if (typeof input === 'number' && Number.isFinite(input)) {
++    const normalized = Math.abs(Math.floor(input)) % 0x100000000;
++    return normalized === 0 ? 1 : normalized;
++  }
++
++  if (typeof input === 'string') {
++    let hash = 0;
++    for (let index = 0; index < input.length; index += 1) {
++      hash = (hash * 31 + input.charCodeAt(index)) >>> 0;
++    }
++    return hash === 0 ? 1 : hash;
++  }
++
++  return 1;
++}
++
++/**
++ * Creates a deterministic pseudo-random number generator based on a seed.
++ * The generator matches Math.random semantics (0 ≤ n < 1) while remaining reproducible.
++ */
++export function createSeededRandom(seed: number | string = Date.now()): SeededRandom {
++  let state = normalizeSeed(seed);
++  const modulus = 0x100000000;
++  const multiplier = 1664525;
++  const increment = 1013904223;
++
++  return () => {
++    state = (multiplier * state + increment) % modulus;
++    return state / modulus;
++  };
++}
++
++export interface TestClock {
++  now: () => Date;
++  advanceBy: (milliseconds: number) => Date;
++  set: (next: Date | number | string) => Date;
++  reset: () => Date;
++}
++
++function toDate(value: Date | number | string): Date {
++  if (value instanceof Date) {
++    return new Date(value.getTime());
++  }
++
++  const parsed = new Date(value);
++  if (Number.isNaN(parsed.getTime())) {
++    throw new Error('Invalid date value provided to test clock.');
++  }
++
++  return parsed;
++}
++
++/**
++ * Builds a deterministic clock for tests. It returns copies of the tracked Date
++ * to avoid accidental mutation across assertions.
++ */
++export function createTestClock(initial: Date | number | string = new Date()): TestClock {
++  const baseline = toDate(initial);
++  let current = new Date(baseline.getTime());
++
++  return {
++    now: () => new Date(current.getTime()),
++    advanceBy: (milliseconds: number) => {
++      current = new Date(current.getTime() + milliseconds);
++      return new Date(current.getTime());
++    },
++    set: (next: Date | number | string) => {
++      current = toDate(next);
++      return new Date(current.getTime());
++    },
++    reset: () => {
++      current = new Date(baseline.getTime());
++      return new Date(current.getTime());
++    },
++  };
++}
+diff --git a/specs/001-update-specify-md/tasks.md b/specs/001-update-specify-md/tasks.md
+index ae9160667b1cd30479c72aae7cab8d319e1917c2..685757d6d0c0fcbc2dc8b4040c1be46d1c5d8c69 100644
+--- a/specs/001-update-specify-md/tasks.md
++++ b/specs/001-update-specify-md/tasks.md
+@@ -1,52 +1,52 @@
+ # Tasks: Week 3 delivery in 3 days (GitHub Projects)
+ 
+ Feature: Update specify.md + Week 3 UI delivery • Branch: `001-update-specify-md`
+ Spec: `C:\Users\RAYMOND\Desktop\Work Projects\training-raymond\specs\001-update-specify-md\spec.md`
+ Plan: `C:\Users\RAYMOND\Desktop\Work Projects\training-raymond\specs\001-update-specify-md\plan.md`
+ 
+ ---
+ 
+ ## Phase 1 — Setup (project initialization)
+ 
+ - [ ] T001 Create UI project folder `apps/ui/` with Vite React scaffold
+ - [ ] T002 Add unit test harness (Vitest + React Testing Library) in `apps/ui/`
+ - [ ] T003 Add Playwright with one blank smoke test in `apps/ui/playwright/`
+ - [ ] T004 Configure GitHub Pages publish pipeline placeholder in `.github/workflows/pages.yml`
+ - [ ] T005 Add CI job for lint + unit + coverage export to `review-artifacts/` in `.github/workflows/ci.yml`
+ - [ ] T006 Add CI job to run Playwright smoke on PRs to `development` in `.github/workflows/ci.yml`
+ - [ ] T007 Create coverage index placeholder `review-artifacts/index.html`
+ - [ ] T008 Add README review box placeholder in `README_Week3.md`
+ - [ ] T009 Create GitHub Project issues from this tasks.md (GH CLI helper script) in `scripts/gh-import-tasks.ps1`
+ 
+ ## Phase 2 — Foundational (blocking prerequisites)
+ 
+-- [ ] T010 Create shared pure logic structure under `src/cli/` for reuse in UI (no code yet)
+-- [ ] T011 Define base UI routes/pages placeholders in `apps/ui/src/pages/`
+-- [ ] T012 Define base UI components placeholders in `apps/ui/src/components/`
+-- [ ] T013 Wire deterministic testing helpers (seeded RNG and injected clock) in `apps/ui/src/tests/helpers.ts`
+-- [ ] T014 Ensure branch protection and required checks documented in `README_Week3.md`
++- [x] T010 Create shared pure logic structure under `src/cli/` for reuse in UI (no code yet)
++- [x] T011 Define base UI routes/pages placeholders in `apps/ui/src/pages/`
++- [x] T012 Define base UI components placeholders in `apps/ui/src/components/`
++- [x] T013 Wire deterministic testing helpers (seeded RNG and injected clock) in `apps/ui/src/tests/helpers.ts`
++- [x] T014 Ensure branch protection and required checks documented in `README_Week3.md`
+ 
+ ---
+ 
+ ## Phase 3 — [US1] Expenses UI (Priority P1)
+ 
+ Goal: Minimal Expenses UI mirroring CLI rules; deterministic tests; coverage ≥ 50% statements.
+ Independent test: Selecting month/category shows correct totals; malformed rows handled.
+ 
+ - [ ] T015 [US1] Implement Expenses route `apps/ui/src/pages/Expenses.tsx`
+ - [ ] T016 [US1] Implement components: selectors and totals `apps/ui/src/components/expenses/`
+ - [ ] T017 [US1] Implement validation for unknown month/category (inline error) `apps/ui/src/pages/Expenses.tsx`
+ - [ ] T018 [US1] Import or implement core totals logic mirroring CLI `apps/ui/src/lib/expenses/totals.ts`
+ - [ ] T019 [P] [US1] Unit tests (table‑driven) for months/categories/malformed rows `apps/ui/src/tests/expenses.test.tsx`
+ - [ ] T020 [US1] Playwright smoke: select month/category → totals render `apps/ui/playwright/expenses.smoke.spec.ts`
+ - [ ] T021 [US1] Export UI coverage HTML and add to `review-artifacts/` (CI ensures)
+ 
+ ---
+ 
+ ## Phase 4 — [US2] ToDo UI (Priority P2)
+ 
+ Goal: Add/list/complete with deterministic date boundaries; coverage ≥ 50% statements.
+ Independent test: yesterday/today/tomorrow boundaries behave by injected clock; duplicate guards enforced.
+ 
+ - [ ] T022 [US2] Implement ToDo route `apps/ui/src/pages/ToDo.tsx`
+ - [ ] T023 [US2] Implement components for list/add/complete `apps/ui/src/components/todo/`
+diff --git a/src/cli/shared/expenses/index.ts b/src/cli/shared/expenses/index.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..1c0c7b346d786a8fc80f30d87f29a14b709ce4a9
+--- /dev/null
++++ b/src/cli/shared/expenses/index.ts
+@@ -0,0 +1,5 @@
++/**
++ * Placeholder for Expenses pure logic shared between CLI and UI implementations.
++ * Implement aggregation helpers during Phase 3 once UI requirements are finalized.
++ */
++export {};
+diff --git a/src/cli/shared/index.ts b/src/cli/shared/index.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..dc58fc913b798a985a02f6c62d232faa07de40eb
+--- /dev/null
++++ b/src/cli/shared/index.ts
+@@ -0,0 +1,5 @@
++/**
++ * Shared CLI logic placeholder.
++ * Domain-specific modules will expose pure functions for reuse by the UI layer.
++ */
++export {};
+diff --git a/src/cli/shared/quote/index.ts b/src/cli/shared/quote/index.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..b67e057a10be3b9020dda571cb63c309eaed7ae8
+--- /dev/null
++++ b/src/cli/shared/quote/index.ts
+@@ -0,0 +1,5 @@
++/**
++ * Placeholder for Quote pure logic shared between CLI and UI implementations.
++ * Seeded random helpers will be exposed here alongside filtering logic.
++ */
++export {};
+diff --git a/src/cli/shared/todo/index.ts b/src/cli/shared/todo/index.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..39d5fd384fed6bd53c3dc498a12d36654f904f2c
+--- /dev/null
++++ b/src/cli/shared/todo/index.ts
+@@ -0,0 +1,5 @@
++/**
++ * Placeholder for ToDo pure logic shared between CLI and UI implementations.
++ * Deterministic date utilities will live here when ToDo UI behavior is implemented.
++ */
++export {};

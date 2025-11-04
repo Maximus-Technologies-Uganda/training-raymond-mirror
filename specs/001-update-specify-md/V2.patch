@@ -1,0 +1,614 @@
+diff --git a/README_Week3.md b/README_Week3.md
+index 88dae091731341924927c9fee2e68beb4d38a7dc..ad8b15bf3eee19189c170f4681847687df776e29 100644
+--- a/README_Week3.md
++++ b/README_Week3.md
+@@ -21,50 +21,61 @@ Build **reviewable UIs** for your existing CLIs. Drive the work via **SpecKit**
+ > ### How to review me (Week 3 placeholder)
+ > - **Release (Packet):** _TBD — link will point to the Week 3 Review Packet once generated._
+ > - **GitHub Pages:** _TBD — GitHub Pages deployment will surface the Coverage Index & UI demo._
+ > - **Capstone PR:** _TBD — Week 3 capstone PR will summarize coverage tables, screenshots, and links._
+ >
+ > _Replace the TBD items with live links as soon as Phase 3+ deliverables are available._
+ 
+ ---
+ 
+ ## Go/No‑Go Gate (All must be true by **Fri 7 Nov EOD**)
+ 
+ - **Week 2 finishers** complete and evidenced (see **Day 0** below).
+ - **UI for three tools** (Expenses, ToDo, Quote) built in a small React app (Vite or Next OK) with:
+   - Deterministic **unit tests** (Vitest + RTL) and **UI statements coverage ≥ 50% per tool**.
+   - **Playwright** smoke: one happy‑path e2e per tool.
+   - **Input validation** mirrors CLI rules (non‑zero/inline error equivalents).
+ - **SpecKit discipline**: `/specify` (problem + rules), `/plan` (design + test plan), `/tasks` (implementation steps) added/updated for each tool.
+ - **Reviewability uplift** complete:
+   - **GitHub Release** with the **Review Packet** ZIP (coverage HTML + `review.md` + e2e report).
+   - **GitHub Pages** (or Cloud Run preview) exposing **Coverage Index** and **UI demo link(s)**.
+   - **README** contains a **“How to review me”** box that points to Releases/Pages and lists Week 3 artifacts.
+ - **Linear discipline**: issues link to PRs; branches follow `feature/LIN-####-scope`; PR screenshots prove the linking.
+ - **Branch protection** on `development` still enforced; **green checks required**.
+ - **Capstone PR** merged to `development` including: Review Packet link, **Coverage Table (CLI + UI)**, Pages/preview links, Linear screenshots.
+ 
++### Branch protection & required checks (Week 3)
++
++- **Protected branch**: `development`.
++- **Conditions to merge**:
++  - PR must be up to date with `development` (no behind commits).
++  - Status checks must pass:
++    - Root CLI pipeline: lint, unit tests, and coverage export.
++    - UI pipeline: lint, Vitest unit tests with coverage export, and Playwright smoke.
++  - Reviewers verify evidence links (Release Packet, Pages preview) are accessible before approval.
++- **Who can override**: Maintainers only; overrides require posting the reason plus the compensating control in the PR discussion.
++
+ ---
+ 
+ ## Day 0 — Mon 3 Nov (Close Week 2 gaps)
+ 
+ **Goal:** Close Week 2 reviewability gaps before touching Week 3 features.
+ 
+ ### Tasks
+ - Publish a **Release** containing Week 2 **Review Packet** (`review-artifacts/` ZIP).
+ - Update **README** with a **“How to review me”** box (Release link → Coverage Index + list of Week 2 CLIs).
+ - Capstone PR evidence: paste **branch‑protection screenshot**, **Linear autolink proof**, **Coverage table**, and **Packet link**.
+ 
+ ### Evidence to capture
+ - Screenshot of the Release showing the Packet asset.
+ - README diff snippet with the new review box.
+ - PR body screenshots (branch protection, Linear link) + Coverage table rendered.
+ 
+ ---
+ 
+ ## Daily Plan & Checklists
+ 
+ ### **Day 1 — Mon 3 Nov: SpecKit & UI Foundations**
+ 
+ **Goals:** Lock the plan before code; scaffold the UI project; wire CI for tests/Pages.
+ 
+ **Tasks**
+diff --git a/apps/ui/src/components/expenses/ExpensesShell.tsx b/apps/ui/src/components/expenses/ExpensesShell.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..754e168d19484a47211e7cd49c04a52ddd30d74d
+--- /dev/null
++++ b/apps/ui/src/components/expenses/ExpensesShell.tsx
+@@ -0,0 +1,7 @@
++export function ExpensesShell(): JSX.Element {
++  return (
++    <div aria-live="polite" data-testid="expenses-shell">
++      <p>Expenses workspace coming soon.</p>
++    </div>
++  );
++}
+diff --git a/apps/ui/src/components/expenses/index.ts b/apps/ui/src/components/expenses/index.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..98473f408f771342b55ccfc48c3869c21f3cc0ef
+--- /dev/null
++++ b/apps/ui/src/components/expenses/index.ts
+@@ -0,0 +1 @@
++export { ExpensesShell } from './ExpensesShell.js';
+diff --git a/apps/ui/src/components/index.ts b/apps/ui/src/components/index.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..959219e3953586da56fb0fb5309c7a21d9f116cc
+--- /dev/null
++++ b/apps/ui/src/components/index.ts
+@@ -0,0 +1,3 @@
++export * from './expenses/index.js';
++export * from './todo/index.js';
++export * from './quote/index.js';
+diff --git a/apps/ui/src/components/quote/QuoteShell.tsx b/apps/ui/src/components/quote/QuoteShell.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..4aab92e277f25e0898293e48e6047563ba124ca9
+--- /dev/null
++++ b/apps/ui/src/components/quote/QuoteShell.tsx
+@@ -0,0 +1,7 @@
++export function QuoteShell(): JSX.Element {
++  return (
++    <div aria-live="polite" data-testid="quote-shell">
++      <p>Quote workspace coming soon.</p>
++    </div>
++  );
++}
+diff --git a/apps/ui/src/components/quote/index.ts b/apps/ui/src/components/quote/index.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..2ff3e5feca0a7695ee8e070b5aa0f28223d9e136
+--- /dev/null
++++ b/apps/ui/src/components/quote/index.ts
+@@ -0,0 +1 @@
++export { QuoteShell } from './QuoteShell.js';
+diff --git a/apps/ui/src/components/todo/ToDoShell.tsx b/apps/ui/src/components/todo/ToDoShell.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..871f75908373b86470b1466b92b81244d96137e1
+--- /dev/null
++++ b/apps/ui/src/components/todo/ToDoShell.tsx
+@@ -0,0 +1,7 @@
++export function ToDoShell(): JSX.Element {
++  return (
++    <div aria-live="polite" data-testid="todo-shell">
++      <p>ToDo workspace coming soon.</p>
++    </div>
++  );
++}
+diff --git a/apps/ui/src/components/todo/index.ts b/apps/ui/src/components/todo/index.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..3b6622aa72e85ce4928e1a03d577f4b08cef3f78
+--- /dev/null
++++ b/apps/ui/src/components/todo/index.ts
+@@ -0,0 +1 @@
++export { ToDoShell } from './ToDoShell.js';
+diff --git a/apps/ui/src/pages/Expenses.tsx b/apps/ui/src/pages/Expenses.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..0b9af6aeeb8eb3778c52d845d3c6cad94e4123fd
+--- /dev/null
++++ b/apps/ui/src/pages/Expenses.tsx
+@@ -0,0 +1,10 @@
++import { ExpensesShell } from '../components/expenses/index.js';
++
++export function ExpensesPage(): JSX.Element {
++  return (
++    <section aria-labelledby="expenses-title" data-testid="expenses-page">
++      <h1 id="expenses-title">Expenses</h1>
++      <ExpensesShell />
++    </section>
++  );
++}
+diff --git a/apps/ui/src/pages/Quote.tsx b/apps/ui/src/pages/Quote.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..f9bf10adf60947e2f30e65fd141be7fe8751817f
+--- /dev/null
++++ b/apps/ui/src/pages/Quote.tsx
+@@ -0,0 +1,10 @@
++import { QuoteShell } from '../components/quote/index.js';
++
++export function QuotePage(): JSX.Element {
++  return (
++    <section aria-labelledby="quote-title" data-testid="quote-page">
++      <h1 id="quote-title">Quote</h1>
++      <QuoteShell />
++    </section>
++  );
++}
+diff --git a/apps/ui/src/pages/ToDo.tsx b/apps/ui/src/pages/ToDo.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..040026f4bc0296ca4f7bf4739fdd857db6169270
+--- /dev/null
++++ b/apps/ui/src/pages/ToDo.tsx
+@@ -0,0 +1,10 @@
++import { ToDoShell } from '../components/todo/index.js';
++
++export function ToDoPage(): JSX.Element {
++  return (
++    <section aria-labelledby="todo-title" data-testid="todo-page">
++      <h1 id="todo-title">ToDo</h1>
++      <ToDoShell />
++    </section>
++  );
++}
+diff --git a/apps/ui/src/pages/index.ts b/apps/ui/src/pages/index.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..d7aeb8a31c46e354d1a858f5e3374a54532f3105
+--- /dev/null
++++ b/apps/ui/src/pages/index.ts
+@@ -0,0 +1,3 @@
++export { ExpensesPage } from './Expenses.js';
++export { ToDoPage } from './ToDo.js';
++export { QuotePage } from './Quote.js';
+diff --git a/apps/ui/src/setupTests.ts b/apps/ui/src/setupTests.ts
+index bb02c60cd055452852c33afe9078e35455935fb0..5870716e8842ca31cb4f1fb5ee9bcf6efb2fd25e 100644
+--- a/apps/ui/src/setupTests.ts
++++ b/apps/ui/src/setupTests.ts
+@@ -1 +1 @@
+-import '@testing-library/jest-dom/vitest';
++import './testing-library-jest-dom.js';
+diff --git a/apps/ui/src/testing-library-jest-dom.ts b/apps/ui/src/testing-library-jest-dom.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..d61f205d4106b290609ac92147237c9f3ada0a65
+--- /dev/null
++++ b/apps/ui/src/testing-library-jest-dom.ts
+@@ -0,0 +1,54 @@
++import { expect } from 'vitest';
++
++type MatcherResult = {
++  pass: boolean;
++  message: () => string;
++};
++
++type MaybeElement = Node | null | undefined;
++
++function ensureNode(value: MaybeElement, matcherName: string): asserts value is Node {
++  if (!value) {
++    throw new Error(`${matcherName} received a nullish value.`);
++  }
++
++  if (typeof Node === 'undefined') {
++    throw new Error(`${matcherName} requires a DOM-like environment.`);
++  }
++
++  if (!(value instanceof Node)) {
++    throw new Error(`${matcherName} expects a DOM Node.`);
++  }
++}
++
++function toBeInTheDocument(this: unknown, received: MaybeElement): MatcherResult {
++  ensureNode(received, 'toBeInTheDocument');
++  const ownerDocument = received.ownerDocument ?? null;
++  const pass = Boolean(ownerDocument?.documentElement?.contains(received));
++  return {
++    pass,
++    message: () =>
++      pass
++        ? 'Expected element not to be present in the document.'
++        : 'Expected element to be present in the document, but it was not found.',
++  };
++}
++
++function toHaveTextContent(this: unknown, received: MaybeElement, expected: string | RegExp): MatcherResult {
++  ensureNode(received, 'toHaveTextContent');
++  const actual = received.textContent ?? '';
++  const pass =
++    typeof expected === 'string'
++      ? actual.includes(expected)
++      : expected.test(actual);
++
++  return {
++    pass,
++    message: () =>
++      pass
++        ? `Expected element text not to match ${expected}.`
++        : `Expected element text to match ${expected}, but received "${actual}".`,
++  };
++}
++
++expect.extend({ toBeInTheDocument, toHaveTextContent });
+diff --git a/apps/ui/src/tests/helpers.test.ts b/apps/ui/src/tests/helpers.test.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..2140dad467c327034b9010f75c0fb15fc8b1ff4e
+--- /dev/null
++++ b/apps/ui/src/tests/helpers.test.ts
+@@ -0,0 +1,70 @@
++import { describe, expect, it } from 'vitest';
++import { createSeededRandom, createTestClock } from './helpers.js';
++
++describe('createSeededRandom', () => {
++  it('produces deterministic sequences for the same seed', () => {
++    const generatorA = createSeededRandom(42);
++    const generatorB = createSeededRandom(42);
++
++    const sequenceA = [generatorA.next(), generatorA.next(), generatorA.next()];
++    const sequenceB = [generatorB.next(), generatorB.next(), generatorB.next()];
++
++    expect(sequenceA).toEqual(sequenceB);
++  });
++
++  it('supports resetting to the initial seed', () => {
++    const generator = createSeededRandom('seed');
++
++    const firstRun = [generator.nextInt(10), generator.nextInt(10)];
++    generator.reset();
++    const secondRun = [generator.nextInt(10), generator.nextInt(10)];
++
++    expect(firstRun).toEqual(secondRun);
++  });
++
++  it('selects stable items when using pick', () => {
++    const generator = createSeededRandom(7);
++    const items = ['alpha', 'beta', 'gamma', 'delta'];
++
++    const picked = [
++      generator.pick(items),
++      generator.pick(items),
++      generator.pick(items),
++    ];
++
++    expect(picked).toMatchInlineSnapshot(`
++      [
++        "alpha",
++        "alpha",
++        "delta",
++      ]
++    `);
++  });
++});
++
++describe('createTestClock', () => {
++  it('starts at the provided instant', () => {
++    const clock = createTestClock('2025-01-01T00:00:00Z');
++    expect(clock.now().toISOString()).toBe('2025-01-01T00:00:00.000Z');
++  });
++
++  it('advances deterministically by milliseconds', () => {
++    const clock = createTestClock('2025-01-01T00:00:00Z');
++    clock.advanceBy(60_000);
++    expect(clock.now().toISOString()).toBe('2025-01-01T00:01:00.000Z');
++  });
++
++  it('sets absolute time using advanceTo', () => {
++    const clock = createTestClock('2025-01-01T00:00:00Z');
++    clock.advanceTo('2025-02-01T12:34:56Z');
++    expect(clock.now().toISOString()).toBe('2025-02-01T12:34:56.000Z');
++  });
++
++  it('runs callbacks with temporarily fixed time', () => {
++    const clock = createTestClock('2025-01-01T00:00:00Z');
++    const result = clock.withFixedNow('2025-12-31T23:59:59Z', () => clock.now().toISOString());
++
++    expect(result).toBe('2025-12-31T23:59:59.000Z');
++    expect(clock.now().toISOString()).toBe('2025-01-01T00:00:00.000Z');
++  });
++});
+diff --git a/apps/ui/src/tests/helpers.ts b/apps/ui/src/tests/helpers.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..4ca22f06395170b29f48505122b2952547f9241c
+--- /dev/null
++++ b/apps/ui/src/tests/helpers.ts
+@@ -0,0 +1,126 @@
++export interface SeededRandom {
++  next(): number;
++  nextInt(maxExclusive: number): number;
++  pick<T>(values: readonly T[]): T;
++  shuffle<T>(values: readonly T[]): T[];
++  reset(): void;
++}
++
++function toSeedValue(seed: number | string): number {
++  if (typeof seed === 'number') {
++    return Math.abs(Math.floor(seed)) || 1;
++  }
++
++  let hash = 0;
++  for (let index = 0; index < seed.length; index += 1) {
++    const char = seed.charCodeAt(index);
++    hash = (hash << 5) - hash + char;
++    hash |= 0;
++  }
++  return Math.abs(hash) || 1;
++}
++
++function createGenerator(seedValue: number): () => number {
++  let state = seedValue >>> 0;
++  return () => {
++    state += 0x6d2b79f5;
++    let t = state;
++    t = Math.imul(t ^ (t >>> 15), t | 1);
++    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
++    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
++  };
++}
++
++export function createSeededRandom(seed: number | string): SeededRandom {
++  const initialSeed = toSeedValue(seed);
++  let generator = createGenerator(initialSeed);
++
++  return {
++    next(): number {
++      return generator();
++    },
++    nextInt(maxExclusive: number): number {
++      if (!Number.isFinite(maxExclusive) || maxExclusive <= 0) {
++        throw new Error('maxExclusive must be a positive finite number.');
++      }
++      return Math.floor(generator() * maxExclusive);
++    },
++    pick<T>(values: readonly T[]): T {
++      if (values.length === 0) {
++        throw new Error('Cannot pick from an empty collection.');
++      }
++      const index = this.nextInt(values.length);
++      return values[index];
++    },
++    shuffle<T>(values: readonly T[]): T[] {
++      const mutable = [...values];
++      for (let index = mutable.length - 1; index > 0; index -= 1) {
++        const swapIndex = this.nextInt(index + 1);
++        [mutable[index], mutable[swapIndex]] = [mutable[swapIndex], mutable[index]];
++      }
++      return mutable;
++    },
++    reset(): void {
++      generator = createGenerator(initialSeed);
++    },
++  };
++}
++
++export interface TestClock {
++  now(): Date;
++  advanceBy(milliseconds: number): void;
++  advanceTo(instant: Date | string | number): void;
++  withFixedNow<T>(instant: Date | string | number, run: () => T): T;
++}
++
++function toTimestamp(value: Date | string | number): number {
++  if (value instanceof Date) {
++    const time = value.getTime();
++    if (Number.isNaN(time)) {
++      throw new Error('Invalid Date provided to clock.');
++    }
++    return time;
++  }
++
++  if (typeof value === 'number') {
++    if (!Number.isFinite(value)) {
++      throw new Error('Timestamp must be finite.');
++    }
++    return value;
++  }
++
++  const parsed = new Date(value);
++  const timestamp = parsed.getTime();
++  if (Number.isNaN(timestamp)) {
++    throw new Error('Invalid ISO timestamp provided to clock.');
++  }
++  return timestamp;
++}
++
++export function createTestClock(initial: Date | string | number): TestClock {
++  let current = toTimestamp(initial);
++
++  return {
++    now(): Date {
++      return new Date(current);
++    },
++    advanceBy(milliseconds: number): void {
++      if (!Number.isFinite(milliseconds)) {
++        throw new Error('Milliseconds must be a finite number.');
++      }
++      current += milliseconds;
++    },
++    advanceTo(instant: Date | string | number): void {
++      current = toTimestamp(instant);
++    },
++    withFixedNow<T>(instant: Date | string | number, run: () => T): T {
++      const previous = current;
++      current = toTimestamp(instant);
++      try {
++        return run();
++      } finally {
++        current = previous;
++      }
++    },
++  };
++}
+diff --git a/apps/ui/vitest.config.ts b/apps/ui/vitest.config.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..1c7610f6dbec90e633c46f47a22aab8f79e0ce48
+--- /dev/null
++++ b/apps/ui/vitest.config.ts
+@@ -0,0 +1,30 @@
++import { defineConfig } from 'vitest/config';
++
++export default defineConfig({
++  test: {
++    globals: true,
++    environment: 'node',
++    setupFiles: './src/setupTests.ts',
++    exclude: ['**/node_modules/**', '**/playwright/**', '**/dist/**'],
++    coverage: {
++      provider: 'v8',
++      reporter: ['text', 'html', 'json-summary'],
++      reportsDirectory: './coverage/unit',
++      exclude: [
++        '**/node_modules/**',
++        '**/playwright/**',
++        '**/dist/**',
++        '**/*.config.*',
++        '**/.eslintrc.cjs',
++        '**/setupTests.ts',
++        '**/*.d.ts',
++      ],
++      thresholds: {
++        statements: 50,
++        branches: 50,
++        functions: 50,
++        lines: 50,
++      },
++    },
++  },
++});
+diff --git a/specs/001-update-specify-md/tasks.md b/specs/001-update-specify-md/tasks.md
+index ae9160667b1cd30479c72aae7cab8d319e1917c2..685757d6d0c0fcbc2dc8b4040c1be46d1c5d8c69 100644
+--- a/specs/001-update-specify-md/tasks.md
++++ b/specs/001-update-specify-md/tasks.md
+@@ -1,52 +1,52 @@
+ # Tasks: Week 3 delivery in 3 days (GitHub Projects)
+ 
+ Feature: Update specify.md + Week 3 UI delivery • Branch: `001-update-specify-md`
+ Spec: `C:\Users\RAYMOND\Desktop\Work Projects\training-raymond\specs\001-update-specify-md\spec.md`
+ Plan: `C:\Users\RAYMOND\Desktop\Work Projects\training-raymond\specs\001-update-specify-md\plan.md`
+ 
+ ---
+ 
+ ## Phase 1 — Setup (project initialization)
+ 
+ - [ ] T001 Create UI project folder `apps/ui/` with Vite React scaffold
+ - [ ] T002 Add unit test harness (Vitest + React Testing Library) in `apps/ui/`
+ - [ ] T003 Add Playwright with one blank smoke test in `apps/ui/playwright/`
+ - [ ] T004 Configure GitHub Pages publish pipeline placeholder in `.github/workflows/pages.yml`
+ - [ ] T005 Add CI job for lint + unit + coverage export to `review-artifacts/` in `.github/workflows/ci.yml`
+ - [ ] T006 Add CI job to run Playwright smoke on PRs to `development` in `.github/workflows/ci.yml`
+ - [ ] T007 Create coverage index placeholder `review-artifacts/index.html`
+ - [ ] T008 Add README review box placeholder in `README_Week3.md`
+ - [ ] T009 Create GitHub Project issues from this tasks.md (GH CLI helper script) in `scripts/gh-import-tasks.ps1`
+ 
+ ## Phase 2 — Foundational (blocking prerequisites)
+ 
+-- [ ] T010 Create shared pure logic structure under `src/cli/` for reuse in UI (no code yet)
+-- [ ] T011 Define base UI routes/pages placeholders in `apps/ui/src/pages/`
+-- [ ] T012 Define base UI components placeholders in `apps/ui/src/components/`
+-- [ ] T013 Wire deterministic testing helpers (seeded RNG and injected clock) in `apps/ui/src/tests/helpers.ts`
+-- [ ] T014 Ensure branch protection and required checks documented in `README_Week3.md`
++- [x] T010 Create shared pure logic structure under `src/cli/` for reuse in UI (no code yet)
++- [x] T011 Define base UI routes/pages placeholders in `apps/ui/src/pages/`
++- [x] T012 Define base UI components placeholders in `apps/ui/src/components/`
++- [x] T013 Wire deterministic testing helpers (seeded RNG and injected clock) in `apps/ui/src/tests/helpers.ts`
++- [x] T014 Ensure branch protection and required checks documented in `README_Week3.md`
+ 
+ ---
+ 
+ ## Phase 3 — [US1] Expenses UI (Priority P1)
+ 
+ Goal: Minimal Expenses UI mirroring CLI rules; deterministic tests; coverage ≥ 50% statements.
+ Independent test: Selecting month/category shows correct totals; malformed rows handled.
+ 
+ - [ ] T015 [US1] Implement Expenses route `apps/ui/src/pages/Expenses.tsx`
+ - [ ] T016 [US1] Implement components: selectors and totals `apps/ui/src/components/expenses/`
+ - [ ] T017 [US1] Implement validation for unknown month/category (inline error) `apps/ui/src/pages/Expenses.tsx`
+ - [ ] T018 [US1] Import or implement core totals logic mirroring CLI `apps/ui/src/lib/expenses/totals.ts`
+ - [ ] T019 [P] [US1] Unit tests (table‑driven) for months/categories/malformed rows `apps/ui/src/tests/expenses.test.tsx`
+ - [ ] T020 [US1] Playwright smoke: select month/category → totals render `apps/ui/playwright/expenses.smoke.spec.ts`
+ - [ ] T021 [US1] Export UI coverage HTML and add to `review-artifacts/` (CI ensures)
+ 
+ ---
+ 
+ ## Phase 4 — [US2] ToDo UI (Priority P2)
+ 
+ Goal: Add/list/complete with deterministic date boundaries; coverage ≥ 50% statements.
+ Independent test: yesterday/today/tomorrow boundaries behave by injected clock; duplicate guards enforced.
+ 
+ - [ ] T022 [US2] Implement ToDo route `apps/ui/src/pages/ToDo.tsx`
+ - [ ] T023 [US2] Implement components for list/add/complete `apps/ui/src/components/todo/`
+diff --git a/src/cli/shared/README.md b/src/cli/shared/README.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..ca8e96401ca8924d75b8982f7b41a8e2bcddacb5
+--- /dev/null
++++ b/src/cli/shared/README.md
+@@ -0,0 +1,6 @@
++# Shared CLI Logic
++
++This directory hosts pure, framework-agnostic logic that will be reused by the
++existing CLIs and the upcoming UI project. Populate the domain folders with
++TypeScript modules as they are implemented; keep them side-effect free so UI and
++CLI clients can import them without additional adapters.
+diff --git a/src/cli/shared/expenses/index.ts b/src/cli/shared/expenses/index.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..ba859cc33d2cbc8a18fff53a0031134b57330288
+--- /dev/null
++++ b/src/cli/shared/expenses/index.ts
+@@ -0,0 +1,3 @@
++// Placeholder module for shared expenses logic.
++// Populate with pure functions that can be consumed by both the CLI and UI layers.
++export {};
+diff --git a/src/cli/shared/index.ts b/src/cli/shared/index.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..1cd115ec704ad12f28a9eb85b6e876905e1cdff2
+--- /dev/null
++++ b/src/cli/shared/index.ts
+@@ -0,0 +1,4 @@
++// Re-export shared domain modules for convenient imports.
++export * from './expenses/index.js';
++export * from './todo/index.js';
++export * from './quote/index.js';
+diff --git a/src/cli/shared/quote/index.ts b/src/cli/shared/quote/index.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..0b1329817e8b584a40a0d38d70beb167df561c9c
+--- /dev/null
++++ b/src/cli/shared/quote/index.ts
+@@ -0,0 +1,3 @@
++// Placeholder module for shared quote logic.
++// Keep functions deterministic to support predictable UI tests.
++export {};
+diff --git a/src/cli/shared/todo/index.ts b/src/cli/shared/todo/index.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..f6b1816e97cd55b9538e12b5ac9cf029887822ee
+--- /dev/null
++++ b/src/cli/shared/todo/index.ts
+@@ -0,0 +1,3 @@
++// Placeholder module for shared todo logic.
++// Implement pure helpers here to synchronize CLI and UI behaviors.
++export {};

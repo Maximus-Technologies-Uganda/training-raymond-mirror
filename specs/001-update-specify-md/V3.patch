@@ -1,0 +1,741 @@
+diff --git a/README_Week3.md b/README_Week3.md
+index 88dae091731341924927c9fee2e68beb4d38a7dc..5b10ef7cf40480531dc1b0c67af998ca0988ebdd 100644
+--- a/README_Week3.md
++++ b/README_Week3.md
+@@ -1,85 +1,88 @@
+ # Maximus Technologies — Week 3 README (Raymond)
+ 
+ **Cohort:** AI‑powered Developer Learning • **Trainee:** Raymond • **Week:** 3  
+ **Dates:** Monday **3 Nov 2025** → Friday **7 Nov 2025** (Africa/Kampala)  
+ **Version:** v1.0 • **Mentor:** Paul / Maximus Technologies Mentors
+ 
+ ---
+ 
+ ## Purpose
+ 
+ This README is the single source of truth for **Week 3** scope, acceptance bars, artifacts, and daily checklists. It also contains a reviewer guide so mentors can verify outcomes quickly.
+ 
+-> **Workflow mantra:** _Issue-first._ Create/claim a Linear issue → branch → PR → **Review Packet**. Ship **one capstone PR by Friday EOD** that aggregates the week’s work and links to the generated Review Packet.
++> **Workflow mantra:** _Issue-first._ Create/claim a GitHub Issue → branch → PR → **Review Packet**. Ship **one capstone PR by Friday EOD** that aggregates the week’s work and links to the generated Review Packet.
+ 
+ ---
+ 
+ ## Week 3 Theme — UI, SpecKit & Reviewability
+ 
+ Build **reviewable UIs** for your existing CLIs. Drive the work via **SpecKit** (`/specify → /plan → /tasks`) and raise your **evidence bar** (coverage, e2e smoke, Releases, Pages) so reviewers can verify everything fast.
+ 
+ > ### How to review me (Week 3 placeholder)
+ > - **Release (Packet):** _TBD — link will point to the Week 3 Review Packet once generated._
+ > - **GitHub Pages:** _TBD — GitHub Pages deployment will surface the Coverage Index & UI demo._
+ > - **Capstone PR:** _TBD — Week 3 capstone PR will summarize coverage tables, screenshots, and links._
+ >
+ > _Replace the TBD items with live links as soon as Phase 3+ deliverables are available._
+ 
+ ---
+ 
+ ## Go/No‑Go Gate (All must be true by **Fri 7 Nov EOD**)
+ 
+ - **Week 2 finishers** complete and evidenced (see **Day 0** below).
+ - **UI for three tools** (Expenses, ToDo, Quote) built in a small React app (Vite or Next OK) with:
+   - Deterministic **unit tests** (Vitest + RTL) and **UI statements coverage ≥ 50% per tool**.
+   - **Playwright** smoke: one happy‑path e2e per tool.
+   - **Input validation** mirrors CLI rules (non‑zero/inline error equivalents).
+ - **SpecKit discipline**: `/specify` (problem + rules), `/plan` (design + test plan), `/tasks` (implementation steps) added/updated for each tool.
+ - **Reviewability uplift** complete:
+   - **GitHub Release** with the **Review Packet** ZIP (coverage HTML + `review.md` + e2e report).
+   - **GitHub Pages** (or Cloud Run preview) exposing **Coverage Index** and **UI demo link(s)**.
+   - **README** contains a **“How to review me”** box that points to Releases/Pages and lists Week 3 artifacts.
+-- **Linear discipline**: issues link to PRs; branches follow `feature/LIN-####-scope`; PR screenshots prove the linking.
+-- **Branch protection** on `development` still enforced; **green checks required**.
+-- **Capstone PR** merged to `development` including: Review Packet link, **Coverage Table (CLI + UI)**, Pages/preview links, Linear screenshots.
++- **Issue discipline**: GitHub Issues feed the Project board; branches follow `feature/GH-####-scope`; PR screenshots prove the linking.
++- **Branch protection** on `development` enforces required checks before merge:
++  - `lint-and-unit` (ESLint + Vitest with coverage export to `review-artifacts/`)
++  - `playwright-smoke`
++  - `review-artifacts-packet` (builds/validates Coverage Index + Review Packet shell)
++- **Capstone PR** merged to `development` including: Review Packet link, **Coverage Table (CLI + UI)**, Pages/preview links, GitHub Project screenshots.
+ 
+ ---
+ 
+ ## Day 0 — Mon 3 Nov (Close Week 2 gaps)
+ 
+ **Goal:** Close Week 2 reviewability gaps before touching Week 3 features.
+ 
+ ### Tasks
+ - Publish a **Release** containing Week 2 **Review Packet** (`review-artifacts/` ZIP).
+ - Update **README** with a **“How to review me”** box (Release link → Coverage Index + list of Week 2 CLIs).
+-- Capstone PR evidence: paste **branch‑protection screenshot**, **Linear autolink proof**, **Coverage table**, and **Packet link**.
++- Capstone PR evidence: paste **branch‑protection screenshot**, **GitHub Issue autolink proof**, **Coverage table**, and **Packet link**.
+ 
+ ### Evidence to capture
+ - Screenshot of the Release showing the Packet asset.
+ - README diff snippet with the new review box.
+-- PR body screenshots (branch protection, Linear link) + Coverage table rendered.
++- PR body screenshots (branch protection, GitHub Issue link) + Coverage table rendered.
+ 
+ ---
+ 
+ ## Daily Plan & Checklists
+ 
+ ### **Day 1 — Mon 3 Nov: SpecKit & UI Foundations**
+ 
+ **Goals:** Lock the plan before code; scaffold the UI project; wire CI for tests/Pages.
+ 
+ **Tasks**
+ - **SpecKit**: create/update `/specify`, `/plan`, `/tasks` for **Expenses UI**, **ToDo UI**, **Quote UI**. Each `/plan` must include an explicit **test plan (unit + e2e)** and **accessibility** notes.
+ - **Scaffold UI app** (Vite React or Next). Commit to `apps/ui/` (or `ui/`) with baseline routes/components.
+ - **Testing harness**: Vitest + React Testing Library; Playwright installed with **one blank smoke test**.
+ - **CI jobs**:
+   1. Lint + unit tests + coverage export to `review-artifacts/`.
+   2. **Playwright smoke** on PRs to `development`.
+ - **Pages/Preview**: Configure **GitHub Pages** (or Cloud Run) to publish **Coverage Index** and a **UI demo** (passwordless or demo creds).
+ 
+ **Proof**
+ - Screenshots: Pages settings/URL; CI green checks; SpecKit diffs.
+ 
+ ---
+ 
+ ### **Day 2 — Tue 4 Nov: Expenses UI (+ tests)**
+ 
+@@ -126,97 +129,97 @@ Build **reviewable UIs** for your existing CLIs. Drive the work via **SpecKit**
+ - **README refresh**: add Week 3 **“How to review me”** with Pages/preview links and Release link to the Packet.
+ 
+ **Proof**
+ - Coverage HTML for Quote UI; e2e artifact; README diff.
+ 
+ ---
+ 
+ ### **Day 5 — Fri 7 Nov: Capstone & Review Packet**
+ 
+ - Export **Coverage Index** (CLI + UI) to `review-artifacts/index.html`; ensure per‑tool HTML present.
+ - Update **`review.md`** with this week’s changes, **test coverage summary**, **risks**, **next steps**.
+ - Prepare **Coverage Table** (paste in PR):
+ 
+ | Tool | Statements % | Branches % | Functions % | Lines % |
+ |---|---:|---:|---:|---:|
+ | Expenses (CLI) |  |  |  |  |
+ | ToDo (CLI) |  |  |  |  |
+ | Stopwatch (CLI) |  |  |  |  |
+ | Temperature (CLI) |  |  |  |  |
+ | Quote (CLI) |  |  |  |  |
+ | Expenses (UI) |  |  |  |  |
+ | ToDo (UI) |  |  |  |  |
+ | Quote (UI) |  |  |  |  |
+ 
+ - **GitHub Release**: attach the new **Week 3 Review Packet** ZIP (Coverage HTML, Playwright report, `review.md`).
+-- **Capstone PR** to `development`: title `feat(week3): UI + SpecKit + reviewability (LIN####)`; body includes **Packet/Pages links**, **Coverage Table**, **Linear screenshots**.  
++- **Capstone PR** to `development`: title `feat(week3): UI + SpecKit + reviewability (GH-####)`; body includes **Packet/Pages links**, **Coverage Table**, **GitHub Project screenshots**.
+ - Merge when **checks are green**.
+ 
+ ---
+ 
+ ## Technical Requirements & Patterns
+ 
+ ### SpecKit discipline
+ - **`/specify`**: problem statement, scope, user stories, **acceptance rules**.
+ - **`/plan`**: UI flows, state shape, **test plan (unit + e2e)**, accessibility notes, risks.
+ - **`/tasks`**: granular steps; each task links to PRs/commits.
+ 
+ ### UI architecture
+ - **Pure core logic** shared between CLI/UI where practical.
+ - **Thin view components**; container components own data/IO.
+ - **Determinism**: inject clocks/seeds; mock network/IO.
+ - **Accessibility**: label controls, announce errors, keyboard focus order.
+ 
+ ### Testing
+ - **Unit**: Vitest + RTL; table‑driven tests; **no real time/date — use injected clock**.
+ - **e2e smoke**: Playwright with deterministic fixtures; one happy path per tool.
+ - **Coverage**: collect **separate coverage for CLI and UI**; export HTML to `review-artifacts/` with an index.
+ 
+ ### CI & Reviewability
+-- **Branch protection**: require lint, unit tests, e2e smoke, and **packet‑build** before merge.
++- **Branch protection**: require `lint-and-unit`, `playwright-smoke`, and `review-artifacts-packet` checks to pass before merge.
+ - **Releases**: every capstone PR publishes a **Packet ZIP**.
+ - **Pages/Preview**: Coverage Index + demo links surfaced in README’s **How to review me**.
+ 
+ ### PR Discipline
+-- **Branch**: `feature/LIN-####-short-scope`  
+-- **Title**: `feat(scope): short description (LIN-####)`  
+-- **Body**: _What changed_ / _How I tested_ (real outputs) / _Artifacts_ (Release & Pages links) / **Coverage Table** / **Screenshots** (Linear + branch protection) / **Linked issues**.
++- **Branch**: `feature/GH-####-short-scope`
++- **Title**: `feat(scope): short description (GH-####)`
++- **Body**: _What changed_ / _How I tested_ (real outputs) / _Artifacts_ (Release & Pages links) / **Coverage Table** / **Screenshots** (GitHub Project + branch protection) / **Linked issues**.
+ 
+ ---
+ 
+ ## Deliverables (What to Submit)
+ 
+-- **Screenshots**: Release asset, Pages URL, Linear link proof, branch‑protection rules.
++- **Screenshots**: Release asset, Pages URL, GitHub Issue link proof, branch‑protection rules.
+ - **Review Packet**: Coverage HTML (CLI + UI), Playwright report, `review.md` (summary).
+ - **Capstone PR merged** into `development` with Coverage Table and artifact links.
+ 
+ ---
+ 
+ ## Mentor Review Rubric (Pass/Revise)
+ 
+-**Discipline (SpecKit, Linear, PR hygiene)**  
+-- **Pass**: Issues → branches → PRs; Screenshots in PR; SpecKit updated for each tool.  
++**Discipline (SpecKit, GitHub Projects, PR hygiene)**
++- **Pass**: GitHub Issues → branches → PRs; Screenshots in PR; SpecKit updated for each tool.
+ - **Revise**: Missing links/screens; ad‑hoc branches; stale specs.
+ 
+ **Correctness (UI parity with CLI)**  
+ - **Pass**: UI mirrors CLI rules; helpful inline errors; seeded/clocked determinism.  
+ - **Revise**: Happy‑path only; mismatched validation; flaky behavior.
+ 
+ **Tests & Coverage**  
+ - **Pass**: Targets met (UI ≥ 50%); deterministic unit + e2e smoke; readable tests.  
+ - **Revise**: Targets missed; lack of smoke; brittle tests.
+ 
+ **Artifacts & Reviewability**  
+ - **Pass**: Release with Packet; Pages/preview; README review box current.  
+ - **Revise**: Missing Release/Pages; hard‑to‑find artifacts.
+ 
+ ---
+ 
+ ## “How to review this project (Week 3)” (Copy/Paste Box)
+ 
+ > ### How to review this project (Week 3)
+ > - **Release (Packet):** Download the **Review Packet ZIP** from the latest Release → open `review-artifacts/index.html`.
+ > - **Live demo:** Visit **GitHub Pages** (link below) for the UI demo.
+ > - **What changed:** See the **Week 3 Capstone PR** body for coverage, screenshots, and links.
+ 
+ Add this box near the top of your repo README and keep links fresh each day.
+ 
+@@ -249,35 +252,35 @@ xdg-open coverage/index.html || open coverage/index.html
+ ```
+ 
+ ### C. PR body template (copy/paste)
+ **What changed**  
+ - Implemented Week 3 UIs + SpecKit + reviewability uplift
+ 
+ **How I tested**  
+ - Unit + Playwright smoke; links below
+ 
+ **Artifacts**  
+ - Release (Packet): <link>  
+ - Pages (Coverage Index & demo): <link>
+ 
+ **Coverage Table (CLI + UI)**  
+ | Tool | Stmts | Branches | Funcs | Lines |
+ | --- | ---:| ---:| ---:| ---:|
+ | Expenses (CLI) |  |  |  |  |
+ | ToDo (CLI) |  |  |  |  |
+ | Stopwatch (CLI) |  |  |  |  |
+ | Temperature (CLI) |  |  |  |  |
+ | Quote (CLI) |  |  |  |  |
+ | Expenses (UI) |  |  |  |  |
+ | ToDo (UI) |  |  |  |  |
+ | Quote (UI) |  |  |  |  |
+ 
+-**Screenshots**  
+-- Branch protection rules  
+-- Linear autolink proof
++**Screenshots**
++- Branch protection rules
++- GitHub Issue autolink proof
+ 
+-**Links**  
+-- Linear issue(s): LIN####
++**Links**
++- GitHub Issue(s): GH-####
+ 
+ ---
+ 
+ > _End of Week 3 README (Raymond)_
+diff --git a/apps/ui/src/App.css b/apps/ui/src/App.css
+index d5a543f572fd8802ac502a5d6c13b32e94412a9b..56fe9c3c663fd6de8e8d0befec5060fe72a0ad0b 100644
+--- a/apps/ui/src/App.css
++++ b/apps/ui/src/App.css
+@@ -1,24 +1,63 @@
+ .App {
+-  text-align: center;
++  text-align: left;
+   min-height: 100vh;
+   display: flex;
++  flex-direction: column;
+   align-items: center;
+-  justify-content: center;
++  gap: 2rem;
+   background: radial-gradient(circle at top, #f7f9fc, #e1e7f0);
+   color: #1f2933;
+-  padding: 2rem;
++  padding: 3rem 1.5rem 4rem;
++  box-sizing: border-box;
+ }
+ 
+ .App-header {
+-  max-width: 560px;
++  max-width: 960px;
+ }
+ 
+ .App-header h1 {
+   font-size: 2.5rem;
+-  margin-bottom: 1rem;
++  margin-bottom: 0.75rem;
+ }
+ 
+ .App-header p {
+   font-size: 1.1rem;
+   line-height: 1.6;
++  margin: 0;
++}
++
++.App-content {
++  display: grid;
++  gap: 1.5rem;
++  width: min(960px, 100%);
++}
++
++.page {
++  background: #ffffff;
++  border-radius: 1rem;
++  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
++  padding: 1.5rem;
++  display: grid;
++  gap: 1rem;
++}
++
++.page-header h2 {
++  margin: 0 0 0.5rem;
++  font-size: 1.75rem;
++}
++
++.page-header p {
++  margin: 0;
++  color: #334155;
++  line-height: 1.5;
++}
++
++.placeholder-card {
++  border: 1px dashed #cbd5f5;
++  border-radius: 0.75rem;
++  padding: 1rem 1.25rem;
++  background: #f8fafc;
++  color: #475569;
++  font-size: 0.95rem;
++  line-height: 1.6;
+ }
+diff --git a/apps/ui/src/App.test.tsx b/apps/ui/src/App.test.tsx
+index b7e63340c32681cd9bd8d65a020e5209b14a0100..3f38a371ede13ce111da5df57a382452b8f4c9d0 100644
+--- a/apps/ui/src/App.test.tsx
++++ b/apps/ui/src/App.test.tsx
+@@ -1,9 +1,37 @@
+ import { render, screen } from '@testing-library/react';
+ import App from './App';
+ 
+ describe('App', () => {
+   it('renders the welcome headline', () => {
+     render(<App />);
+     expect(screen.getByTestId('welcome-title')).toHaveTextContent('Training Raymond UI');
+   });
++
++  it('exposes placeholders for each page', () => {
++    render(<App />);
++
++    const section = screen.getByTestId('page-placeholders');
++    expect(section).toBeInTheDocument();
++    expect(
++      screen.getByRole('heading', {
++        level: 2,
++        name: /Expenses/i,
++      }),
++    ).toBeVisible();
++    expect(
++      screen.getByRole('heading', {
++        level: 2,
++        name: /ToDo/i,
++      }),
++    ).toBeVisible();
++    expect(
++      screen.getByRole('heading', {
++        level: 2,
++        name: /Quote/i,
++      }),
++    ).toBeVisible();
++    expect(screen.getByTestId('expenses-components-placeholder')).toBeInTheDocument();
++    expect(screen.getByTestId('todo-components-placeholder')).toBeInTheDocument();
++    expect(screen.getByTestId('quote-components-placeholder')).toBeInTheDocument();
++  });
+ });
+diff --git a/apps/ui/src/App.tsx b/apps/ui/src/App.tsx
+index eaf402438a3879a20b4e6334013fdb326c62baa7..b0a05aed8da1c3bc1e37822ff0e13cf771b2dd0e 100644
+--- a/apps/ui/src/App.tsx
++++ b/apps/ui/src/App.tsx
+@@ -1,17 +1,23 @@
+ import './App.css';
++import { ExpensesPage, QuotePage, ToDoPage } from './pages/index.js';
+ 
+ function App(): JSX.Element {
+   return (
+     <div className="App" role="main">
+       <header className="App-header">
+         <h1 data-testid="welcome-title">Training Raymond UI</h1>
+         <p>
+-          Week 3 UI workspace is ready. Replace this placeholder with the Expenses, ToDo, and Quote
+-          experiences as you implement later phases.
++          Foundations for the Expenses, ToDo, and Quote experiences are ready. Build out each page and
++          its shared components during later phases.
+         </p>
+       </header>
++      <div className="App-content" data-testid="page-placeholders">
++        <ExpensesPage />
++        <ToDoPage />
++        <QuotePage />
++      </div>
+     </div>
+   );
+ }
+ 
+ export default App;
+diff --git a/apps/ui/src/components/expenses/ExpensesPlaceholder.tsx b/apps/ui/src/components/expenses/ExpensesPlaceholder.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..2c7e1787d322badd79866ce79e187765110461ef
+--- /dev/null
++++ b/apps/ui/src/components/expenses/ExpensesPlaceholder.tsx
+@@ -0,0 +1,10 @@
++export function ExpensesPlaceholder(): JSX.Element {
++  return (
++    <div className="placeholder-card" data-testid="expenses-components-placeholder">
++      <p>
++        Shared Expenses UI components will live here. Implement selectors, totals display, and empty
++        states in later phases.
++      </p>
++    </div>
++  );
++}
+diff --git a/apps/ui/src/components/index.ts b/apps/ui/src/components/index.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..a7f41e049766899c7778b2b32f5d8638f4742028
+--- /dev/null
++++ b/apps/ui/src/components/index.ts
+@@ -0,0 +1,3 @@
++export { ExpensesPlaceholder } from './expenses/ExpensesPlaceholder.js';
++export { TodoPlaceholder } from './todo/TodoPlaceholder.js';
++export { QuotePlaceholder } from './quote/QuotePlaceholder.js';
+diff --git a/apps/ui/src/components/quote/QuotePlaceholder.tsx b/apps/ui/src/components/quote/QuotePlaceholder.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..4a5ff1cb7ebd3249a0aac8f119caa2cca438c251
+--- /dev/null
++++ b/apps/ui/src/components/quote/QuotePlaceholder.tsx
+@@ -0,0 +1,10 @@
++export function QuotePlaceholder(): JSX.Element {
++  return (
++    <div className="placeholder-card" data-testid="quote-components-placeholder">
++      <p>
++        Shared Quote UI components will live here. Implement filters, deterministic random selection,
++        and messaging in later phases.
++      </p>
++    </div>
++  );
++}
+diff --git a/apps/ui/src/components/todo/TodoPlaceholder.tsx b/apps/ui/src/components/todo/TodoPlaceholder.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..fb9fc1eace7a6256a99afe65a9d770465c2d0666
+--- /dev/null
++++ b/apps/ui/src/components/todo/TodoPlaceholder.tsx
+@@ -0,0 +1,10 @@
++export function TodoPlaceholder(): JSX.Element {
++  return (
++    <div className="placeholder-card" data-testid="todo-components-placeholder">
++      <p>
++        Shared ToDo UI components will live here. Implement list, add form, and completion controls in
++        later phases.
++      </p>
++    </div>
++  );
++}
+diff --git a/apps/ui/src/pages/ExpensesPage.tsx b/apps/ui/src/pages/ExpensesPage.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..b8cc767e0f26570d89b1fd63c0a48fcf8bb4c77c
+--- /dev/null
++++ b/apps/ui/src/pages/ExpensesPage.tsx
+@@ -0,0 +1,16 @@
++import { ExpensesPlaceholder } from '../components/index.js';
++
++export function ExpensesPage(): JSX.Element {
++  return (
++    <section aria-labelledby="expenses-heading" className="page">
++      <header className="page-header">
++        <h2 id="expenses-heading">Expenses</h2>
++        <p>
++          Track spending summaries that mirror the CLI. This placeholder confirms routing structure
++          before detailed UI work begins.
++        </p>
++      </header>
++      <ExpensesPlaceholder />
++    </section>
++  );
++}
+diff --git a/apps/ui/src/pages/QuotePage.tsx b/apps/ui/src/pages/QuotePage.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..bcebeb9992d08d10b1f4f6e15fc87b1b86b0da6b
+--- /dev/null
++++ b/apps/ui/src/pages/QuotePage.tsx
+@@ -0,0 +1,16 @@
++import { QuotePlaceholder } from '../components/index.js';
++
++export function QuotePage(): JSX.Element {
++  return (
++    <section aria-labelledby="quote-heading" className="page">
++      <header className="page-header">
++        <h2 id="quote-heading">Quote</h2>
++        <p>
++          Surface curated quotes with deterministic random selection. This placeholder provides the
++          route scaffolding for future Quote UI work.
++        </p>
++      </header>
++      <QuotePlaceholder />
++    </section>
++  );
++}
+diff --git a/apps/ui/src/pages/ToDoPage.tsx b/apps/ui/src/pages/ToDoPage.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..70ff0fba270361e55674dc43c66522a3684faed9
+--- /dev/null
++++ b/apps/ui/src/pages/ToDoPage.tsx
+@@ -0,0 +1,16 @@
++import { TodoPlaceholder } from '../components/index.js';
++
++export function ToDoPage(): JSX.Element {
++  return (
++    <section aria-labelledby="todo-heading" className="page">
++      <header className="page-header">
++        <h2 id="todo-heading">ToDo</h2>
++        <p>
++          Manage actionable tasks with deterministic clocks. This placeholder keeps routes wired while
++          ToDo UI logic is under construction.
++        </p>
++      </header>
++      <TodoPlaceholder />
++    </section>
++  );
++}
+diff --git a/apps/ui/src/pages/index.ts b/apps/ui/src/pages/index.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..9aba4d54f071d720036efaa48aae83eab4c7b870
+--- /dev/null
++++ b/apps/ui/src/pages/index.ts
+@@ -0,0 +1,3 @@
++export { ExpensesPage } from './ExpensesPage.js';
++export { ToDoPage } from './ToDoPage.js';
++export { QuotePage } from './QuotePage.js';
+diff --git a/apps/ui/src/tests/helpers.ts b/apps/ui/src/tests/helpers.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..031dbc211cb2806e2965b99140f08ac8eced9abf
+--- /dev/null
++++ b/apps/ui/src/tests/helpers.ts
+@@ -0,0 +1,73 @@
++export type DeterministicRng = () => number;
++
++/**
++ * Creates a deterministic pseudo-random generator using a linear congruential algorithm.
++ * The implementation mirrors Math.random semantics but returns predictable values.
++ */
++export function createDeterministicRng(seed: number): DeterministicRng {
++  let state = normalizeSeed(seed);
++  return () => {
++    state = (1664525 * state + 1013904223) % 4294967296;
++    return state / 4294967296;
++  };
++}
++
++function normalizeSeed(seed: number): number {
++  if (!Number.isFinite(seed)) {
++    throw new Error('Seed must be a finite number.');
++  }
++  const normalized = Math.floor(Math.abs(seed));
++  return normalized % 4294967296;
++}
++
++export interface TestClock {
++  now(): number;
++  advanceBy(milliseconds: number): void;
++  setTime(value: Date | number | string): void;
++  toDate(): Date;
++}
++
++/**
++ * Creates an injectable clock for deterministic time control in tests.
++ */
++export function createTestClock(startAt: Date | number | string = new Date()): TestClock {
++  let current = coerceToMs(startAt);
++
++  return {
++    now(): number {
++      return current;
++    },
++    advanceBy(milliseconds: number): void {
++      if (!Number.isFinite(milliseconds)) {
++        throw new Error('advanceBy requires a finite number of milliseconds.');
++      }
++      current += milliseconds;
++    },
++    setTime(value: Date | number | string): void {
++      current = coerceToMs(value);
++    },
++    toDate(): Date {
++      return new Date(current);
++    },
++  };
++}
++
++function coerceToMs(value: Date | number | string): number {
++  if (value instanceof Date) {
++    return value.getTime();
++  }
++  if (typeof value === 'number') {
++    if (!Number.isFinite(value)) {
++      throw new Error('Timestamp must be finite.');
++    }
++    return value;
++  }
++  if (typeof value === 'string') {
++    const parsed = new Date(value);
++    if (Number.isNaN(parsed.getTime())) {
++      throw new Error('Invalid date string.');
++    }
++    return parsed.getTime();
++  }
++  throw new Error('Unsupported time value.');
++}
+diff --git a/specs/001-update-specify-md/tasks.md b/specs/001-update-specify-md/tasks.md
+index ae9160667b1cd30479c72aae7cab8d319e1917c2..685757d6d0c0fcbc2dc8b4040c1be46d1c5d8c69 100644
+--- a/specs/001-update-specify-md/tasks.md
++++ b/specs/001-update-specify-md/tasks.md
+@@ -1,52 +1,52 @@
+ # Tasks: Week 3 delivery in 3 days (GitHub Projects)
+ 
+ Feature: Update specify.md + Week 3 UI delivery • Branch: `001-update-specify-md`
+ Spec: `C:\Users\RAYMOND\Desktop\Work Projects\training-raymond\specs\001-update-specify-md\spec.md`
+ Plan: `C:\Users\RAYMOND\Desktop\Work Projects\training-raymond\specs\001-update-specify-md\plan.md`
+ 
+ ---
+ 
+ ## Phase 1 — Setup (project initialization)
+ 
+ - [ ] T001 Create UI project folder `apps/ui/` with Vite React scaffold
+ - [ ] T002 Add unit test harness (Vitest + React Testing Library) in `apps/ui/`
+ - [ ] T003 Add Playwright with one blank smoke test in `apps/ui/playwright/`
+ - [ ] T004 Configure GitHub Pages publish pipeline placeholder in `.github/workflows/pages.yml`
+ - [ ] T005 Add CI job for lint + unit + coverage export to `review-artifacts/` in `.github/workflows/ci.yml`
+ - [ ] T006 Add CI job to run Playwright smoke on PRs to `development` in `.github/workflows/ci.yml`
+ - [ ] T007 Create coverage index placeholder `review-artifacts/index.html`
+ - [ ] T008 Add README review box placeholder in `README_Week3.md`
+ - [ ] T009 Create GitHub Project issues from this tasks.md (GH CLI helper script) in `scripts/gh-import-tasks.ps1`
+ 
+ ## Phase 2 — Foundational (blocking prerequisites)
+ 
+-- [ ] T010 Create shared pure logic structure under `src/cli/` for reuse in UI (no code yet)
+-- [ ] T011 Define base UI routes/pages placeholders in `apps/ui/src/pages/`
+-- [ ] T012 Define base UI components placeholders in `apps/ui/src/components/`
+-- [ ] T013 Wire deterministic testing helpers (seeded RNG and injected clock) in `apps/ui/src/tests/helpers.ts`
+-- [ ] T014 Ensure branch protection and required checks documented in `README_Week3.md`
++- [x] T010 Create shared pure logic structure under `src/cli/` for reuse in UI (no code yet)
++- [x] T011 Define base UI routes/pages placeholders in `apps/ui/src/pages/`
++- [x] T012 Define base UI components placeholders in `apps/ui/src/components/`
++- [x] T013 Wire deterministic testing helpers (seeded RNG and injected clock) in `apps/ui/src/tests/helpers.ts`
++- [x] T014 Ensure branch protection and required checks documented in `README_Week3.md`
+ 
+ ---
+ 
+ ## Phase 3 — [US1] Expenses UI (Priority P1)
+ 
+ Goal: Minimal Expenses UI mirroring CLI rules; deterministic tests; coverage ≥ 50% statements.
+ Independent test: Selecting month/category shows correct totals; malformed rows handled.
+ 
+ - [ ] T015 [US1] Implement Expenses route `apps/ui/src/pages/Expenses.tsx`
+ - [ ] T016 [US1] Implement components: selectors and totals `apps/ui/src/components/expenses/`
+ - [ ] T017 [US1] Implement validation for unknown month/category (inline error) `apps/ui/src/pages/Expenses.tsx`
+ - [ ] T018 [US1] Import or implement core totals logic mirroring CLI `apps/ui/src/lib/expenses/totals.ts`
+ - [ ] T019 [P] [US1] Unit tests (table‑driven) for months/categories/malformed rows `apps/ui/src/tests/expenses.test.tsx`
+ - [ ] T020 [US1] Playwright smoke: select month/category → totals render `apps/ui/playwright/expenses.smoke.spec.ts`
+ - [ ] T021 [US1] Export UI coverage HTML and add to `review-artifacts/` (CI ensures)
+ 
+ ---
+ 
+ ## Phase 4 — [US2] ToDo UI (Priority P2)
+ 
+ Goal: Add/list/complete with deterministic date boundaries; coverage ≥ 50% statements.
+ Independent test: yesterday/today/tomorrow boundaries behave by injected clock; duplicate guards enforced.
+ 
+ - [ ] T022 [US2] Implement ToDo route `apps/ui/src/pages/ToDo.tsx`
+ - [ ] T023 [US2] Implement components for list/add/complete `apps/ui/src/components/todo/`
+diff --git a/src/cli/shared/expenses.ts b/src/cli/shared/expenses.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..2cd7d3507a4c9394396b18c71f0a9cd8b1632bc2
+--- /dev/null
++++ b/src/cli/shared/expenses.ts
+@@ -0,0 +1,16 @@
++export {
++  buildExpenseReport,
++  filterExpenses,
++  formatExpenseReport,
++  parseExpenses,
++  summarizeExpenses,
++} from '../../expenses/core.js';
++
++export type {
++  ExpenseFilters,
++  ExpenseFormat,
++  ExpenseRecord,
++  ExpenseReport,
++  ExpenseSummary,
++  ExpenseSummaryEntry,
++} from '../../expenses/core.js';
+diff --git a/src/cli/shared/index.ts b/src/cli/shared/index.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..c68b15b7e97c33999784b3fcaf221b8940a0e8c9
+--- /dev/null
++++ b/src/cli/shared/index.ts
+@@ -0,0 +1,3 @@
++export * from './expenses.js';
++export * from './todo.js';
++export * from './quote.js';
+diff --git a/src/cli/shared/quote.ts b/src/cli/shared/quote.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..9e509f490d4484a95d9a974620de662fe9c3fbcb
+--- /dev/null
++++ b/src/cli/shared/quote.ts
+@@ -0,0 +1,15 @@
++export {
++  filterQuotes,
++  formatQuote,
++  parseQuotes,
++  selectQuote,
++} from '../../quote/core.js';
++
++export type {
++  QuoteError,
++  QuoteErrorReason,
++  QuoteFilters,
++  QuoteFormat,
++  QuoteRecord,
++  QuoteSelectionOptions,
++} from '../../quote/core.js';
+diff --git a/src/cli/shared/todo.ts b/src/cli/shared/todo.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..fd6a644991da1cb0036a09dac91e07bbe3caf592
+--- /dev/null
++++ b/src/cli/shared/todo.ts
+@@ -0,0 +1,19 @@
++export {
++  addTodo,
++  completeTodo,
++  createInitialState,
++  describeTodos,
++  formatTodo,
++  listTodos,
++  serializeState,
++} from '../../todo/core.js';
++
++export type {
++  AddTodoInput,
++  Clock,
++  ListFilters,
++  TodoDependencies,
++  TodoItem,
++  TodoPriority,
++  TodoState,
++} from '../../todo/core.js';
