@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import App from './App';
 
 describe('App', () => {
@@ -35,5 +35,17 @@ describe('App', () => {
     expect(screen.getByRole('columnheader', { name: /Date/i })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: /Category/i })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: /Amount/i })).toBeInTheDocument();
+  });
+
+  it('navigates to the quote explorer when requested', () => {
+    render(<App />);
+    const quoteButton = screen.getByTestId('nav-quote');
+    fireEvent.click(quoteButton);
+
+    expect(screen.getByRole('heading', { name: /quote explorer/i })).toBeInTheDocument();
+    expect(screen.getByTestId('quote-page')).toBeInTheDocument();
+    expect(screen.getByTestId('quote-filter-author')).toBeInTheDocument();
+    expect(screen.getByTestId('quote-filter-tag')).toBeInTheDocument();
+    expect(screen.getByTestId('quote-seed-input')).toBeInTheDocument();
   });
 });

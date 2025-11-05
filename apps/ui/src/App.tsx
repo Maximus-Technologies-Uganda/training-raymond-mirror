@@ -4,6 +4,7 @@
  * Root application shell with navigation between tools:
  * - Expenses: Financial tracking and reporting
  * - ToDo: Task management with deterministic clocks
+ * - Quote: Motivational quote explorer with filters
  *
  * Uses button-based navigation with proper ARIA attributes for accessibility.
  *
@@ -14,11 +15,12 @@ import { useState } from 'react';
 import './App.css';
 import Expenses from './pages/Expenses';
 import ToDo from './pages/ToDo';
+import Quote from './pages/Quote';
 
 /**
  * Available application tools/pages.
  */
-type ActiveTool = 'expenses' | 'todo';
+type ActiveTool = 'expenses' | 'todo' | 'quote';
 
 /**
  * Root application component with tool navigation.
@@ -56,10 +58,22 @@ function App(): JSX.Element {
           >
             ToDo
           </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTool === 'quote'}
+            className={`app-nav__button${activeTool === 'quote' ? ' app-nav__button--active' : ''}`}
+            onClick={() => setActiveTool('quote')}
+            data-testid="nav-quote"
+          >
+            Quote
+          </button>
         </nav>
 
         <main className="app-content">
-          {activeTool === 'expenses' ? <Expenses /> : <ToDo />}
+          {activeTool === 'expenses' && <Expenses />}
+          {activeTool === 'todo' && <ToDo />}
+          {activeTool === 'quote' && <Quote />}
         </main>
       </div>
     </div>

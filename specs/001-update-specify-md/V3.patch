@@ -1,159 +1,83 @@
-diff --git a/apps/ui/playwright/tests/todo.smoke.spec.ts b/apps/ui/playwright/tests/todo.smoke.spec.ts
+diff --git a/apps/ui/playwright/tests/quote.smoke.spec.d.ts b/apps/ui/playwright/tests/quote.smoke.spec.d.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..3fa4d9f7e43547fbc059fd0387f58eb9a7819359
+index 0000000000000000000000000000000000000000..cb0ff5c3b541f646105198ee23ac0fc3d805023e
 --- /dev/null
-+++ b/apps/ui/playwright/tests/todo.smoke.spec.ts
-@@ -0,0 +1,24 @@
++++ b/apps/ui/playwright/tests/quote.smoke.spec.d.ts
+@@ -0,0 +1 @@
++export {};
+diff --git a/apps/ui/playwright/tests/quote.smoke.spec.ts b/apps/ui/playwright/tests/quote.smoke.spec.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..e6a0d068e259b126e269c3b9de980ecfa04d2d1a
+--- /dev/null
++++ b/apps/ui/playwright/tests/quote.smoke.spec.ts
+@@ -0,0 +1,32 @@
 +import { test, expect } from '@playwright/test';
 +
-+test.describe('ToDo UI smoke', () => {
-+  test('add, list, and complete a task @smoke', async ({ page }) => {
-+    await page.goto('/');
++test('quote filters and deterministic random selection @smoke', async ({ page }) => {
++  await page.goto('/');
++  await page.getByTestId('nav-quote').click();
 +
-+    await page.getByTestId('nav-todo').click();
-+    await expect(page.getByTestId('todo-title')).toHaveText('Team ToDo tracker');
++  await expect(page.getByTestId('quote-title')).toHaveText('Quote explorer');
 +
-+    await page.getByTestId('todo-title-input').fill('Document API changes');
-+    await page.getByTestId('todo-priority-select').selectOption('high');
-+    await page.getByTestId('todo-due-date-input').fill('2025-11-05');
-+    await page.getByTestId('todo-submit').click();
++  const tagInput = page.getByTestId('quote-tag-input');
++  await tagInput.fill('resilience');
 +
-+    await expect(page.getByTestId('todo-success')).toHaveText(/Document API changes/);
++  await expect(page.getByTestId('quote-results-count')).toHaveText('Showing 1 result');
++  await expect(page.getByTestId('quote-result-text')).toContainText('Still I rise.');
 +
-+    const newItem = page.getByTestId('todo-item-5');
-+    await expect(newItem).toContainText('Document API changes');
++  const clearButton = page.getByTestId('quote-clear-button');
++  await expect(clearButton).toBeEnabled();
++  await clearButton.click();
 +
-+    await newItem.getByRole('button', { name: /Mark complete/i }).click();
-+    await expect(page.getByTestId('todo-success')).toHaveText(/Marked "Document API changes" as complete/i);
-+    await expect(newItem.getByTestId('todo-status-5')).toHaveText('Completed');
-+  });
++  const randomSection = page.getByTestId('quote-random');
++  await expect(randomSection).toBeVisible();
++
++  const seedInput = page.getByTestId('quote-seed-input');
++  await seedInput.fill('alpha');
++  const alphaQuote = await page.getByTestId('quote-result-text').textContent();
++
++  await seedInput.fill('beta');
++  const betaQuote = await page.getByTestId('quote-result-text').textContent();
++  expect(betaQuote).not.toBe(alphaQuote);
++
++  await seedInput.fill('alpha');
++  await expect(page.getByTestId('quote-result-text')).toHaveText(alphaQuote ?? '');
 +});
 diff --git a/apps/ui/src/App.css b/apps/ui/src/App.css
-index 55fc5c3230961856f0dc4980f35b6ba474f46459..1e072fc632f6caf92d193e4592a9f509c333f116 100644
+index 4736209ad8bcb3876ceac7a5ec870c2c638879d0..8ff11107aa5975bb5d33d59cd3ce65256dbb0066 100644
 --- a/apps/ui/src/App.css
 +++ b/apps/ui/src/App.css
-@@ -1,45 +1,94 @@
- :root {
-   color-scheme: light;
-   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-   line-height: 1.6;
-   background-color: #f3f6fb;
+@@ -366,50 +366,255 @@ body {
+   font-weight: 600;
  }
  
- body {
-   margin: 0;
+ .todo-alert--success {
+   background: rgba(16, 185, 129, 0.12);
+   color: #047857;
+   border: 1px solid rgba(16, 185, 129, 0.25);
  }
  
- .App {
-   min-height: 100vh;
-   padding: 3rem 1.5rem 4rem;
-   background: radial-gradient(circle at top, #f7f9fc 0%, #e1e7f0 75%);
-   color: #1f2933;
-   display: flex;
-   justify-content: center;
+ .todo-alert--error {
+   background: rgba(248, 113, 113, 0.12);
+   color: #b91c1c;
+   border: 1px solid rgba(248, 113, 113, 0.25);
  }
  
-+.app-shell {
-+  width: 100%;
-+  max-width: 1040px;
-+  display: flex;
-+  flex-direction: column;
-+  gap: 2rem;
-+}
+ .todo-controls {
+   display: grid;
+   gap: 1.5rem;
+ }
+ 
+ .todo-controls__secondary {
+   display: grid;
+   gap: 1.5rem;
+ }
+ 
++/* ==========================================================================
++   Quote Page
++   ========================================================================== */
 +
-+.app-nav {
-+  display: inline-flex;
-+  gap: 0.75rem;
-+  background: #ffffff;
-+  padding: 0.5rem;
-+  border-radius: 999px;
-+  box-shadow: 0 10px 30px -15px rgba(15, 23, 42, 0.4);
-+  align-self: flex-start;
-+}
-+
-+.app-nav__button {
-+  border: none;
-+  background: transparent;
-+  padding: 0.5rem 1.5rem;
-+  border-radius: 999px;
-+  font-size: 0.95rem;
-+  font-weight: 600;
-+  color: #475569;
-+  cursor: pointer;
-+  transition: all 0.2s ease;
-+}
-+
-+.app-nav__button:hover,
-+.app-nav__button:focus {
-+  color: #1f2933;
-+  background: rgba(191, 219, 254, 0.4);
-+  outline: none;
-+}
-+
-+.app-nav__button--active {
-+  background: linear-gradient(135deg, #2563eb, #7c3aed);
-+  color: #f8fafc;
-+  box-shadow: 0 12px 30px -12px rgba(37, 99, 235, 0.7);
-+}
-+
-+.app-content {
-+  display: flex;
-+  flex-direction: column;
-+  flex: 1;
-+}
-+
- .expenses-page {
-   width: 100%;
-   max-width: 960px;
-   background: #ffffff;
-   border-radius: 16px;
-   box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.18);
-   padding: 3rem;
-   display: flex;
-   flex-direction: column;
-   gap: 2.5rem;
- }
- 
- .expenses-page__header {
-   display: flex;
-   flex-direction: column;
-   gap: 0.75rem;
- }
- 
- .expenses-page__title {
-   margin: 0;
-   font-size: 2.5rem;
-   line-height: 1.2;
- }
- 
- .expenses-page__subtitle {
-@@ -222,46 +271,395 @@ body {
-   border-radius: 12px;
-   overflow: hidden;
-   box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
- }
- 
- .expenses-table__table thead {
-   background: #e8eeff;
- }
- 
- .expenses-table__table th,
- .expenses-table__table td {
-   padding: 0.9rem 1rem;
-   text-align: left;
- }
- 
- .expenses-table__table tbody tr:nth-child(even) {
-   background: rgba(241, 245, 249, 0.6);
- }
- 
- .expenses-table__empty {
-   text-align: center;
-   font-style: italic;
-   color: #6b7280;
- }
- 
-+.todo-page {
++.quote-page {
 +  width: 100%;
 +  background: #ffffff;
 +  border-radius: 16px;
@@ -164,1255 +88,1223 @@ index 55fc5c3230961856f0dc4980f35b6ba474f46459..1e072fc632f6caf92d193e4592a9f509
 +  gap: 2.5rem;
 +}
 +
-+.todo-page__header {
++.quote-page__header {
 +  display: flex;
 +  flex-direction: column;
 +  gap: 0.75rem;
 +}
 +
-+.todo-page__title {
++.quote-page__title {
 +  margin: 0;
 +  font-size: 2.25rem;
 +}
 +
-+.todo-page__subtitle {
++.quote-page__subtitle {
 +  margin: 0;
-+  color: #475569;
 +  font-size: 1rem;
++  color: #475569;
 +}
 +
-+.todo-summary {
-+  margin: 0;
++.quote-filters {
 +  display: grid;
-+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-+  gap: 1.25rem;
-+  padding: 1rem 1.25rem;
-+  border-radius: 12px;
-+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(56, 189, 248, 0.08));
++  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
++  gap: 1.5rem;
++  align-items: end;
 +}
 +
-+.todo-summary > div {
++.quote-filters__group {
 +  display: flex;
 +  flex-direction: column;
-+  gap: 0.25rem;
++  gap: 0.5rem;
 +}
 +
-+.todo-summary dt {
++.quote-filters__label {
++  font-weight: 600;
++}
++
++.quote-filters__input {
++  border: 1px solid #cbd5f5;
++  border-radius: 8px;
++  padding: 0.75rem 1rem;
++  font-size: 1rem;
++  transition: border-color 0.2s ease, box-shadow 0.2s ease;
++}
++
++.quote-filters__input:focus {
++  outline: 3px solid rgba(124, 58, 237, 0.25);
++  border-color: #7c3aed;
++}
++
++.quote-filters__help {
 +  margin: 0;
 +  font-size: 0.85rem;
-+  text-transform: uppercase;
-+  letter-spacing: 0.06em;
-+  color: #1d4ed8;
++  color: #6b7280;
 +}
 +
-+.todo-summary dd {
-+  margin: 0;
-+  font-size: 1.5rem;
-+  font-weight: 700;
-+  color: #0f172a;
-+}
-+
-+.todo-alert {
-+  border-radius: 12px;
-+  padding: 0.85rem 1.1rem;
-+  font-weight: 600;
-+}
-+
-+.todo-alert--success {
-+  background: rgba(16, 185, 129, 0.12);
-+  color: #047857;
-+  border: 1px solid rgba(16, 185, 129, 0.25);
-+}
-+
-+.todo-alert--error {
-+  background: rgba(248, 113, 113, 0.12);
-+  color: #b91c1c;
-+  border: 1px solid rgba(248, 113, 113, 0.25);
-+}
-+
-+.todo-controls {
-+  display: grid;
-+  gap: 1.5rem;
-+}
-+
-+.todo-controls__secondary {
-+  display: grid;
-+  gap: 1.5rem;
-+}
-+
-+.todo-form {
-+  display: grid;
-+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-+  gap: 1rem 1.25rem;
-+  background: rgba(59, 130, 246, 0.07);
-+  border: 1px solid rgba(59, 130, 246, 0.2);
-+  padding: 1.25rem 1.5rem;
-+  border-radius: 12px;
-+}
-+
-+.todo-form__field {
++.quote-filters__actions {
 +  display: flex;
-+  flex-direction: column;
-+  gap: 0.4rem;
++  justify-content: flex-start;
 +}
 +
-+.todo-form__label {
-+  font-weight: 600;
-+  color: #1d4ed8;
-+}
-+
-+.todo-form__input {
-+  border-radius: 8px;
-+  border: 1px solid #cbd5f5;
-+  padding: 0.6rem 0.75rem;
-+  font-size: 1rem;
-+  background: #ffffff;
-+  color: inherit;
-+}
-+
-+.todo-form__input:focus {
-+  outline: 3px solid rgba(37, 99, 235, 0.25);
-+  border-color: #2563eb;
-+}
-+
-+.todo-form__submit {
-+  border: none;
-+  border-radius: 8px;
-+  padding: 0.75rem 1.5rem;
-+  font-weight: 700;
-+  font-size: 1rem;
-+  background: linear-gradient(135deg, #2563eb, #7c3aed);
-+  color: #f8fafc;
-+  cursor: pointer;
-+  transition: transform 0.2s ease, box-shadow 0.2s ease;
-+}
-+
-+.todo-form__submit:hover {
-+  transform: translateY(-1px);
-+  box-shadow: 0 14px 35px -20px rgba(79, 70, 229, 0.6);
-+}
-+
-+.todo-filters {
-+  display: flex;
-+  flex-wrap: wrap;
-+  gap: 1rem;
-+  align-items: center;
-+}
-+
-+.todo-filters__checkbox {
-+  display: inline-flex;
-+  align-items: center;
-+  gap: 0.6rem;
-+  font-weight: 500;
-+}
-+
-+.todo-filters__select {
-+  display: flex;
-+  flex-direction: column;
-+  gap: 0.35rem;
-+  font-weight: 500;
-+}
-+
-+.todo-filters__label {
-+  color: #475569;
-+}
-+
-+.todo-filters select {
-+  border-radius: 8px;
-+  border: 1px solid #cbd5f5;
-+  padding: 0.5rem 0.75rem;
-+  font-size: 1rem;
-+  background: #ffffff;
-+}
-+
-+.todo-complete {
-+  display: flex;
-+  gap: 0.75rem;
-+  align-items: flex-end;
-+  flex-wrap: wrap;
-+}
-+
-+.todo-complete__field {
-+  display: flex;
-+  flex-direction: column;
-+  gap: 0.35rem;
-+}
-+
-+.todo-complete__label {
-+  font-weight: 600;
-+}
-+
-+.todo-complete__input {
-+  border-radius: 8px;
-+  border: 1px solid #cbd5f5;
-+  padding: 0.55rem 0.75rem;
-+  font-size: 1rem;
-+}
-+
-+.todo-complete__submit {
-+  border-radius: 8px;
-+  border: 1px solid #cbd5f5;
-+  padding: 0.6rem 1.2rem;
-+  font-weight: 600;
-+  background: #ffffff;
-+  color: #1f2933;
-+  cursor: pointer;
-+}
-+
-+.todo-list {
-+  list-style: none;
-+  padding: 0;
-+  margin: 0;
-+  display: grid;
-+  gap: 1.25rem;
-+}
-+
-+.todo-list__item {
-+  background: #f8fafc;
-+  border-radius: 14px;
-+  padding: 1.25rem 1.5rem;
-+  display: flex;
-+  justify-content: space-between;
-+  gap: 1.5rem;
-+  border: 1px solid rgba(148, 163, 184, 0.2);
-+}
-+
-+.todo-list__content {
-+  display: flex;
-+  flex-direction: column;
-+  gap: 0.75rem;
-+}
-+
-+.todo-list__headline {
-+  display: flex;
-+  flex-wrap: wrap;
-+  gap: 0.75rem;
-+  align-items: center;
-+}
-+
-+.todo-list__title {
-+  font-size: 1.1rem;
-+  font-weight: 700;
-+}
-+
-+.todo-list__priority {
-+  text-transform: uppercase;
-+  font-size: 0.75rem;
-+  letter-spacing: 0.08em;
-+  padding: 0.25rem 0.6rem;
++.quote-filters__clear {
++  border: 2px solid #ede9fe;
 +  border-radius: 999px;
-+}
-+
-+.todo-list__priority--high {
-+  background: rgba(239, 68, 68, 0.15);
-+  color: #b91c1c;
-+}
-+
-+.todo-list__priority--med {
-+  background: rgba(37, 99, 235, 0.15);
-+  color: #1d4ed8;
-+}
-+
-+.todo-list__priority--low {
-+  background: rgba(16, 185, 129, 0.15);
-+  color: #047857;
-+}
-+
-+.todo-list__due {
-+  font-size: 0.85rem;
++  padding: 0.6rem 1.4rem;
++  font-size: 0.95rem;
 +  font-weight: 600;
-+  padding: 0.25rem 0.6rem;
-+  border-radius: 999px;
-+}
-+
-+.todo-list__due--today {
-+  background: rgba(34, 197, 94, 0.18);
-+  color: #047857;
-+}
-+
-+.todo-list__due--tomorrow {
-+  background: rgba(59, 130, 246, 0.18);
-+  color: #1d4ed8;
-+}
-+
-+.todo-list__due--upcoming {
-+  background: rgba(14, 116, 144, 0.15);
-+  color: #0e7490;
-+}
-+
-+.todo-list__due--past,
-+.todo-list__due--overdue {
-+  background: rgba(248, 113, 113, 0.18);
-+  color: #b91c1c;
-+}
-+
-+.todo-list__status {
-+  font-size: 0.85rem;
-+  font-weight: 700;
-+  color: #475569;
-+}
-+
-+.todo-list__meta {
-+  display: flex;
-+  gap: 1.5rem;
-+  flex-wrap: wrap;
-+  margin: 0;
-+}
-+
-+.todo-list__meta dt {
-+  font-size: 0.75rem;
-+  text-transform: uppercase;
-+  letter-spacing: 0.06em;
-+  margin: 0;
-+  color: #64748b;
-+}
-+
-+.todo-list__meta dd {
-+  margin: 0.25rem 0 0;
-+  font-weight: 600;
-+}
-+
-+.todo-list__complete {
-+  align-self: center;
-+  border: none;
-+  border-radius: 8px;
-+  padding: 0.6rem 1.1rem;
-+  font-weight: 600;
-+  background: #1d4ed8;
-+  color: #f8fafc;
++  background: #f5f3ff;
++  color: #6d28d9;
 +  cursor: pointer;
-+  transition: transform 0.2s ease;
++  transition: all 0.2s ease;
 +}
 +
-+.todo-list__complete:disabled {
-+  background: #94a3b8;
++.quote-filters__clear:disabled {
++  opacity: 0.45;
 +  cursor: not-allowed;
 +}
 +
-+.todo-list__complete:not(:disabled):hover {
-+  transform: translateY(-1px);
++.quote-filters__clear:not(:disabled):hover {
++  background: #ede9fe;
 +}
 +
-+.todo-empty {
++.quote-empty {
++  margin: 0;
++  padding: 1.25rem 1.5rem;
 +  border-radius: 12px;
-+  border: 1px dashed rgba(148, 163, 184, 0.5);
-+  padding: 1.5rem;
-+  text-align: center;
-+  color: #64748b;
++  background: rgba(59, 130, 246, 0.08);
++  border: 1px solid rgba(59, 130, 246, 0.2);
++  color: #1d4ed8;
++  font-weight: 500;
++}
++
++.quote-random {
++  display: grid;
++  gap: 1.25rem;
++}
++
++.quote-random__header {
++  display: flex;
++  justify-content: space-between;
++  align-items: baseline;
++}
++
++.quote-random__title {
++  margin: 0;
++  font-size: 1.4rem;
++}
++
++.quote-random__meta {
++  margin: 0;
++  font-size: 0.9rem;
++  color: #6366f1;
++}
++
++.quote-card {
++  border-radius: 16px;
++  padding: 1.75rem;
++  background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(124, 58, 237, 0.1));
++  box-shadow: inset 0 0 0 1px rgba(79, 70, 229, 0.15);
++  display: grid;
++  gap: 1rem;
++}
++
++.quote-card--highlight {
++  background: linear-gradient(135deg, rgba(14, 165, 233, 0.15), rgba(59, 130, 246, 0.2));
++  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.2);
++}
++
++.quote-card__text {
++  margin: 0;
++  font-size: 1.35rem;
++  font-weight: 600;
++  color: #1f2937;
++}
++
++.quote-card__author {
++  margin: 0;
++  font-size: 1rem;
++  font-weight: 500;
++  color: #4c1d95;
++}
++
++.quote-card__tags {
++  display: flex;
++  flex-wrap: wrap;
++  gap: 0.5rem;
++  margin: 0;
++  padding: 0;
++  list-style: none;
++}
++
++.quote-card__tag {
++  padding: 0.35rem 0.75rem;
++  border-radius: 999px;
++  background: rgba(124, 58, 237, 0.12);
++  color: #5b21b6;
++  font-size: 0.85rem;
 +  font-weight: 600;
 +}
 +
- @media (max-width: 720px) {
-   .App {
-     padding: 2rem 1rem 3rem;
-   }
++.quote-card__tags--empty {
++  margin: 0;
++  font-size: 0.9rem;
++  color: #6b7280;
++}
++
++.quote-results {
++  display: grid;
++  gap: 1.5rem;
++}
++
++.quote-results__header {
++  display: flex;
++  justify-content: space-between;
++  align-items: baseline;
++}
++
++.quote-results__title {
++  margin: 0;
++  font-size: 1.4rem;
++}
++
++.quote-results__meta {
++  margin: 0;
++  font-size: 0.95rem;
++  color: #2563eb;
++}
++
++.quote-results__grid {
++  display: grid;
++  gap: 1.5rem;
++}
++
+ /* ==========================================================================
+    ToDo Form
+    ========================================================================== */
  
-   .expenses-page {
-     padding: 2rem 1.5rem;
-   }
- 
-   .expenses-page__title {
-     font-size: 2rem;
-   }
- 
-   .expenses-controls {
-     grid-template-columns: 1fr;
-   }
- 
-   .expenses-controls__clear-btn {
-     width: 100%;
-   }
+ .todo-form {
+   display: grid;
+   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+   gap: 1rem 1.25rem;
+   background: rgba(59, 130, 246, 0.07);
+   border: 1px solid rgba(59, 130, 246, 0.2);
+   padding: 1.25rem 1.5rem;
+   border-radius: 12px;
  }
+ 
+ .todo-form__field {
+   display: flex;
+   flex-direction: column;
+   gap: 0.4rem;
+ }
+ 
+ .todo-form__label {
+   font-weight: 600;
+   color: #1d4ed8;
+ }
+ 
+diff --git a/apps/ui/src/App.test.tsx b/apps/ui/src/App.test.tsx
+index 7a3add5e40128894f962c20a916592c56f48d359..4a2bddad5cfe1ec59d57bb2d8e9aed09c6abfd6e 100644
+--- a/apps/ui/src/App.test.tsx
++++ b/apps/ui/src/App.test.tsx
+@@ -1,39 +1,48 @@
+-import { render, screen } from '@testing-library/react';
++import { fireEvent, render, screen } from '@testing-library/react';
+ import App from './App';
+ 
+ describe('App', () => {
+   it('renders the expenses overview page', () => {
+     render(<App />);
+     expect(screen.getByTestId('expenses-title')).toHaveTextContent('Expenses overview');
+     expect(screen.getByTestId('expenses-total')).toHaveTextContent(/Total:\s*\$232\.10/);
+   });
+ 
+   it('displays data quality notices for malformed rows', () => {
+     render(<App />);
+     expect(screen.getByTestId('expenses-issues')).toBeInTheDocument();
+     expect(screen.getByText(/Data quality notices/i)).toBeInTheDocument();
+   });
+ 
+   it('renders filter controls', () => {
+     render(<App />);
+     expect(screen.getByLabelText(/Filter expenses by month/i)).toBeInTheDocument();
+     expect(screen.getByLabelText(/Filter expenses by category/i)).toBeInTheDocument();
+   });
+ 
+   it('renders the totals summary section', () => {
+     render(<App />);
+     expect(screen.getByText(/By category/i)).toBeInTheDocument();
+     expect(screen.getByTestId('expenses-total')).toBeInTheDocument();
+   });
+ 
+   it('renders the expenses table', () => {
+     render(<App />);
+     const table = screen.getByRole('table');
+     expect(table).toBeInTheDocument();
+ 
+     // Check for table headers
+     expect(screen.getByRole('columnheader', { name: /Date/i })).toBeInTheDocument();
+     expect(screen.getByRole('columnheader', { name: /Category/i })).toBeInTheDocument();
+     expect(screen.getByRole('columnheader', { name: /Amount/i })).toBeInTheDocument();
+   });
++
++  it('navigates to the quote explorer when requested', () => {
++    render(<App />);
++    const quoteButton = screen.getByTestId('nav-quote');
++    fireEvent.click(quoteButton);
++
++    expect(screen.getByTestId('quote-title')).toHaveTextContent('Quote explorer');
++    expect(screen.getByTestId('quote-random')).toBeInTheDocument();
++  });
+ });
 diff --git a/apps/ui/src/App.tsx b/apps/ui/src/App.tsx
-index d116971ab0f564935ffeb957c211e09ba7e3bb92..c43ebfcc09d0435721184f89deb1cc8e556d1001 100644
+index 2f48cf5e45ab8c080291d782929ca8e81c7141ab..f096694796ad51425b33d7b90f1c725341a75f9c 100644
 --- a/apps/ui/src/App.tsx
 +++ b/apps/ui/src/App.tsx
-@@ -1,16 +1,49 @@
-+import { useState } from 'react';
+@@ -1,69 +1,82 @@
+ /**
+  * Main Application Component
+  *
+  * Root application shell with navigation between tools:
+  * - Expenses: Financial tracking and reporting
+  * - ToDo: Task management with deterministic clocks
+  *
+  * Uses button-based navigation with proper ARIA attributes for accessibility.
+  *
+  * @module App
+  */
+ 
+ import { useState } from 'react';
  import './App.css';
  import Expenses from './pages/Expenses';
-+import ToDo from './pages/ToDo';
-+
-+type ActiveTool = 'expenses' | 'todo';
+ import ToDo from './pages/ToDo';
++import Quote from './pages/Quote.js';
  
  /**
-  * Main application component for Phase 3 Expenses UI implementation.
-  * Displays the Expenses overview with filtering and totals.
+  * Available application tools/pages.
+  */
+-type ActiveTool = 'expenses' | 'todo';
++type ActiveTool = 'expenses' | 'todo' | 'quote';
+ 
+ /**
+  * Root application component with tool navigation.
+  * Implements tab-like navigation pattern with ARIA roles for accessibility.
+  *
+  * @example
+  * ```tsx
+  * <App />
+  * ```
   */
  function App(): JSX.Element {
-+  const [activeTool, setActiveTool] = useState<ActiveTool>('expenses');
-+
+   const [activeTool, setActiveTool] = useState<ActiveTool>('expenses');
+ 
    return (
      <div className="App">
--      <Expenses />
-+      <div className="app-shell">
-+        <nav className="app-nav" role="tablist" aria-label="Tool selection">
+       <div className="app-shell">
+         <nav className="app-nav" role="tablist" aria-label="Tool selection">
+           <button
+             type="button"
+             role="tab"
+             aria-selected={activeTool === 'expenses'}
+             className={`app-nav__button${activeTool === 'expenses' ? ' app-nav__button--active' : ''}`}
+             onClick={() => setActiveTool('expenses')}
+             data-testid="nav-expenses"
+           >
+             Expenses
+           </button>
+           <button
+             type="button"
+             role="tab"
+             aria-selected={activeTool === 'todo'}
+             className={`app-nav__button${activeTool === 'todo' ? ' app-nav__button--active' : ''}`}
+             onClick={() => setActiveTool('todo')}
+             data-testid="nav-todo"
+           >
+             ToDo
+           </button>
 +          <button
 +            type="button"
 +            role="tab"
-+            aria-selected={activeTool === 'expenses'}
-+            className={`app-nav__button${activeTool === 'expenses' ? ' app-nav__button--active' : ''}`}
-+            onClick={() => setActiveTool('expenses')}
-+            data-testid="nav-expenses"
++            aria-selected={activeTool === 'quote'}
++            className={`app-nav__button${activeTool === 'quote' ? ' app-nav__button--active' : ''}`}
++            onClick={() => setActiveTool('quote')}
++            data-testid="nav-quote"
 +          >
-+            Expenses
++            Quote
 +          </button>
-+          <button
-+            type="button"
-+            role="tab"
-+            aria-selected={activeTool === 'todo'}
-+            className={`app-nav__button${activeTool === 'todo' ? ' app-nav__button--active' : ''}`}
-+            onClick={() => setActiveTool('todo')}
-+            data-testid="nav-todo"
-+          >
-+            ToDo
-+          </button>
-+        </nav>
-+
-+        <main className="app-content">
-+          {activeTool === 'expenses' ? <Expenses /> : <ToDo />}
-+        </main>
-+      </div>
+         </nav>
+ 
+         <main className="app-content">
+-          {activeTool === 'expenses' ? <Expenses /> : <ToDo />}
++          {activeTool === 'expenses' && <Expenses />}
++          {activeTool === 'todo' && <ToDo />}
++          {activeTool === 'quote' && <Quote />}
+         </main>
+       </div>
      </div>
    );
  }
  
  export default App;
-diff --git a/apps/ui/src/components/todo/TodoAddForm.tsx b/apps/ui/src/components/todo/TodoAddForm.tsx
+diff --git a/apps/ui/src/components/index.ts b/apps/ui/src/components/index.ts
+index db4ac0db3ec8dd62ff62e249cfc9d1de2265554f..9120b4a4bcea498975adc147b21fda45a2719d2e 100644
+--- a/apps/ui/src/components/index.ts
++++ b/apps/ui/src/components/index.ts
+@@ -1,15 +1,18 @@
+ export { ExpensesPlaceholder } from './expenses/ExpensesPlaceholder.js';
+ export { TodoPlaceholder } from './todo/TodoPlaceholder.js';
+-export { QuotePlaceholder } from './quote/QuotePlaceholder.js';
++export { QuoteFiltersForm } from './quote/QuoteFiltersForm.js';
++export { QuoteResultCard } from './quote/QuoteResultCard.js';
++export { QuoteResultsList } from './quote/QuoteResultsList.js';
++export type { QuoteDisplay } from './quote/types.js';
+ 
+ // Phase 4 ToDo UI Components
+ export { default as TodoAddForm } from './todo/TodoAddForm';
+ export { default as TodoCompleteForm } from './todo/TodoCompleteForm';
+ export { default as TodoFilters } from './todo/TodoFilters';
+ export { default as TodoList } from './todo/TodoList';
+ 
+ // Type exports for consumers
+ export type { TodoAddFormValues, TodoAddFormProps } from './todo/TodoAddForm';
+ export type { TodoCompleteFormProps } from './todo/TodoCompleteForm';
+ export type { TodoFiltersState, TodoFiltersProps } from './todo/TodoFilters';
+ export type { DueDescriptor, TodoListItem, TodoListProps } from './todo/TodoList';
+diff --git a/apps/ui/src/components/quote/QuoteFiltersForm.tsx b/apps/ui/src/components/quote/QuoteFiltersForm.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..6f9d6cdfb3a971e818ea1ffc2ac4fb76b45b6383
+index 0000000000000000000000000000000000000000..9c3bc412db9a5ad91b2fc42b04cb91191fd50fad
 --- /dev/null
-+++ b/apps/ui/src/components/todo/TodoAddForm.tsx
-@@ -0,0 +1,92 @@
-+import { type FormEvent, useState } from 'react';
-+import type { TodoPriority } from '@cli/shared/todo.js';
++++ b/apps/ui/src/components/quote/QuoteFiltersForm.tsx
+@@ -0,0 +1,101 @@
++import { FormEvent } from 'react';
 +
-+export interface TodoAddFormValues {
-+  title: string;
-+  priority: TodoPriority;
-+  dueDate?: string;
++export interface QuoteFiltersFormProps {
++  author: string;
++  tag: string;
++  seed: string;
++  hasActiveFilters: boolean;
++  onAuthorChange(value: string): void;
++  onTagChange(value: string): void;
++  onSeedChange(value: string): void;
++  onClear(): void;
 +}
 +
-+export interface TodoAddFormProps {
-+  onSubmit(values: TodoAddFormValues): boolean;
-+}
-+
-+const PRIORITY_OPTIONS: TodoPriority[] = ['high', 'med', 'low'];
-+
-+function TodoAddForm({ onSubmit }: TodoAddFormProps): JSX.Element {
-+  const [title, setTitle] = useState('');
-+  const [priority, setPriority] = useState<TodoPriority>('med');
-+  const [dueDate, setDueDate] = useState('');
-+
++/**
++ * Controlled form for author/tag filters and deterministic seed input.
++ */
++export function QuoteFiltersForm({
++  author,
++  tag,
++  seed,
++  hasActiveFilters,
++  onAuthorChange,
++  onTagChange,
++  onSeedChange,
++  onClear,
++}: QuoteFiltersFormProps): JSX.Element {
 +  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
 +    event.preventDefault();
-+    const success = onSubmit({ title, priority, dueDate: dueDate || undefined });
-+    if (success) {
-+      setTitle('');
-+      setPriority('med');
-+      setDueDate('');
-+    }
 +  };
 +
 +  return (
-+    <form className="todo-form" onSubmit={handleSubmit} aria-label="Add a new task">
-+      <div className="todo-form__field">
-+        <label htmlFor="todo-title" className="todo-form__label">
-+          Title
++    <form className="quote-filters" aria-label="Quote filters" onSubmit={handleSubmit}>
++      <div className="quote-filters__group">
++        <label htmlFor="quote-author" className="quote-filters__label">
++          Author
 +        </label>
 +        <input
-+          id="todo-title"
-+          name="title"
-+          className="todo-form__input"
++          id="quote-author"
++          name="author"
 +          type="text"
-+          value={title}
-+          onChange={(event) => setTitle(event.target.value)}
-+          placeholder="Plan sprint retrospective"
-+          required
-+          data-testid="todo-title-input"
++          className="quote-filters__input"
++          value={author}
++          onChange={(event) => onAuthorChange(event.target.value)}
++          placeholder="e.g. Maya Angelou"
++          data-testid="quote-author-input"
 +        />
++        <p className="quote-filters__help">Filters exact author name. Case-insensitive.</p>
 +      </div>
 +
-+      <div className="todo-form__field">
-+        <label htmlFor="todo-priority" className="todo-form__label">
-+          Priority
-+        </label>
-+        <select
-+          id="todo-priority"
-+          name="priority"
-+          className="todo-form__input"
-+          value={priority}
-+          onChange={(event) => setPriority(event.target.value as TodoPriority)}
-+          data-testid="todo-priority-select"
-+        >
-+          {PRIORITY_OPTIONS.map((option) => (
-+            <option key={option} value={option}>
-+              {option === 'med' ? 'medium' : option}
-+            </option>
-+          ))}
-+        </select>
-+      </div>
-+
-+      <div className="todo-form__field">
-+        <label htmlFor="todo-due-date" className="todo-form__label">
-+          Due date
++      <div className="quote-filters__group">
++        <label htmlFor="quote-tag" className="quote-filters__label">
++          Tag
 +        </label>
 +        <input
-+          id="todo-due-date"
-+          name="dueDate"
-+          className="todo-form__input"
-+          type="date"
-+          value={dueDate}
-+          onChange={(event) => setDueDate(event.target.value)}
-+          data-testid="todo-due-date-input"
++          id="quote-tag"
++          name="tag"
++          type="text"
++          className="quote-filters__input"
++          value={tag}
++          onChange={(event) => onTagChange(event.target.value)}
++          placeholder="e.g. resilience"
++          data-testid="quote-tag-input"
 +        />
++        <p className="quote-filters__help">Matches any tag attached to the quote. Case-insensitive.</p>
 +      </div>
 +
-+      <button type="submit" className="todo-form__submit" data-testid="todo-submit">
-+        Add task
-+      </button>
++      <div className="quote-filters__group">
++        <label htmlFor="quote-seed" className="quote-filters__label">
++          Seed (random mode)
++        </label>
++        <input
++          id="quote-seed"
++          name="seed"
++          type="text"
++          className="quote-filters__input"
++          value={seed}
++          onChange={(event) => onSeedChange(event.target.value)}
++          placeholder="Deterministic seed"
++          data-testid="quote-seed-input"
++        />
++        <p className="quote-filters__help">
++          When no filters are active, the seed controls which quote is selected deterministically.
++        </p>
++      </div>
++
++      <div className="quote-filters__actions">
++        <button
++          type="button"
++          className="quote-filters__clear"
++          onClick={onClear}
++          disabled={!hasActiveFilters}
++          data-testid="quote-clear-button"
++        >
++          Clear filters
++        </button>
++      </div>
 +    </form>
 +  );
 +}
 +
-+export default TodoAddForm;
-diff --git a/apps/ui/src/components/todo/TodoCompleteForm.tsx b/apps/ui/src/components/todo/TodoCompleteForm.tsx
++export default QuoteFiltersForm;
+diff --git a/apps/ui/src/components/quote/QuotePlaceholder.tsx b/apps/ui/src/components/quote/QuotePlaceholder.tsx
+deleted file mode 100644
+index 908da7ff7ed97ddc4071d846c3bcdb01d1a856cd..0000000000000000000000000000000000000000
+--- a/apps/ui/src/components/quote/QuotePlaceholder.tsx
++++ /dev/null
+@@ -1,14 +0,0 @@
+-/**
+- * Placeholder component for Quote UI components.
+- * Future implementation will include filters, deterministic random selection, and messaging.
+- */
+-export function QuotePlaceholder(): JSX.Element {
+-  return (
+-    <div className="placeholder-card" data-testid="quote-components-placeholder">
+-      <p>
+-        Shared Quote UI components will live here. Implement filters, deterministic random selection,
+-        and messaging in later phases.
+-      </p>
+-    </div>
+-  );
+-}
+diff --git a/apps/ui/src/components/quote/QuoteResultCard.tsx b/apps/ui/src/components/quote/QuoteResultCard.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..fc9e69a3ae207281037c4a14f340d14e04e3f732
+index 0000000000000000000000000000000000000000..9c14537347bf28d2f5d15b305d314b90b944a4d9
 --- /dev/null
-+++ b/apps/ui/src/components/todo/TodoCompleteForm.tsx
-@@ -0,0 +1,45 @@
-+import { type FormEvent, useState } from 'react';
++++ b/apps/ui/src/components/quote/QuoteResultCard.tsx
+@@ -0,0 +1,35 @@
++import { QuoteDisplay } from './types.js';
 +
-+export interface TodoCompleteFormProps {
-+  onComplete(id: string): boolean;
++export interface QuoteResultCardProps {
++  quote: QuoteDisplay;
++  highlight?: boolean;
 +}
 +
-+function TodoCompleteForm({ onComplete }: TodoCompleteFormProps): JSX.Element {
-+  const [id, setId] = useState('');
-+
-+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-+    event.preventDefault();
-+    if (!id.trim()) {
-+      return;
-+    }
-+    const success = onComplete(id.trim());
-+    if (success) {
-+      setId('');
-+    }
-+  };
-+
++export function QuoteResultCard({ quote, highlight = false }: QuoteResultCardProps): JSX.Element {
++  const className = `quote-card${highlight ? ' quote-card--highlight' : ''}`;
 +  return (
-+    <form className="todo-complete" onSubmit={handleSubmit} aria-label="Complete a task by id">
-+      <div className="todo-complete__field">
-+        <label htmlFor="todo-complete-id" className="todo-complete__label">
-+          Complete by id
-+        </label>
-+        <input
-+          id="todo-complete-id"
-+          name="id"
-+          type="text"
-+          className="todo-complete__input"
-+          value={id}
-+          onChange={(event) => setId(event.target.value)}
-+          placeholder="Enter task id"
-+          data-testid="todo-complete-input"
-+        />
-+      </div>
-+      <button type="submit" className="todo-complete__submit" data-testid="todo-complete-submit">
-+        Complete task
-+      </button>
-+    </form>
++    <article className={className} data-testid="quote-result-card">
++      <p className="quote-card__text" data-testid="quote-result-text">
++        “{quote.text}”
++      </p>
++      <p className="quote-card__author" data-testid="quote-result-author">
++        — {quote.author}
++      </p>
++      {quote.tags.length > 0 ? (
++        <ul className="quote-card__tags" aria-label={`Tags for ${quote.author}`} data-testid="quote-result-tags">
++          {quote.tags.map((tag) => (
++            <li key={tag} className="quote-card__tag">
++              {tag}
++            </li>
++          ))}
++        </ul>
++      ) : (
++        <p className="quote-card__tags quote-card__tags--empty" data-testid="quote-result-tags-empty">
++          No tags provided.
++        </p>
++      )}
++    </article>
 +  );
 +}
 +
-+export default TodoCompleteForm;
-diff --git a/apps/ui/src/components/todo/TodoFilters.tsx b/apps/ui/src/components/todo/TodoFilters.tsx
++export default QuoteResultCard;
+diff --git a/apps/ui/src/components/quote/QuoteResultsList.tsx b/apps/ui/src/components/quote/QuoteResultsList.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..6eb29144cdf476372798f66b2dbcfaa97e32495c
+index 0000000000000000000000000000000000000000..1a894b3d02dd96c20972042ed5fc96e9410a8278
 --- /dev/null
-+++ b/apps/ui/src/components/todo/TodoFilters.tsx
-@@ -0,0 +1,55 @@
-+import { type ChangeEvent } from 'react';
-+import type { TodoPriority } from '@cli/shared/todo.js';
++++ b/apps/ui/src/components/quote/QuoteResultsList.tsx
+@@ -0,0 +1,26 @@
++import { QuoteDisplay } from './types.js';
++import QuoteResultCard from './QuoteResultCard.js';
 +
-+export interface TodoFiltersState {
-+  showDueToday: boolean;
-+  priority: 'all' | TodoPriority;
++export interface QuoteResultsListProps {
++  quotes: readonly QuoteDisplay[];
 +}
 +
-+export interface TodoFiltersProps {
-+  filters: TodoFiltersState;
-+  onChange(filters: TodoFiltersState): void;
-+}
-+
-+const PRIORITY_OPTIONS: Array<'all' | TodoPriority> = ['all', 'high', 'med', 'low'];
-+
-+function TodoFilters({ filters, onChange }: TodoFiltersProps): JSX.Element {
-+  const handleDueTodayChange = (event: ChangeEvent<HTMLInputElement>) => {
-+    onChange({ ...filters, showDueToday: event.target.checked });
-+  };
-+
-+  const handlePriorityChange = (event: ChangeEvent<HTMLSelectElement>) => {
-+    onChange({ ...filters, priority: event.target.value as 'all' | TodoPriority });
-+  };
-+
++export function QuoteResultsList({ quotes }: QuoteResultsListProps): JSX.Element {
 +  return (
-+    <section className="todo-filters" aria-label="Task filters">
-+      <label className="todo-filters__checkbox">
-+        <input
-+          type="checkbox"
-+          checked={filters.showDueToday}
-+          onChange={handleDueTodayChange}
-+          data-testid="todo-filter-due-today"
-+        />
-+        <span>Show tasks due today</span>
-+      </label>
-+
-+      <label className="todo-filters__select">
-+        <span className="todo-filters__label">Priority</span>
-+        <select
-+          value={filters.priority}
-+          onChange={handlePriorityChange}
-+          data-testid="todo-filter-priority"
-+        >
-+          {PRIORITY_OPTIONS.map((option) => (
-+            <option key={option} value={option}>
-+              {option === 'all' ? 'All priorities' : option === 'med' ? 'medium' : option}
-+            </option>
-+          ))}
-+        </select>
-+      </label>
++    <section className="quote-results" aria-label="Filtered quotes" data-testid="quote-results-list">
++      <header className="quote-results__header">
++        <h3 className="quote-results__title">Filtered quotes</h3>
++        <p className="quote-results__meta" data-testid="quote-results-count">
++          Showing {quotes.length} {quotes.length === 1 ? 'result' : 'results'}
++        </p>
++      </header>
++      <div className="quote-results__grid">
++        {quotes.map((quote) => (
++          <QuoteResultCard key={quote.id} quote={quote} />
++        ))}
++      </div>
 +    </section>
 +  );
 +}
 +
-+export default TodoFilters;
-diff --git a/apps/ui/src/components/todo/TodoList.tsx b/apps/ui/src/components/todo/TodoList.tsx
++export default QuoteResultsList;
+diff --git a/apps/ui/src/components/quote/types.ts b/apps/ui/src/components/quote/types.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..71ba16a3584a08f636ca203ccc7b21d0e3eb3ab6
+index 0000000000000000000000000000000000000000..49949e702b4a98226745a7fab2eacb0241ea5ea3
 --- /dev/null
-+++ b/apps/ui/src/components/todo/TodoList.tsx
-@@ -0,0 +1,99 @@
-+import type { TodoItem } from '@cli/shared/todo.js';
++++ b/apps/ui/src/components/quote/types.ts
+@@ -0,0 +1,6 @@
++export interface QuoteDisplay {
++  id: string;
++  text: string;
++  author: string;
++  tags: readonly string[];
++}
+diff --git a/apps/ui/src/lib/random/seeded.ts b/apps/ui/src/lib/random/seeded.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..50a2638d02bcdde3e935c465de0f924e5a2130d8
+--- /dev/null
++++ b/apps/ui/src/lib/random/seeded.ts
+@@ -0,0 +1,93 @@
++/**
++ * Deterministic pseudo-random number generator utilities for the UI.
++ *
++ * Mirrors the semantics used in the CLI while supporting string or numeric
++ * seeds. Exposed as a reusable factory so production code and tests share the
++ * exact same implementation.
++ */
 +
-+export type DueDescriptor =
-+  | { label: string; tone: 'overdue' | 'today' | 'tomorrow' | 'upcoming' | 'past'; }
-+  | null;
-+
-+export interface TodoListItem {
-+  todo: TodoItem;
-+  due: DueDescriptor;
++export interface SeededRandom {
++  /** Returns a deterministic float in the range [0, 1). */
++  next(): number;
++  /** Returns a deterministic integer in the range [0, maxExclusive). */
++  nextInt(maxExclusive: number): number;
++  /** Picks a deterministic item from the provided collection. */
++  pick<T>(values: readonly T[]): T;
++  /** Returns a deterministically shuffled copy of the collection. */
++  shuffle<T>(values: readonly T[]): T[];
++  /** Resets the generator to its original seed. */
++  reset(): void;
 +}
 +
-+export interface TodoListProps {
-+  items: TodoListItem[];
-+  onComplete(id: string): void;
-+}
++export type SeededRandomFactory = (seed: number | string) => SeededRandom;
 +
-+function TodoList({ items, onComplete }: TodoListProps): JSX.Element {
-+  if (items.length === 0) {
-+    return (
-+      <div className="todo-empty" role="status" data-testid="todo-empty">
-+        All caught up! Adjust filters or add a new task to get started.
-+      </div>
-+    );
++function normalizeSeed(seed: number | string): number {
++  if (typeof seed === 'number') {
++    if (!Number.isFinite(seed)) {
++      throw new Error('Seed must be a finite number.');
++    }
++    const normalized = Math.abs(Math.floor(seed));
++    return normalized === 0 ? 1 : normalized;
 +  }
 +
-+  return (
-+    <ul className="todo-list" aria-label="Current tasks">
-+      {items.map(({ todo, due }) => (
-+        <li key={todo.id} className="todo-list__item" data-testid={`todo-item-${todo.id}`}>
-+          <div className="todo-list__content">
-+            <div className="todo-list__headline">
-+              <span className="todo-list__title">{todo.title}</span>
-+              <span className={`todo-list__priority todo-list__priority--${todo.priority}`}>
-+                {priorityLabel(todo.priority)}
-+              </span>
-+              {due && (
-+                <span
-+                  className={`todo-list__due todo-list__due--${due.tone}`}
-+                  data-testid={`todo-due-${todo.id}`}
-+                >
-+                  {due.label}
-+                </span>
-+              )}
-+              {todo.completed && (
-+                <span className="todo-list__status" data-testid={`todo-status-${todo.id}`}>
-+                  Completed
-+                </span>
-+              )}
-+            </div>
-+            <dl className="todo-list__meta">
-+              <div>
-+                <dt>Created</dt>
-+                <dd>{formatIsoDate(todo.createdAt)}</dd>
-+              </div>
-+              {todo.dueDate && (
-+                <div>
-+                  <dt>Due</dt>
-+                  <dd>{todo.dueDate}</dd>
-+                </div>
-+              )}
-+            </dl>
-+          </div>
-+          <button
-+            type="button"
-+            className="todo-list__complete"
-+            onClick={() => onComplete(todo.id)}
-+            disabled={todo.completed}
-+            aria-label={`Mark ${todo.title} complete`}
-+          >
-+            {todo.completed ? 'Done' : 'Mark complete'}
-+          </button>
-+        </li>
-+      ))}
-+    </ul>
-+  );
++  let hash = 0;
++  for (let index = 0; index < seed.length; index += 1) {
++    const charCode = seed.charCodeAt(index);
++    hash = ((hash << 5) - hash + charCode) | 0; // hash * 31 + char
++  }
++  const normalized = Math.abs(hash);
++  return normalized === 0 ? 1 : normalized;
 +}
 +
-+function priorityLabel(priority: TodoItem['priority']): string {
-+  if (priority === 'med') {
-+    return 'Medium';
-+  }
-+  return priority === 'high' ? 'High' : 'Low';
++function createGenerator(seedValue: number): () => number {
++  let state = seedValue >>> 0;
++  return () => {
++    state += 0x6d2b79f5;
++    let temp = state;
++    temp = Math.imul(temp ^ (temp >>> 15), temp | 1);
++    temp ^= temp + Math.imul(temp ^ (temp >>> 7), temp | 61);
++    return ((temp ^ (temp >>> 14)) >>> 0) / 4294967296;
++  };
 +}
 +
-+function formatIsoDate(value: string): string {
-+  const date = new Date(value);
-+  if (Number.isNaN(date.getTime())) {
-+    return value;
++/**
++ * Creates a deterministic pseudo-random number generator instance.
++ */
++export function createSeededRandom(seed: number | string): SeededRandom {
++  const initialSeed = normalizeSeed(seed);
++  let generator = createGenerator(initialSeed);
++
++  return {
++    next(): number {
++      return generator();
++    },
++
++    nextInt(maxExclusive: number): number {
++      if (!Number.isFinite(maxExclusive) || maxExclusive <= 0) {
++        throw new Error('maxExclusive must be a positive finite number.');
++      }
++      return Math.floor(generator() * maxExclusive);
++    },
++
++    pick<T>(values: readonly T[]): T {
++      if (values.length === 0) {
++        throw new Error('Cannot pick from an empty collection.');
++      }
++      const index = this.nextInt(values.length);
++      return values[index];
++    },
++
++    shuffle<T>(values: readonly T[]): T[] {
++      const mutable = [...values];
++      for (let index = mutable.length - 1; index > 0; index -= 1) {
++        const swapIndex = this.nextInt(index + 1);
++        [mutable[index], mutable[swapIndex]] = [mutable[swapIndex], mutable[index]];
++      }
++      return mutable;
++    },
++
++    reset(): void {
++      generator = createGenerator(initialSeed);
++    },
++  };
++}
+diff --git a/apps/ui/src/pages/Quote.tsx b/apps/ui/src/pages/Quote.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..fc385ebd4db8cc9f1cc3a1981257815887f5e2e1
+--- /dev/null
++++ b/apps/ui/src/pages/Quote.tsx
+@@ -0,0 +1,201 @@
++import { useMemo, useState } from 'react';
++import rawQuotes from '../../../data/quotes.json';
++import QuoteFiltersForm from '../components/quote/QuoteFiltersForm.js';
++import QuoteResultCard from '../components/quote/QuoteResultCard.js';
++import QuoteResultsList from '../components/quote/QuoteResultsList.js';
++import type { QuoteDisplay } from '../components/quote/types.js';
++import { createSeededRandom, type SeededRandomFactory } from '../lib/random/seeded.js';
++
++interface QuoteInput {
++  id?: string;
++  text: string;
++  author: string;
++  tags?: readonly string[];
++}
++
++interface QuoteFilters {
++  author: string;
++  tag: string;
++}
++
++export interface QuoteProps {
++  quotes?: readonly QuoteInput[];
++  createRandom?: SeededRandomFactory;
++}
++
++const DEFAULT_SEED = 'quote-ui';
++
++function toStringValue(value: unknown): string {
++  if (typeof value === 'string') {
++    return value.trim();
 +  }
-+  return date.toLocaleString(undefined, {
-+    year: 'numeric',
-+    month: 'short',
-+    day: 'numeric',
-+    hour: '2-digit',
-+    minute: '2-digit'
++  if (value === undefined || value === null) {
++    return '';
++  }
++  return String(value).trim();
++}
++
++function normalizeQuote(quote: QuoteInput, index: number): QuoteDisplay {
++  const text = toStringValue(quote.text);
++  const author = toStringValue(quote.author);
++  const tags = quote.tags ? Array.from(quote.tags) : [];
++  const normalizedTags = tags
++    .map((tag) => toStringValue(tag))
++    .filter((tag) => tag.length > 0);
++
++  const normalizedText = text.length > 0 ? text : `Quote #${index + 1}`;
++  const normalizedAuthor = author.length > 0 ? author : 'Unknown';
++  const normalizedId =
++    typeof quote.id === 'string' && quote.id.trim().length > 0 ? quote.id.trim() : `quote-${index}`;
++
++  return {
++    id: normalizedId,
++    text: normalizedText,
++    author: normalizedAuthor,
++    tags: normalizedTags,
++  };
++}
++
++function buildDefaultQuotes(): readonly QuoteDisplay[] {
++  if (!Array.isArray(rawQuotes)) {
++    return [];
++  }
++
++  const inputs: QuoteInput[] = rawQuotes.map((entry: unknown) => {
++    const record = entry as Record<string, unknown>;
++    const tags = Array.isArray(record.tags) ? (record.tags as readonly string[]) : [];
++    return {
++      text: toStringValue(record.text),
++      author: toStringValue(record.author),
++      tags,
++    };
++  });
++
++  return Object.freeze(inputs.map((quote, index) => normalizeQuote(quote, index)));
++}
++
++const DEFAULT_QUOTES = buildDefaultQuotes();
++
++function normalizeFilter(value: string): string | null {
++  const trimmed = value.trim();
++  return trimmed.length > 0 ? trimmed.toLowerCase() : null;
++}
++
++function filterQuotes(quotes: readonly QuoteDisplay[], filters: QuoteFilters): QuoteDisplay[] {
++  const author = normalizeFilter(filters.author);
++  const tag = normalizeFilter(filters.tag);
++
++  return quotes.filter((quote) => {
++    const matchesAuthor = author ? quote.author.toLowerCase() === author : true;
++    const matchesTag = tag ? quote.tags.some((entry) => entry.toLowerCase() === tag) : true;
++    return matchesAuthor && matchesTag;
 +  });
 +}
 +
-+export default TodoList;
-diff --git a/apps/ui/src/lib/time/clock.ts b/apps/ui/src/lib/time/clock.ts
-new file mode 100644
-index 0000000000000000000000000000000000000000..e65d2565c4df9c80d0628e449ccaf3208014f409
---- /dev/null
-+++ b/apps/ui/src/lib/time/clock.ts
-@@ -0,0 +1,68 @@
-+import type { Clock as TodoClock } from '@todo/core';
-+
-+/**
-+ * UI-friendly clock abstraction that returns Date instances.
-+ * Enables deterministic testing by injecting a controllable clock.
-+ */
-+export interface UiClock {
-+  now(): Date;
-+}
-+
-+function normalizeInstant(instant: Date | string | number): number {
-+  if (instant instanceof Date) {
-+    const timestamp = instant.getTime();
-+    if (Number.isNaN(timestamp)) {
-+      throw new Error('Invalid Date provided to clock.');
-+    }
-+    return timestamp;
++function selectRandomQuote(
++  quotes: readonly QuoteDisplay[],
++  seed: string,
++  factory: SeededRandomFactory,
++): QuoteDisplay | null {
++  if (quotes.length === 0) {
++    return null;
 +  }
-+
-+  if (typeof instant === 'number') {
-+    if (!Number.isFinite(instant)) {
-+      throw new Error('Clock instant must be a finite number.');
-+    }
-+    return instant;
-+  }
-+
-+  const parsed = new Date(instant);
-+  const timestamp = parsed.getTime();
-+  if (Number.isNaN(timestamp)) {
-+    throw new Error('Invalid ISO timestamp provided to clock.');
-+  }
-+  return timestamp;
++  const effectiveSeed = seed.trim().length > 0 ? seed.trim() : DEFAULT_SEED;
++  const random = factory(effectiveSeed);
++  return random.pick(quotes);
 +}
 +
 +/**
-+ * Creates a system-backed clock that always returns the current time.
++ * Quote explorer page supporting deterministic filters and seeded random selection.
 + */
-+export function createSystemClock(): UiClock {
-+  return {
-+    now(): Date {
-+      return new Date();
-+    }
-+  };
-+}
++function Quote({ quotes = DEFAULT_QUOTES, createRandom = createSeededRandom }: QuoteProps): JSX.Element {
++  const [author, setAuthor] = useState('');
++  const [tag, setTag] = useState('');
++  const [seed, setSeed] = useState(DEFAULT_SEED);
 +
-+/**
-+ * Creates a fixed clock locked to the provided instant.
-+ * Useful for storybook demos or deterministic tests.
-+ */
-+export function createFixedClock(instant: Date | string | number): UiClock {
-+  const timestamp = normalizeInstant(instant);
-+  return {
-+    now(): Date {
-+      return new Date(timestamp);
-+    }
-+  };
-+}
++  const dataset = useMemo<QuoteDisplay[]>(() => quotes.map((quote, index) => normalizeQuote(quote, index)), [quotes]);
 +
-+/**
-+ * Wraps a UI clock into the CLI-friendly Todo clock that returns milliseconds.
-+ */
-+export function toTodoClock(clock: UiClock): TodoClock {
-+  return {
-+    now(): number {
-+      return clock.now().getTime();
-+    }
-+  };
-+}
-diff --git a/apps/ui/src/pages/ToDo.tsx b/apps/ui/src/pages/ToDo.tsx
-new file mode 100644
-index 0000000000000000000000000000000000000000..6df24928e04c1baf0b35716fcafb45954c488ad7
---- /dev/null
-+++ b/apps/ui/src/pages/ToDo.tsx
-@@ -0,0 +1,267 @@
-+import { useMemo, useState } from 'react';
-+import {
-+  addTodo,
-+  completeTodo,
-+  createInitialState,
-+  listTodos,
-+  type AddTodoInput,
-+  type ListFilters,
-+  type TodoDependencies,
-+  type TodoItem,
-+  type TodoState
-+} from '@cli/shared/todo.js';
-+import TodoAddForm, { type TodoAddFormValues } from '../components/todo/TodoAddForm.js';
-+import TodoCompleteForm from '../components/todo/TodoCompleteForm.js';
-+import TodoFilters, { type TodoFiltersState } from '../components/todo/TodoFilters.js';
-+import TodoList, { type DueDescriptor, type TodoListItem } from '../components/todo/TodoList.js';
-+import { createSystemClock, toTodoClock, type UiClock } from '../lib/time/clock.js';
++  const hasActiveFilters = author.trim().length > 0 || tag.trim().length > 0;
 +
-+export interface ToDoProps {
-+  clock?: UiClock;
-+}
-+
-+const DEFAULT_CLOCK = createSystemClock();
-+
-+const SEEDED_STATE = createInitialState({
-+  todos: [
-+    {
-+      id: '1',
-+      title: 'Prepare sprint review deck',
-+      priority: 'high',
-+      completed: false,
-+      createdAt: '2025-11-01T09:00:00.000Z',
-+      dueDate: '2025-11-02'
-+    },
-+    {
-+      id: '2',
-+      title: 'Reconcile October expenses',
-+      priority: 'med',
-+      completed: false,
-+      createdAt: '2025-11-02T10:00:00.000Z',
-+      dueDate: '2025-11-03'
-+    },
-+    {
-+      id: '3',
-+      title: 'Schedule team 1:1s',
-+      priority: 'low',
-+      completed: false,
-+      createdAt: '2025-11-02T11:30:00.000Z',
-+      dueDate: '2025-11-04'
-+    },
-+    {
-+      id: '4',
-+      title: 'Close security audit findings',
-+      priority: 'high',
-+      completed: true,
-+      createdAt: '2025-10-28T08:15:00.000Z',
-+      dueDate: '2025-10-30',
-+      completedAt: '2025-10-30T16:45:00.000Z'
-+    }
-+  ],
-+  nextId: 5
-+});
-+
-+const DEFAULT_FILTERS: TodoFiltersState = {
-+  showDueToday: false,
-+  priority: 'all'
-+};
-+
-+function ToDo({ clock }: ToDoProps): JSX.Element {
-+  const [state, setState] = useState<TodoState>(SEEDED_STATE);
-+  const [filters, setFilters] = useState<TodoFiltersState>(DEFAULT_FILTERS);
-+  const [error, setError] = useState<string | null>(null);
-+  const [message, setMessage] = useState<string | null>(null);
-+  const [clockInstance] = useState<UiClock>(clock ?? DEFAULT_CLOCK);
-+
-+  const todoClock = useMemo(() => toTodoClock(clockInstance), [clockInstance]);
-+  const dependencies = useMemo<TodoDependencies>(
-+    () => ({ clock: todoClock }),
-+    [todoClock]
++  const filteredQuotes = useMemo(
++    () => filterQuotes(dataset, { author, tag }),
++    [dataset, author, tag],
 +  );
 +
-+  const listFilters = useMemo(() => toListFilters(filters), [filters]);
-+
-+  const visibleTodos = useMemo(() => listTodos(state, listFilters, dependencies), [state, listFilters, dependencies]);
-+
-+  const listItems = useMemo<TodoListItem[]>(
-+    () => visibleTodos.map((todo) => ({ todo, due: determineDueDescriptor(todo, clockInstance) })),
-+    [visibleTodos, clockInstance]
++  const randomQuote = useMemo(
++    () => (hasActiveFilters ? null : selectRandomQuote(dataset, seed, createRandom)),
++    [dataset, seed, createRandom, hasActiveFilters],
 +  );
 +
-+  const summary = useMemo(() => buildSummary(state, dependencies), [state, dependencies]);
++  const handleClearFilters = () => {
++    setAuthor('');
++    setTag('');
++  };
 +
-+  const handleAdd = (values: TodoAddFormValues): boolean => {
-+    setError(null);
-+    setMessage(null);
-+    try {
-+      const result = addTodo(state, normalizeAddInput(values), dependencies);
-+      setState(result.state);
-+      setMessage(`Added "${result.todo.title}" (#${result.todo.id}).`);
-+      return true;
-+    } catch (error_) {
-+      setError(getErrorMessage(error_));
-+      return false;
++  const renderContent = () => {
++    if (dataset.length === 0) {
++      return (
++        <p className="quote-empty" role="alert" data-testid="quote-empty">
++          No quotes available. Provide a dataset to explore motivational snippets.
++        </p>
++      );
 +    }
-+  };
 +
-+  const handleCompleteFromList = (id: string) => {
-+    performComplete(id);
-+  };
-+
-+  const handleCompleteFromForm = (id: string): boolean => {
-+    return performComplete(id);
-+  };
-+
-+  const performComplete = (id: string): boolean => {
-+    setError(null);
-+    setMessage(null);
-+    try {
-+      const result = completeTodo(state, id, dependencies);
-+      setState(result.state);
-+      if (state === result.state) {
-+        setMessage(`Task "${result.todo.title}" was already complete.`);
-+      } else {
-+        setMessage(`Marked "${result.todo.title}" as complete.`);
++    if (hasActiveFilters) {
++      if (filteredQuotes.length === 0) {
++        return (
++          <p className="quote-empty" role="status" data-testid="quote-no-results">
++            No quotes match the provided filters. Try adjusting the author or tag.
++          </p>
++        );
 +      }
-+      return true;
-+    } catch (error_) {
-+      setError(getErrorMessage(error_));
-+      return false;
++      return <QuoteResultsList quotes={filteredQuotes} />;
 +    }
++
++    if (!randomQuote) {
++      return (
++        <p className="quote-empty" role="status" data-testid="quote-empty-random">
++          Unable to select a quote. Adjust the seed or provide additional quotes.
++        </p>
++      );
++    }
++
++    return (
++      <section className="quote-random" aria-label="Featured quote" data-testid="quote-random">
++        <header className="quote-random__header">
++          <h3 className="quote-random__title">Featured quote</h3>
++          <p className="quote-random__meta">Seed: {seed.trim().length > 0 ? seed.trim() : DEFAULT_SEED}</p>
++        </header>
++        <QuoteResultCard quote={randomQuote} highlight />
++      </section>
++    );
 +  };
 +
 +  return (
-+    <div className="todo-page" role="main">
-+      <header className="todo-page__header">
-+        <h1 className="todo-page__title" data-testid="todo-title">
-+          Team ToDo tracker
++    <div className="quote-page" role="main">
++      <header className="quote-page__header">
++        <h1 className="quote-page__title" data-testid="quote-title">
++          Quote explorer
 +        </h1>
-+        <p className="todo-page__subtitle">
-+          Add, review, and complete tasks with deterministic due-date boundaries mirroring the CLI rules.
++        <p className="quote-page__subtitle">
++          Filter by author or tag to mirror the CLI experience, or leave filters blank to surface a deterministic random quote.
 +        </p>
-+        <dl className="todo-summary">
-+          <div>
-+            <dt>Total</dt>
-+            <dd data-testid="todo-summary-total">{summary.total}</dd>
-+          </div>
-+          <div>
-+            <dt>Pending</dt>
-+            <dd data-testid="todo-summary-pending">{summary.pending}</dd>
-+          </div>
-+          <div>
-+            <dt>Completed</dt>
-+            <dd data-testid="todo-summary-completed">{summary.completed}</dd>
-+          </div>
-+          <div>
-+            <dt>Due today</dt>
-+            <dd data-testid="todo-summary-due-today">{summary.dueToday}</dd>
-+          </div>
-+        </dl>
 +      </header>
 +
-+      {message && (
-+        <div className="todo-alert todo-alert--success" role="status" data-testid="todo-success">
-+          {message}
-+        </div>
-+      )}
-+      {error && (
-+        <div className="todo-alert todo-alert--error" role="alert" data-testid="todo-error">
-+          {error}
-+        </div>
-+      )}
++      <QuoteFiltersForm
++        author={author}
++        tag={tag}
++        seed={seed}
++        hasActiveFilters={hasActiveFilters}
++        onAuthorChange={setAuthor}
++        onTagChange={setTag}
++        onSeedChange={setSeed}
++        onClear={handleClearFilters}
++      />
 +
-+      <section className="todo-controls" aria-label="Task management controls">
-+        <TodoAddForm onSubmit={handleAdd} />
-+        <div className="todo-controls__secondary">
-+          <TodoFilters filters={filters} onChange={setFilters} />
-+          <TodoCompleteForm onComplete={handleCompleteFromForm} />
-+        </div>
-+      </section>
-+
-+      <section className="todo-list-wrapper" aria-label="Task list">
-+        <TodoList items={listItems} onComplete={handleCompleteFromList} />
-+      </section>
++      {renderContent()}
 +    </div>
 +  );
 +}
 +
-+function getErrorMessage(error: unknown): string {
-+  if (error instanceof Error) {
-+    return error.message;
-+  }
-+  return 'Something went wrong. Please try again.';
-+}
-+
-+function normalizeAddInput(values: TodoAddFormValues): AddTodoInput {
-+  const input: AddTodoInput = {
-+    title: values.title,
-+    priority: values.priority
-+  };
-+  if (values.dueDate) {
-+    input.dueDate = values.dueDate;
-+  }
-+  return input;
-+}
-+
-+function toListFilters(filters: TodoFiltersState): ListFilters {
-+  const result: ListFilters = {};
-+  if (filters.priority !== 'all') {
-+    result.priority = filters.priority;
-+  }
-+  if (filters.showDueToday) {
-+    result.dueToday = true;
-+  }
-+  return result;
-+}
-+
-+function buildSummary(
-+  state: TodoState,
-+  deps: TodoDependencies
-+): { total: number; pending: number; completed: number; dueToday: number } {
-+  const pending = state.todos.filter((todo) => !todo.completed).length;
-+  const completed = state.todos.length - pending;
-+  const dueToday = listTodos(state, { dueToday: true }, deps).length;
-+  return {
-+    total: state.todos.length,
-+    pending,
-+    completed,
-+    dueToday
-+  };
-+}
-+
-+function determineDueDescriptor(todo: TodoItem, clock: UiClock): DueDescriptor {
-+  if (!todo.dueDate) {
-+    return null;
-+  }
-+  const today = toDateOnly(clock.now());
-+  const diff = differenceInDays(todo.dueDate, today);
-+
-+  if (diff === 0) {
-+    return { label: 'Due today', tone: 'today' };
-+  }
-+  if (diff === 1) {
-+    return { label: 'Due tomorrow', tone: 'tomorrow' };
-+  }
-+  if (diff > 1) {
-+    return { label: `Due in ${diff} days`, tone: 'upcoming' };
-+  }
-+  if (diff === -1) {
-+    return { label: 'Due yesterday', tone: 'past' };
-+  }
-+  return { label: `${Math.abs(diff)} days overdue`, tone: 'overdue' };
-+}
-+
-+function differenceInDays(target: string, current: string): number {
-+  return Math.round((parseDateOnly(target) - parseDateOnly(current)) / (1000 * 60 * 60 * 24));
-+}
-+
-+function parseDateOnly(value: string): number {
-+  const [year, month, day] = value.split('-').map(Number);
-+  return Date.UTC(year, month - 1, day);
-+}
-+
-+function toDateOnly(date: Date): string {
-+  return date.toISOString().slice(0, 10);
-+}
-+
-+export default ToDo;
-diff --git a/apps/ui/src/pages/ToDoPage.tsx b/apps/ui/src/pages/ToDoPage.tsx
-index e0a9966a86c68e7b518077258f0055dc0737ade0..4192c9f5c621a552bbd5905b27d3cb7fa6286bcb 100644
---- a/apps/ui/src/pages/ToDoPage.tsx
-+++ b/apps/ui/src/pages/ToDoPage.tsx
-@@ -1,20 +1,8 @@
--import { TodoPlaceholder } from '../components/index.js';
-+import ToDo from './ToDo.js';
++export default Quote;
+diff --git a/apps/ui/src/pages/QuotePage.tsx b/apps/ui/src/pages/QuotePage.tsx
+index ad276c1245b29eabad577f5d60617b31c6f52132..99004725e4119101ce5b3e90b9be9771b3deefe3 100644
+--- a/apps/ui/src/pages/QuotePage.tsx
++++ b/apps/ui/src/pages/QuotePage.tsx
+@@ -1,20 +1,9 @@
+-import { QuotePlaceholder } from '../components/index.js';
++import Quote from './Quote';
  
  /**
-- * ToDo page for managing actionable tasks with deterministic clocks.
-- * This page will eventually handle task entry, completion, and time-based filtering.
-+ * ToDo page wrapper for router compatibility.
+- * Quote page for surfacing curated quotes with deterministic random selection.
+- * This page will eventually provide category filtering and seeded random picking.
++ * Router-compatible wrapper for the Quote explorer page.
++ * Delegates to the rich Quote component introduced in Phase 5.
   */
- export function ToDoPage(): JSX.Element {
+ export function QuotePage(): JSX.Element {
 -  return (
--    <section aria-labelledby="todo-heading" className="page">
+-    <section aria-labelledby="quote-heading" className="page">
 -      <header className="page-header">
--        <h2 id="todo-heading">ToDo</h2>
+-        <h2 id="quote-heading">Quote</h2>
 -        <p>
--          Manage actionable tasks with deterministic clocks. This placeholder keeps routes wired while
--          ToDo UI logic is under construction.
+-          Surface curated quotes with deterministic random selection. This placeholder provides the
+-          route scaffolding for future Quote UI work.
 -        </p>
 -      </header>
--      <TodoPlaceholder />
+-      <QuotePlaceholder />
 -    </section>
 -  );
-+  return <ToDo />;
++  return <Quote />;
  }
-diff --git a/apps/ui/src/tests/todo.test.tsx b/apps/ui/src/tests/todo.test.tsx
+diff --git a/apps/ui/src/pages/index.ts b/apps/ui/src/pages/index.ts
+index 643b364dd3505e92739184986cfd7b46d5a144b9..991bc272031958118277b8d08afb5a7915f09b8d 100644
+--- a/apps/ui/src/pages/index.ts
++++ b/apps/ui/src/pages/index.ts
+@@ -1,7 +1,8 @@
+ export { ExpensesPage } from './ExpensesPage.js';
+ export { ToDoPage } from './ToDoPage.js';
+ export { QuotePage } from './QuotePage.js';
+ 
+ // Phase 4 ToDo UI - Direct component export
+ export { default as ToDo } from './ToDo';
+ export type { ToDoProps } from './ToDo';
++export { default as Quote } from './Quote.js';
+diff --git a/apps/ui/src/tests/helpers.ts b/apps/ui/src/tests/helpers.ts
+index 3e3ca9cff3da4879a81b5a3c93dfb885847974a4..712c54c50bf68cc0e5a37d67fa9744e123144a65 100644
+--- a/apps/ui/src/tests/helpers.ts
++++ b/apps/ui/src/tests/helpers.ts
+@@ -1,188 +1,77 @@
+ /**
+  * Deterministic testing helpers for UI components.
+  * Provides seeded random number generation and controllable clock for reproducible tests.
+  */
+ 
+-/**
+- * Seeded random number generator with utility methods for common test scenarios.
+- */
+-export interface SeededRandom {
+-  /** Returns a deterministic number in [0, 1) */
+-  next(): number;
+-  /** Returns a deterministic integer in [0, maxExclusive) */
+-  nextInt(maxExclusive: number): number;
+-  /** Selects a random item from the collection */
+-  pick<T>(values: readonly T[]): T;
+-  /** Returns a shuffled copy of the collection */
+-  shuffle<T>(values: readonly T[]): T[];
+-  /** Resets the generator to its initial seed state */
+-  reset(): void;
+-}
++export { createSeededRandom } from '../lib/random/seeded.js';
++export type { SeededRandom } from '../lib/random/seeded.js';
+ 
+ /**
+  * Controllable clock for deterministic time-dependent tests.
+  */
+ export interface TestClock {
+   /** Returns current time as a Date object */
+   now(): Date;
+   /** Advances the clock by the specified milliseconds */
+   advanceBy(milliseconds: number): void;
+   /** Sets the clock to an absolute time */
+   advanceTo(instant: Date | string | number): void;
+   /** Temporarily sets time for the duration of a callback */
+   withFixedNow<T>(instant: Date | string | number, run: () => T): T;
+ }
+ 
+-/**
+- * Converts various seed inputs into a normalized numeric seed.
+- */
+-function toSeedValue(seed: number | string): number {
+-  if (typeof seed === 'number') {
+-    if (!Number.isFinite(seed)) {
+-      throw new Error('Seed must be a finite number.');
+-    }
+-    return Math.abs(Math.floor(seed)) || 1;
+-  }
+-
+-  // String hashing using simple multiplicative hash
+-  let hash = 0;
+-  for (let index = 0; index < seed.length; index += 1) {
+-    const char = seed.charCodeAt(index);
+-    hash = ((hash << 5) - hash + char) | 0; // hash * 31 + char
+-  }
+-  return Math.abs(hash) || 1;
+-}
+-
+-/**
+- * Creates a PRNG function using SplitMix32-inspired algorithm for better distribution.
+- */
+-function createGenerator(seedValue: number): () => number {
+-  let state = seedValue >>> 0;
+-  return () => {
+-    state += 0x6d2b79f5;
+-    let temp = state;
+-    temp = Math.imul(temp ^ (temp >>> 15), temp | 1);
+-    temp ^= temp + Math.imul(temp ^ (temp >>> 7), temp | 61);
+-    return ((temp ^ (temp >>> 14)) >>> 0) / 4294967296;
+-  };
+-}
+-
+-/**
+- * Creates a deterministic pseudo-random number generator.
+- * Useful for testing randomized UI behaviors (quote selection, shuffling, etc.).
+- *
+- * @example
+- * ```ts
+- * const rng = createSeededRandom('test-seed');
+- * const quote = rng.pick(['A', 'B', 'C']); // Always picks the same item
+- * const shuffled = rng.shuffle([1, 2, 3, 4]); // Always same order
+- * ```
+- */
+-export function createSeededRandom(seed: number | string): SeededRandom {
+-  const initialSeed = toSeedValue(seed);
+-  let generator = createGenerator(initialSeed);
+-
+-  return {
+-    next(): number {
+-      return generator();
+-    },
+-
+-    nextInt(maxExclusive: number): number {
+-      if (!Number.isFinite(maxExclusive) || maxExclusive <= 0) {
+-        throw new Error('maxExclusive must be a positive finite number.');
+-      }
+-      return Math.floor(generator() * maxExclusive);
+-    },
+-
+-    pick<T>(values: readonly T[]): T {
+-      if (values.length === 0) {
+-        throw new Error('Cannot pick from an empty collection.');
+-      }
+-      const index = this.nextInt(values.length);
+-      return values[index];
+-    },
+-
+-    shuffle<T>(values: readonly T[]): T[] {
+-      const mutable = [...values];
+-      // Fisher-Yates shuffle
+-      for (let index = mutable.length - 1; index > 0; index -= 1) {
+-        const swapIndex = this.nextInt(index + 1);
+-        [mutable[index], mutable[swapIndex]] = [mutable[swapIndex], mutable[index]];
+-      }
+-      return mutable;
+-    },
+-
+-    reset(): void {
+-      generator = createGenerator(initialSeed);
+-    },
+-  };
+-}
+-
+ /**
+  * Converts various time representations to milliseconds since epoch.
+  */
+ function toTimestamp(value: Date | string | number): number {
+   if (value instanceof Date) {
+     const time = value.getTime();
+     if (Number.isNaN(time)) {
+       throw new Error('Invalid Date provided to clock.');
+     }
+     return time;
+   }
+ 
+   if (typeof value === 'number') {
+     if (!Number.isFinite(value)) {
+       throw new Error('Timestamp must be finite.');
+     }
+     return value;
+   }
+ 
+   const parsed = new Date(value);
+   const timestamp = parsed.getTime();
+   if (Number.isNaN(timestamp)) {
+     throw new Error('Invalid ISO timestamp provided to clock.');
+   }
+   return timestamp;
+ }
+ 
+ /**
+  * Creates a controllable clock for deterministic time-dependent tests.
+  * Essential for testing ToDo boundaries (yesterday/today/tomorrow) and time-based UI.
+- *
+- * @example
+- * ```ts
+- * const clock = createTestClock('2025-11-03T08:00:00Z');
+- * clock.advanceBy(60_000); // +1 minute
+- * expect(clock.now().toISOString()).toBe('2025-11-03T08:01:00.000Z');
+- *
+- * // Scoped time control
+- * const result = clock.withFixedNow('2025-12-31T23:59:59Z', () => {
+- *   return someTimeDependentFunction(clock.now());
+- * });
+- * // Clock returns to previous time after callback
+- * ```
+  */
+ export function createTestClock(initial: Date | string | number = new Date()): TestClock {
+   const baseline = toTimestamp(initial);
+   let current = baseline;
+ 
+   return {
+     now(): Date {
+       return new Date(current);
+     },
+ 
+     advanceBy(milliseconds: number): void {
+       if (!Number.isFinite(milliseconds)) {
+         throw new Error('Milliseconds must be a finite number.');
+       }
+       current += milliseconds;
+     },
+ 
+     advanceTo(instant: Date | string | number): void {
+       current = toTimestamp(instant);
+     },
+ 
+     withFixedNow<T>(instant: Date | string | number, run: () => T): T {
+       const previous = current;
+       current = toTimestamp(instant);
+       try {
+diff --git a/apps/ui/src/tests/quote.test.tsx b/apps/ui/src/tests/quote.test.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..e4a983d29cbf0d9b2182ee1a5432859aa9c93cd8
+index 0000000000000000000000000000000000000000..adbf632a3176c66514f9ec6981ac3e5a1f7f31bf
 --- /dev/null
-+++ b/apps/ui/src/tests/todo.test.tsx
-@@ -0,0 +1,48 @@
-+import { render, screen } from '@testing-library/react';
-+import userEvent from '@testing-library/user-event';
-+import ToDo from '../pages/ToDo';
-+import { createTestClock } from './helpers';
++++ b/apps/ui/src/tests/quote.test.tsx
+@@ -0,0 +1,69 @@
++import { fireEvent, render, screen } from '@testing-library/react';
++import Quote from '../pages/Quote.js';
 +
-+describe('ToDo page', () => {
-+  it('categorizes tasks by due date relative to the injected clock', () => {
-+    const clock = createTestClock('2025-11-03T09:00:00Z');
-+    render(<ToDo clock={clock} />);
++const SAMPLE_QUOTES = [
++  {
++    id: 'quote-1',
++    text: 'The only limit to our realization of tomorrow is our doubts of today.',
++    author: 'Franklin D. Roosevelt',
++    tags: ['leadership', 'courage'],
++  },
++  {
++    id: 'quote-2',
++    text: 'Still I rise.',
++    author: 'Maya Angelou',
++    tags: ['hope', 'resilience'],
++  },
++  {
++    id: 'quote-3',
++    text: 'Genius is one percent inspiration and ninety-nine percent perspiration.',
++    author: 'Thomas Edison',
++    tags: ['perseverance', 'innovation'],
++  },
++] as const;
 +
-+    expect(screen.getByTestId('todo-due-1')).toHaveTextContent('Due yesterday');
-+    expect(screen.getByTestId('todo-due-2')).toHaveTextContent('Due today');
-+    expect(screen.getByTestId('todo-due-3')).toHaveTextContent('Due tomorrow');
++describe('Quote UI', () => {
++  it('filters quotes by author case-insensitively', () => {
++    render(<Quote quotes={SAMPLE_QUOTES} />);
++
++    const authorInput = screen.getByTestId('quote-author-input');
++    fireEvent.change(authorInput, { target: { value: 'maya angelou' } });
++
++    expect(screen.getByTestId('quote-results-count')).toHaveTextContent('Showing 1 result');
++    const cards = screen.getAllByTestId('quote-result-card');
++    expect(cards).toHaveLength(1);
++    expect(screen.getByTestId('quote-result-author')).toHaveTextContent('Maya Angelou');
 +  });
 +
-+  it('filters to only show tasks due today when requested', async () => {
-+    const clock = createTestClock('2025-11-03T09:00:00Z');
-+    render(<ToDo clock={clock} />);
++  it('filters quotes by tag case-insensitively', () => {
++    render(<Quote quotes={SAMPLE_QUOTES} />);
 +
-+    const dueTodayToggle = screen.getByTestId('todo-filter-due-today');
-+    await userEvent.click(dueTodayToggle);
++    const tagInput = screen.getByTestId('quote-tag-input');
++    fireEvent.change(tagInput, { target: { value: 'RESILIENCE' } });
 +
-+    expect(screen.queryByTestId('todo-item-1')).not.toBeInTheDocument();
-+    expect(screen.queryByTestId('todo-item-2')).toBeInTheDocument();
-+    expect(screen.queryByTestId('todo-item-3')).not.toBeInTheDocument();
++    expect(screen.getByTestId('quote-results-count')).toHaveTextContent('Showing 1 result');
++    expect(screen.getByTestId('quote-result-text')).toHaveTextContent('Still I rise.');
 +  });
 +
-+  it('shows an error when attempting to add a duplicate title', async () => {
-+    const clock = createTestClock('2025-11-03T09:00:00Z');
-+    render(<ToDo clock={clock} />);
++  it('shows an informative message when no quotes exist', () => {
++    render(<Quote quotes={[]} />);
 +
-+    await userEvent.type(screen.getByTestId('todo-title-input'), 'Prepare sprint review deck');
-+    await userEvent.click(screen.getByTestId('todo-submit'));
-+
-+    expect(screen.getByTestId('todo-error')).toHaveTextContent('A todo with the same title already exists.');
-+    expect(screen.queryByTestId('todo-success')).not.toBeInTheDocument();
++    expect(screen.getByTestId('quote-empty')).toHaveTextContent('No quotes available.');
 +  });
 +
-+  it('shows an error when completing a non-existent todo id', async () => {
-+    const clock = createTestClock('2025-11-03T09:00:00Z');
-+    render(<ToDo clock={clock} />);
++  it('selects deterministic quotes based on seed when no filters are active', () => {
++    render(<Quote quotes={SAMPLE_QUOTES} />);
 +
-+    await userEvent.type(screen.getByTestId('todo-complete-input'), '999');
-+    await userEvent.click(screen.getByTestId('todo-complete-submit'));
++    const seedInput = screen.getByTestId('quote-seed-input');
 +
-+    expect(screen.getByTestId('todo-error')).toHaveTextContent('Todo not found.');
++    fireEvent.change(seedInput, { target: { value: 'alpha' } });
++    const alphaQuote = screen.getByTestId('quote-result-text').textContent;
++
++    fireEvent.change(seedInput, { target: { value: 'beta' } });
++    const betaQuote = screen.getByTestId('quote-result-text').textContent;
++    expect(betaQuote).not.toBe(alphaQuote);
++
++    fireEvent.change(seedInput, { target: { value: 'alpha' } });
++    expect(screen.getByTestId('quote-result-text').textContent).toBe(alphaQuote);
 +  });
 +});
-diff --git a/apps/ui/tsconfig.app.json b/apps/ui/tsconfig.app.json
-index 35ad67644b68cf256cf52f0e0708d363502b82de..32ed1de8b7a2aec64958be0c5d4c6e968ae79e20 100644
---- a/apps/ui/tsconfig.app.json
-+++ b/apps/ui/tsconfig.app.json
-@@ -1,23 +1,29 @@
- {
-   "compilerOptions": {
-     "composite": true,
-     "tsBuildInfoFile": "./node_modules/.tsbuildinfo/tsconfig.app.tsbuildinfo",
-     "target": "ESNext",
-     "useDefineForClassFields": true,
-     "lib": ["DOM", "DOM.Iterable", "ESNext"],
-     "allowJs": false,
-     "skipLibCheck": true,
-     "esModuleInterop": true,
-     "allowSyntheticDefaultImports": true,
-     "strict": true,
-     "forceConsistentCasingInFileNames": true,
-     "module": "ESNext",
-     "moduleResolution": "bundler",
-     "resolveJsonModule": true,
-     "isolatedModules": true,
-     "noEmit": true,
-     "jsx": "react-jsx",
--    "types": ["vitest/globals", "vite/client"]
-+    "types": ["vitest/globals", "vite/client"],
-+    "baseUrl": ".",
-+    "paths": {
-+      "@cli/shared/*": ["../../src/cli/shared/*"],
-+      "@todo/core": ["../../src/todo/core"],
-+      "@todo/core/*": ["../../src/todo/*"]
-+    }
-   },
-   "include": ["src"]
- }
-diff --git a/apps/ui/vite.config.ts b/apps/ui/vite.config.ts
-index 02bf48e00eccfbb0ab6152d1f3959fd08bee17b1..dbbd94e93b5983f897df0325064ebc60c3be3ddb 100644
---- a/apps/ui/vite.config.ts
-+++ b/apps/ui/vite.config.ts
-@@ -1,20 +1,31 @@
- /// <reference types="vitest" />
- import { defineConfig } from 'vite';
-+import path from 'node:path';
-+import { fileURLToPath } from 'node:url';
- import react from '@vitejs/plugin-react';
- 
-+const __dirname = path.dirname(fileURLToPath(import.meta.url));
-+const repoRoot = path.resolve(__dirname, '..', '..');
-+
- // https://vitejs.dev/config/
- export default defineConfig({
-   plugins: [react()],
-+  resolve: {
-+    alias: {
-+      '@cli/shared': path.resolve(repoRoot, 'src', 'cli', 'shared'),
-+      '@todo/core': path.resolve(repoRoot, 'src', 'todo')
-+    }
-+  },
-   test: {
-     globals: true,
-     environment: 'jsdom',
-     setupFiles: './src/setupTests.ts',
-     exclude: ['**/node_modules/**', '**/playwright/**', '**/dist/**'],
-     coverage: {
-       provider: 'v8',
-       reporter: ['text', 'html', 'json-summary'],
-       reportsDirectory: './coverage/unit',
-       exclude: ['**/node_modules/**', '**/playwright/**', '**/dist/**', '**/*.config.*']
-     }
-   }
- });
 diff --git a/specs/001-update-specify-md/tasks.md b/specs/001-update-specify-md/tasks.md
-index ae9160667b1cd30479c72aae7cab8d319e1917c2..b801b9e54bce6699dfc58d62076968ecb14a190c 100644
+index ae9160667b1cd30479c72aae7cab8d319e1917c2..91ee0bb232f88c4011af5d909cc1b8662a27ffc2 100644
 --- a/specs/001-update-specify-md/tasks.md
 +++ b/specs/001-update-specify-md/tasks.md
-@@ -26,57 +26,57 @@ Plan: `C:\Users\RAYMOND\Desktop\Work Projects\training-raymond\specs\001-update-
- - [ ] T013 Wire deterministic testing helpers (seeded RNG and injected clock) in `apps/ui/src/tests/helpers.ts`
- - [ ] T014 Ensure branch protection and required checks documented in `README_Week3.md`
- 
- ---
- 
- ## Phase 3 — [US1] Expenses UI (Priority P1)
- 
- Goal: Minimal Expenses UI mirroring CLI rules; deterministic tests; coverage ≥ 50% statements.
- Independent test: Selecting month/category shows correct totals; malformed rows handled.
- 
- - [ ] T015 [US1] Implement Expenses route `apps/ui/src/pages/Expenses.tsx`
- - [ ] T016 [US1] Implement components: selectors and totals `apps/ui/src/components/expenses/`
- - [ ] T017 [US1] Implement validation for unknown month/category (inline error) `apps/ui/src/pages/Expenses.tsx`
- - [ ] T018 [US1] Import or implement core totals logic mirroring CLI `apps/ui/src/lib/expenses/totals.ts`
- - [ ] T019 [P] [US1] Unit tests (table‑driven) for months/categories/malformed rows `apps/ui/src/tests/expenses.test.tsx`
+@@ -41,56 +41,56 @@ Independent test: Selecting month/category shows correct totals; malformed rows
  - [ ] T020 [US1] Playwright smoke: select month/category → totals render `apps/ui/playwright/expenses.smoke.spec.ts`
  - [ ] T021 [US1] Export UI coverage HTML and add to `review-artifacts/` (CI ensures)
  
@@ -1423,20 +1315,13 @@ index ae9160667b1cd30479c72aae7cab8d319e1917c2..b801b9e54bce6699dfc58d62076968ec
  Goal: Add/list/complete with deterministic date boundaries; coverage ≥ 50% statements.
  Independent test: yesterday/today/tomorrow boundaries behave by injected clock; duplicate guards enforced.
  
--- [ ] T022 [US2] Implement ToDo route `apps/ui/src/pages/ToDo.tsx`
--- [ ] T023 [US2] Implement components for list/add/complete `apps/ui/src/components/todo/`
--- [ ] T024 [US2] Duplicate guard + errors for complete nonexistent item `apps/ui/src/pages/ToDo.tsx`
--- [ ] T025 [US2] Injected clock utility for dueToday logic `apps/ui/src/lib/time/clock.ts`
--- [ ] T026 [P] [US2] Unit tests for yesterday/today/tomorrow, duplicate add, bad complete `apps/ui/src/tests/todo.test.tsx`
--- [ ] T027 [US2] Playwright smoke: add → list → complete `apps/ui/playwright/todo.smoke.spec.ts`
--- [ ] T028 [US2] Export UI coverage HTML and add to `review-artifacts/`
-+- [x] T022 [US2] Implement ToDo route `apps/ui/src/pages/ToDo.tsx`
-+- [x] T023 [US2] Implement components for list/add/complete `apps/ui/src/components/todo/`
-+- [x] T024 [US2] Duplicate guard + errors for complete nonexistent item `apps/ui/src/pages/ToDo.tsx`
-+- [x] T025 [US2] Injected clock utility for dueToday logic `apps/ui/src/lib/time/clock.ts`
-+- [x] T026 [P] [US2] Unit tests for yesterday/today/tomorrow, duplicate add, bad complete `apps/ui/src/tests/todo.test.tsx`
-+- [x] T027 [US2] Playwright smoke: add → list → complete `apps/ui/playwright/todo.smoke.spec.ts`
-+- [x] T028 [US2] Export UI coverage HTML and add to `review-artifacts/`
+ - [ ] T022 [US2] Implement ToDo route `apps/ui/src/pages/ToDo.tsx`
+ - [ ] T023 [US2] Implement components for list/add/complete `apps/ui/src/components/todo/`
+ - [ ] T024 [US2] Duplicate guard + errors for complete nonexistent item `apps/ui/src/pages/ToDo.tsx`
+ - [ ] T025 [US2] Injected clock utility for dueToday logic `apps/ui/src/lib/time/clock.ts`
+ - [ ] T026 [P] [US2] Unit tests for yesterday/today/tomorrow, duplicate add, bad complete `apps/ui/src/tests/todo.test.tsx`
+ - [ ] T027 [US2] Playwright smoke: add → list → complete `apps/ui/playwright/todo.smoke.spec.ts`
+ - [ ] T028 [US2] Export UI coverage HTML and add to `review-artifacts/`
  
  ---
  
@@ -1445,12 +1330,18 @@ index ae9160667b1cd30479c72aae7cab8d319e1917c2..b801b9e54bce6699dfc58d62076968ec
  Goal: Filter by author/tag (case‑insensitive), random pick when no filter; coverage ≥ 50% statements.
  Independent test: filter results correct; deterministic random via seed.
  
- - [ ] T029 [US3] Implement Quote route `apps/ui/src/pages/Quote.tsx`
- - [ ] T030 [US3] Implement components for filters/result `apps/ui/src/components/quote/`
- - [ ] T031 [US3] Deterministic random pick (seeded RNG) `apps/ui/src/lib/random/seeded.ts`
- - [ ] T032 [P] [US3] Unit tests for author/tag filters, empty dataset, seeded RNG `apps/ui/src/tests/quote.test.tsx`
- - [ ] T033 [US3] Playwright smoke: apply filter → expect deterministic result `apps/ui/playwright/quote.smoke.spec.ts`
- - [ ] T034 [US3] Export UI coverage HTML and add to `review-artifacts/`
+-- [ ] T029 [US3] Implement Quote route `apps/ui/src/pages/Quote.tsx`
+-- [ ] T030 [US3] Implement components for filters/result `apps/ui/src/components/quote/`
+-- [ ] T031 [US3] Deterministic random pick (seeded RNG) `apps/ui/src/lib/random/seeded.ts`
+-- [ ] T032 [P] [US3] Unit tests for author/tag filters, empty dataset, seeded RNG `apps/ui/src/tests/quote.test.tsx`
+-- [ ] T033 [US3] Playwright smoke: apply filter → expect deterministic result `apps/ui/playwright/quote.smoke.spec.ts`
+-- [ ] T034 [US3] Export UI coverage HTML and add to `review-artifacts/`
++- [x] T029 [US3] Implement Quote route `apps/ui/src/pages/Quote.tsx`
++- [x] T030 [US3] Implement components for filters/result `apps/ui/src/components/quote/`
++- [x] T031 [US3] Deterministic random pick (seeded RNG) `apps/ui/src/lib/random/seeded.ts`
++- [x] T032 [P] [US3] Unit tests for author/tag filters, empty dataset, seeded RNG `apps/ui/src/tests/quote.test.tsx`
++- [x] T033 [US3] Playwright smoke: apply filter → expect deterministic result `apps/ui/playwright/quote.smoke.spec.ts`
++- [x] T034 [US3] Export UI coverage HTML and add to `review-artifacts/`
  
  ---
  
@@ -1462,3 +1353,17 @@ index ae9160667b1cd30479c72aae7cab8d319e1917c2..b801b9e54bce6699dfc58d62076968ec
  - [ ] T038 Capstone PR to `development` with Coverage Table, links, and screenshots `docs/review.md`
  
  ---
+ 
+ ## Dependencies (story order)
+ 
+ 1) US1 Expenses → 2) US2 ToDo → 3) US3 Quote → 4) Polish
+ 
+ ## Parallel execution examples
+ 
+ - While implementing Expenses UI page (T015–T018), tests (T019) can proceed in parallel [P].
+ - For ToDo (T022–T025), unit tests (T026) in parallel [P].
+ - For Quote (T029–T031), unit tests (T032) in parallel [P].
+ 
+ ## Implementation strategy
+ 
+ - MVP is US1 (Expenses UI): ship with tests, smoke, coverage; then expand to US2 and US3.
