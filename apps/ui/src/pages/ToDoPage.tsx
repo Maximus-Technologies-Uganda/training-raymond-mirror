@@ -1,20 +1,12 @@
-import { TodoPlaceholder } from '../components/index.js';
+import ToDo from './ToDo';
 
 /**
- * ToDo page for managing actionable tasks with deterministic clocks.
- * This page will eventually handle task entry, completion, and time-based filtering.
+ * ToDo page wrapper for router compatibility.
+ * This wrapper maintains backward compatibility with existing routing scaffolds
+ * while delegating to the new full-featured ToDo component.
+ *
+ * @deprecated Use ToDo component directly for new implementations
  */
 export function ToDoPage(): JSX.Element {
-  return (
-    <section aria-labelledby="todo-heading" className="page">
-      <header className="page-header">
-        <h2 id="todo-heading">ToDo</h2>
-        <p>
-          Manage actionable tasks with deterministic clocks. This placeholder keeps routes wired while
-          ToDo UI logic is under construction.
-        </p>
-      </header>
-      <TodoPlaceholder />
-    </section>
-  );
+  return <ToDo />;
 }

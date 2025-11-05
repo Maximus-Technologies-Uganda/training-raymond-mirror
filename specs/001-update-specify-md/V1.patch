@@ -1,927 +1,1392 @@
-diff --git a/apps/ui/playwright/expenses.smoke.spec.ts b/apps/ui/playwright/expenses.smoke.spec.ts
+diff --git a/apps/ui/playwright/tests/todo.smoke.spec.ts b/apps/ui/playwright/tests/todo.smoke.spec.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..1a3673c28b96534010e2e9e75ffbb564b31badbe
+index 0000000000000000000000000000000000000000..0cba06ecd65d811d7aaa043092b75abfda25b29f
 --- /dev/null
-+++ b/apps/ui/playwright/expenses.smoke.spec.ts
-@@ -0,0 +1,16 @@
-+import { expect, test } from '@playwright/test';
++++ b/apps/ui/playwright/tests/todo.smoke.spec.ts
+@@ -0,0 +1,23 @@
++import { test, expect } from '@playwright/test';
 +
-+test.describe('@smoke expenses ui', () => {
-+  test('filters by month and category to show totals', async ({ page }) => {
++test.describe('todo ui smoke test', () => {
++  test('add → list → complete flow', async ({ page }) => {
 +    await page.goto('/');
 +
-+    await expect(page.getByRole('heading', { level: 1, name: /Training Raymond UI/i })).toBeVisible();
-+    await expect(page.getByRole('heading', { level: 2, name: /Expenses Summary/i })).toBeVisible();
++    await page.getByRole('button', { name: 'ToDo' }).click();
 +
-+    await page.getByLabel('Month filter').fill('February');
-+    await page.getByLabel('Category filter').fill('Groceries');
++    await page.getByLabel('Task title').fill('Write smoke test');
++    await page.getByLabel('Due date').fill('2025-05-20');
++    await page.getByLabel('Priority').selectOption('medium');
++    await page.getByRole('button', { name: 'Add task' }).click();
 +
-+    await expect(page.getByTestId('expenses-total')).toHaveText('Total: $95.10');
-+    await expect(page.getByRole('row', { name: /Groceries/ })).toContainText('$95.10');
++    const activeList = page.getByTestId('todo-active-list');
++    const addedItem = activeList.locator('li', { hasText: 'Write smoke test' });
++    await expect(addedItem).toBeVisible();
++
++    await addedItem.getByRole('button', { name: 'Mark complete' }).click();
++
++    const completedList = page.getByTestId('todo-completed-list');
++    await expect(completedList.getByText('Write smoke test')).toBeVisible();
 +  });
 +});
-diff --git a/apps/ui/playwright/playwright.config.ts b/apps/ui/playwright/playwright.config.ts
-index c1ebd0bf34cf826406dbab382a9905f15acfbe44..be6ac6255b6da2ed9829dbed12d18ed6b9c50d31 100644
---- a/apps/ui/playwright/playwright.config.ts
-+++ b/apps/ui/playwright/playwright.config.ts
-@@ -1,37 +1,38 @@
- import { defineConfig, devices } from '@playwright/test';
- import path from 'node:path';
- import { fileURLToPath } from 'node:url';
- 
- const __dirname = path.dirname(fileURLToPath(import.meta.url));
- 
- export default defineConfig({
--  testDir: path.join(__dirname, 'tests'),
-+  testDir: __dirname,
-   timeout: 60000, // 60 seconds per test
-   reporter: [
-     ['list'],
-     ['html', { outputFolder: path.join(__dirname, 'report'), open: 'never' }]
-   ],
-   use: {
-     baseURL: process.env.UI_BASE_URL ?? 'http://localhost:4173',
-     trace: 'on-first-retry',
-     screenshot: 'only-on-failure',
-     video: 'retain-on-failure',
-     actionTimeout: 10000 // 10 seconds for individual actions
-   },
-   // ✅ Auto-start preview server for tests
-   webServer: {
-     command: 'npm run preview -- --port 4173',
-     port: 4173,
-     cwd: path.join(__dirname, '..'),
-     reuseExistingServer: !process.env.CI,
-     timeout: 120000,
-     stdout: 'pipe',
-     stderr: 'pipe'
-   },
-+  testMatch: ['tests/**/*.spec.*', '*.smoke.spec.*'],
-   projects: [
-     {
-       name: 'chromium',
-       use: { ...devices['Desktop Chrome'] }
-     }
-   ]
- });
-diff --git a/apps/ui/playwright/tests/smoke.spec.d.ts b/apps/ui/playwright/tests/smoke.spec.d.ts
-deleted file mode 100644
-index cb0ff5c3b541f646105198ee23ac0fc3d805023e..0000000000000000000000000000000000000000
---- a/apps/ui/playwright/tests/smoke.spec.d.ts
-+++ /dev/null
-@@ -1 +0,0 @@
--export {};
-diff --git a/apps/ui/playwright/tests/smoke.spec.js b/apps/ui/playwright/tests/smoke.spec.js
-deleted file mode 100644
-index 14d075dca7750f0e2ae879d536e634ef863a575b..0000000000000000000000000000000000000000
---- a/apps/ui/playwright/tests/smoke.spec.js
-+++ /dev/null
-@@ -1,17 +0,0 @@
--import { test, expect } from '@playwright/test';
--
--/**
-- * ✅ FIX 1: Real smoke test that verifies the actual UI build
-- * Tests that the scaffold renders correctly with the welcome heading
-- */
--test('UI scaffold renders welcome heading @smoke', async ({ page }) => {
--  await page.goto('/');
--
--  // Verify the main heading is visible
--  const heading = page.getByTestId('welcome-title');
--  await expect(heading).toBeVisible();
--  await expect(heading).toHaveText('Training Raymond UI');
--
--  // Verify content loaded
--  await expect(page.getByText(/Foundations for the Expenses, ToDo, and Quote experiences/i)).toBeVisible();
--});
 diff --git a/apps/ui/src/App.css b/apps/ui/src/App.css
-index d5a543f572fd8802ac502a5d6c13b32e94412a9b..cf20b4228310b330a42599b34ec34a45a4a215de 100644
+index 55fc5c3230961856f0dc4980f35b6ba474f46459..323dbf064be1e13f4f551579205f709b6a9b6f05 100644
 --- a/apps/ui/src/App.css
 +++ b/apps/ui/src/App.css
-@@ -1,24 +1,150 @@
- .App {
--  text-align: center;
-   min-height: 100vh;
-   display: flex;
--  align-items: center;
--  justify-content: center;
--  background: radial-gradient(circle at top, #f7f9fc, #e1e7f0);
--  color: #1f2933;
+@@ -243,25 +243,362 @@ body {
+   font-style: italic;
+   color: #6b7280;
+ }
+ 
+ @media (max-width: 720px) {
+   .App {
+     padding: 2rem 1rem 3rem;
+   }
+ 
+   .expenses-page {
+     padding: 2rem 1.5rem;
+   }
+ 
+   .expenses-page__title {
+     font-size: 2rem;
+   }
+ 
+   .expenses-controls {
+     grid-template-columns: 1fr;
+   }
+ 
+   .expenses-controls__clear-btn {
+     width: 100%;
+   }
+ }
++
++.app-shell__header {
++  width: 100%;
++  max-width: 960px;
++  display: flex;
 +  flex-direction: column;
-+  background: linear-gradient(180deg, #f5f8ff 0%, #eef2f7 100%);
-+  color: #0f172a;
-   padding: 2rem;
-+  gap: 2rem;
-+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
- }
- 
- .App-header {
--  max-width: 560px;
-+  max-width: 960px;
- }
- 
- .App-header h1 {
--  font-size: 2.5rem;
--  margin-bottom: 1rem;
-+  font-size: 2.25rem;
-+  margin-bottom: 0.5rem;
- }
- 
- .App-header p {
--  font-size: 1.1rem;
--  line-height: 1.6;
-+  font-size: 1rem;
-+  margin: 0;
-+  color: #334155;
-+}
-+
-+.expenses {
-+  max-width: 960px;
-+  margin: 0 auto;
-+  background-color: #ffffff;
-+  border-radius: 16px;
-+  padding: 2rem;
-+  box-shadow: 0 20px 45px -30px rgba(15, 23, 42, 0.5);
-+}
-+
-+.expenses h2 {
-+  font-size: 1.75rem;
-+  margin-bottom: 0.5rem;
-+}
-+
-+.lead {
-+  margin: 0 0 1.5rem;
-+  color: #475569;
-+}
-+
-+.field-grid {
-+  display: grid;
-+  gap: 1.5rem;
-+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
++  align-items: center;
++  gap: 1.25rem;
 +  margin-bottom: 2rem;
 +}
 +
-+.field {
++.app-shell__title {
++  margin: 0;
++  font-size: 2.25rem;
++  font-weight: 700;
++  color: #111827;
++}
++
++.app-shell__nav {
++  display: inline-flex;
++  gap: 0.75rem;
++  padding: 0.5rem;
++  background: rgba(255, 255, 255, 0.75);
++  border-radius: 999px;
++  box-shadow: 0 10px 25px -15px rgba(30, 64, 175, 0.5);
++}
++
++.app-shell__tab {
++  border: none;
++  border-radius: 999px;
++  padding: 0.6rem 1.5rem;
++  font-size: 1rem;
++  font-weight: 600;
++  background: transparent;
++  color: #1f2937;
++  cursor: pointer;
++  transition: all 0.2s ease;
++}
++
++.app-shell__tab:hover,
++.app-shell__tab:focus-visible {
++  background: rgba(59, 130, 246, 0.12);
++  outline: none;
++}
++
++.app-shell__tab--active {
++  background: linear-gradient(135deg, #2563eb, #1d4ed8);
++  color: #ffffff;
++  box-shadow: 0 15px 30px -20px rgba(37, 99, 235, 0.9);
++}
++
++.app-shell__content {
++  width: 100%;
++  max-width: 960px;
++}
++
++.todo-page {
++  width: 100%;
++  background: #ffffff;
++  border-radius: 16px;
++  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.18);
++  padding: 2.5rem 3rem 3rem;
 +  display: flex;
 +  flex-direction: column;
-+  align-items: flex-start;
++  gap: 2rem;
++}
++
++.todo-page__header {
++  display: flex;
++  flex-direction: column;
 +  gap: 0.5rem;
 +}
 +
-+.field label {
-+  font-weight: 600;
-+  color: #1e293b;
-+}
-+
-+.field input {
-+  width: 100%;
-+  padding: 0.75rem 1rem;
-+  border-radius: 10px;
-+  border: 1px solid #cbd5f5;
-+  background-color: #f8fafc;
-+  font-size: 1rem;
-+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-+}
-+
-+.field input:focus {
-+  outline: none;
-+  border-color: #2563eb;
-+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
-+}
-+
-+.field-error {
-+  color: #b91c1c;
-+  font-size: 0.9rem;
++.todo-page__header h1 {
 +  margin: 0;
++  font-size: 2.2rem;
 +}
 +
-+.totals {
++.todo-page__forms {
++  display: grid;
++  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
++  gap: 1.5rem;
++}
++
++.todo-form,
++.todo-complete-form {
++  border: 1px solid #e0e7ff;
++  border-radius: 12px;
++  padding: 1.5rem;
++  background: linear-gradient(180deg, rgba(248, 250, 252, 0.85), #ffffff 70%);
 +  display: flex;
 +  flex-direction: column;
 +  gap: 1rem;
 +}
 +
-+.totals h3 {
-+  margin: 0;
++.todo-form__field,
++.todo-complete-form__field {
++  display: flex;
++  flex-direction: column;
++  gap: 0.5rem;
 +}
 +
-+.totals-grand {
-+  font-size: 1.5rem;
-+  font-weight: 700;
-+  color: #0f172a;
-+  margin: 0;
++.todo-form__field-group {
++  display: grid;
++  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
++  gap: 1rem;
 +}
 +
-+.totals-empty {
-+  margin: 0;
-+  color: #475569;
++.todo-form label,
++.todo-complete-form label {
++  font-weight: 600;
++  color: #1f2937;
 +}
 +
-+.totals-table {
-+  width: 100%;
-+  border-collapse: collapse;
-+  background-color: #f8fafc;
++.todo-form input,
++.todo-form select,
++.todo-complete-form input {
++  border: 1px solid #cbd5f5;
++  border-radius: 8px;
++  padding: 0.7rem 0.9rem;
++  font-size: 1rem;
++  background: #ffffff;
++  color: inherit;
++}
++
++.todo-form input:focus,
++.todo-form select:focus,
++.todo-complete-form input:focus {
++  outline: 3px solid rgba(59, 130, 246, 0.25);
++  border-color: #2563eb;
++}
++
++.todo-form__submit,
++.todo-complete-form__submit {
++  border: none;
++  border-radius: 10px;
++  padding: 0.75rem 1.25rem;
++  font-size: 1rem;
++  font-weight: 600;
++  color: #ffffff;
++  background: linear-gradient(135deg, #2563eb, #1d4ed8);
++  cursor: pointer;
++  transition: transform 0.2s ease, box-shadow 0.2s ease;
++  align-self: flex-start;
++}
++
++.todo-form__submit:hover,
++.todo-complete-form__submit:hover {
++  transform: translateY(-2px);
++  box-shadow: 0 12px 24px -12px rgba(37, 99, 235, 0.7);
++}
++
++.todo-form__submit:disabled,
++.todo-complete-form__submit:disabled {
++  opacity: 0.7;
++  cursor: progress;
++}
++
++.todo-feedback {
 +  border-radius: 12px;
-+  overflow: hidden;
++  padding: 1rem 1.25rem;
++  font-weight: 600;
 +}
 +
-+.totals-table th,
-+.totals-table td {
-+  padding: 0.75rem 1rem;
-+  text-align: left;
++.todo-feedback--success {
++  background: #ecfdf5;
++  color: #047857;
++  border: 1px solid #34d399;
 +}
 +
-+.totals-table thead {
-+  background-color: #e0e7ff;
-+  color: #1e293b;
++.todo-feedback--error {
++  background: #fef2f2;
++  color: #b91c1c;
++  border: 1px solid #fca5a5;
 +}
 +
-+.totals-table tbody tr:nth-child(even) {
-+  background-color: rgba(37, 99, 235, 0.04);
++.todo-summary {
++  border-radius: 12px;
++  background: #0f172a;
++  color: #f8fafc;
++  padding: 1.5rem;
 +}
 +
-+.numeric {
-+  text-align: right;
-+  font-variant-numeric: tabular-nums;
++.todo-summary__metrics {
++  display: grid;
++  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
++  gap: 1rem;
++  margin: 0;
 +}
 +
-+@media (max-width: 640px) {
-+  .App {
-+    padding: 1.5rem;
++.todo-summary__metric {
++  background: rgba(148, 163, 184, 0.2);
++  border-radius: 10px;
++  padding: 0.85rem 1rem;
++  display: flex;
++  flex-direction: column;
++  gap: 0.25rem;
++}
++
++.todo-summary__metric dt {
++  margin: 0;
++  font-size: 0.85rem;
++  text-transform: uppercase;
++  letter-spacing: 0.08em;
++  color: rgba(226, 232, 240, 0.8);
++}
++
++.todo-summary__metric dd {
++  margin: 0;
++  font-size: 1.4rem;
++  font-weight: 700;
++}
++
++.todo-list {
++  border: 1px solid rgba(148, 163, 184, 0.3);
++  border-radius: 14px;
++  background: rgba(255, 255, 255, 0.85);
++  padding: 1.5rem 1.75rem;
++  display: flex;
++  flex-direction: column;
++  gap: 1.25rem;
++}
++
++.todo-list__header h2 {
++  margin: 0;
++}
++
++.todo-list__items {
++  list-style: none;
++  margin: 0;
++  padding: 0;
++  display: flex;
++  flex-direction: column;
++  gap: 1rem;
++}
++
++.todo-list__item {
++  display: flex;
++  flex-direction: column;
++  gap: 0.75rem;
++  padding: 1rem 1.25rem;
++  border-radius: 12px;
++  border: 1px solid rgba(148, 163, 184, 0.4);
++  background: rgba(248, 250, 252, 0.9);
++}
++
++.todo-list__item--overdue {
++  border-color: rgba(248, 113, 113, 0.7);
++}
++
++.todo-list__item--due-today {
++  border-color: rgba(96, 165, 250, 0.7);
++}
++
++.todo-list__item-main {
++  display: flex;
++  align-items: center;
++  justify-content: space-between;
++  gap: 1rem;
++}
++
++.todo-list__item-title {
++  font-size: 1.05rem;
++  font-weight: 600;
++}
++
++.todo-list__badge {
++  border-radius: 999px;
++  padding: 0.25rem 0.85rem;
++  font-size: 0.85rem;
++  text-transform: uppercase;
++  letter-spacing: 0.05em;
++}
++
++.todo-list__badge--high {
++  background: rgba(248, 113, 113, 0.2);
++  color: #b91c1c;
++}
++
++.todo-list__badge--medium {
++  background: rgba(96, 165, 250, 0.2);
++  color: #1d4ed8;
++}
++
++.todo-list__badge--low {
++  background: rgba(110, 231, 183, 0.2);
++  color: #047857;
++}
++
++.todo-list__item-meta {
++  display: flex;
++  flex-direction: column;
++  gap: 0.25rem;
++  color: #475569;
++  font-size: 0.95rem;
++}
++
++.todo-list__complete {
++  align-self: flex-start;
++  border: none;
++  border-radius: 8px;
++  padding: 0.6rem 1.1rem;
++  font-weight: 600;
++  background: linear-gradient(135deg, #22c55e, #16a34a);
++  color: #ffffff;
++  cursor: pointer;
++  transition: transform 0.2s ease, box-shadow 0.2s ease;
++}
++
++.todo-list__complete:hover {
++  transform: translateY(-2px);
++  box-shadow: 0 12px 24px -12px rgba(34, 197, 94, 0.75);
++}
++
++.todo-list__empty {
++  margin: 0;
++  font-style: italic;
++  color: #64748b;
++}
++
++@media (max-width: 720px) {
++  .app-shell__header {
++    gap: 1rem;
 +  }
 +
-+  .expenses {
-+    padding: 1.5rem;
++  .app-shell__title {
++    font-size: 1.75rem;
 +  }
 +
-+  .totals-table th,
-+  .totals-table td {
-+    padding: 0.65rem 0.75rem;
++  .todo-page {
++    padding: 2rem 1.5rem;
 +  }
- }
-diff --git a/apps/ui/src/App.test.tsx b/apps/ui/src/App.test.tsx
-index b7e63340c32681cd9bd8d65a020e5209b14a0100..48528964d2e722fdfb3f7e70691a0960fe1175c3 100644
---- a/apps/ui/src/App.test.tsx
-+++ b/apps/ui/src/App.test.tsx
-@@ -1,9 +1,17 @@
- import { render, screen } from '@testing-library/react';
- import App from './App';
- 
- describe('App', () => {
-   it('renders the welcome headline', () => {
-     render(<App />);
-     expect(screen.getByTestId('welcome-title')).toHaveTextContent('Training Raymond UI');
-   });
 +
-+  it('renders the expenses experience', () => {
-+    render(<App />);
-+    expect(screen.getByRole('heading', { level: 2, name: /expenses summary/i })).toBeInTheDocument();
-+    expect(
-+      screen.getByText(/monthly spending at a glance/i)
-+    ).toBeInTheDocument();
-+  });
- });
++  .todo-page__forms {
++    grid-template-columns: 1fr;
++  }
++}
 diff --git a/apps/ui/src/App.tsx b/apps/ui/src/App.tsx
-index eaf402438a3879a20b4e6334013fdb326c62baa7..a3ab0c90969e57bb5e4cfaa805e2c282ee4220c0 100644
+index d116971ab0f564935ffeb957c211e09ba7e3bb92..27e92aff52f8bb16d138c4dbd3fb90742a5c970c 100644
 --- a/apps/ui/src/App.tsx
 +++ b/apps/ui/src/App.tsx
-@@ -1,17 +1,16 @@
-+import Expenses from './pages/Expenses';
+@@ -1,16 +1,42 @@
++import { useState } from 'react';
  import './App.css';
+ import Expenses from './pages/Expenses';
++import ToDo from './pages/ToDo';
++
++type PageKey = 'expenses' | 'todo';
  
+-/**
+- * Main application component for Phase 3 Expenses UI implementation.
+- * Displays the Expenses overview with filtering and totals.
+- */
  function App(): JSX.Element {
++  const [activePage, setActivePage] = useState<PageKey>('expenses');
++
    return (
-     <div className="App" role="main">
-       <header className="App-header">
-         <h1 data-testid="welcome-title">Training Raymond UI</h1>
--        <p>
--          Week 3 UI workspace is ready. Replace this placeholder with the Expenses, ToDo, and Quote
--          experiences as you implement later phases.
--        </p>
-+        <p>Use the filters to explore monthly spending and spot trends quickly.</p>
-       </header>
-+      <Expenses />
+     <div className="App">
+-      <Expenses />
++      <header className="app-shell__header">
++        <h1 className="app-shell__title">Operations toolkit</h1>
++        <nav aria-label="Main navigation" className="app-shell__nav">
++          <button
++            type="button"
++            className={`app-shell__tab${activePage === 'expenses' ? ' app-shell__tab--active' : ''}`}
++            onClick={() => setActivePage('expenses')}
++            aria-pressed={activePage === 'expenses'}
++          >
++            Expenses
++          </button>
++          <button
++            type="button"
++            className={`app-shell__tab${activePage === 'todo' ? ' app-shell__tab--active' : ''}`}
++            onClick={() => setActivePage('todo')}
++            aria-pressed={activePage === 'todo'}
++          >
++            ToDo
++          </button>
++        </nav>
++      </header>
++
++      <main className="app-shell__content">
++        {activePage === 'expenses' ? <Expenses /> : <ToDo />}
++      </main>
      </div>
    );
  }
  
  export default App;
-diff --git a/apps/ui/src/components/expenses/CategorySelector.tsx b/apps/ui/src/components/expenses/CategorySelector.tsx
+diff --git a/apps/ui/src/components/index.ts b/apps/ui/src/components/index.ts
+index a7f41e049766899c7778b2b32f5d8638f4742028..bd266791d541ecd1ce08cdfc9a8aefe64371d244 100644
+--- a/apps/ui/src/components/index.ts
++++ b/apps/ui/src/components/index.ts
+@@ -1,3 +1,6 @@
+ export { ExpensesPlaceholder } from './expenses/ExpensesPlaceholder.js';
++export { TodoForm } from './todo/TodoForm.js';
++export { TodoList } from './todo/TodoList.js';
++export { TodoCompleteForm } from './todo/TodoCompleteForm.js';
+ export { TodoPlaceholder } from './todo/TodoPlaceholder.js';
+ export { QuotePlaceholder } from './quote/QuotePlaceholder.js';
+diff --git a/apps/ui/src/components/todo/TodoCompleteForm.tsx b/apps/ui/src/components/todo/TodoCompleteForm.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..bafba75a88ad6df7e0722892a00355ac078dfba7
+index 0000000000000000000000000000000000000000..1b86a4a2fe0a7fe6791745519840b2d72dca6ddd
 --- /dev/null
-+++ b/apps/ui/src/components/expenses/CategorySelector.tsx
-@@ -0,0 +1,45 @@
-+import type { ChangeEventHandler } from 'react';
++++ b/apps/ui/src/components/todo/TodoCompleteForm.tsx
+@@ -0,0 +1,46 @@
++import { type FormEvent, useState } from 'react';
 +
-+interface CategorySelectorProps {
-+  value: string;
-+  options: string[];
-+  error?: string | null;
-+  onChange: (value: string) => void;
++export interface TodoCompleteFormProps {
++  onComplete(id: string): Promise<boolean> | boolean;
 +}
 +
-+export default function CategorySelector({
-+  value,
-+  options,
-+  error,
-+  onChange
-+}: CategorySelectorProps): JSX.Element {
-+  const handleChange: ChangeEventHandler<HTMLInputElement> = (event) => {
-+    onChange(event.target.value);
-+  };
++export function TodoCompleteForm({ onComplete }: TodoCompleteFormProps): JSX.Element {
++  const [taskId, setTaskId] = useState('');
++  const [isSubmitting, setIsSubmitting] = useState(false);
 +
-+  return (
-+    <div className="field">
-+      <label htmlFor="expenses-category">Category filter</label>
-+      <input
-+        id="expenses-category"
-+        name="expenses-category"
-+        type="text"
-+        value={value}
-+        onChange={handleChange}
-+        list="expenses-category-options"
-+        aria-describedby={error ? 'expenses-category-error' : undefined}
-+        placeholder="e.g. Groceries"
-+      />
-+      <datalist id="expenses-category-options">
-+        {options.map((category) => (
-+          <option key={category} value={category} />
-+        ))}
-+      </datalist>
-+      {error ? (
-+        <p id="expenses-category-error" role="alert" className="field-error">
-+          {error}
-+        </p>
-+      ) : null}
-+    </div>
-+  );
-+}
-diff --git a/apps/ui/src/components/expenses/MonthSelector.tsx b/apps/ui/src/components/expenses/MonthSelector.tsx
-new file mode 100644
-index 0000000000000000000000000000000000000000..ace023f3970ccce13e9079e45ea88098451c7f3e
---- /dev/null
-+++ b/apps/ui/src/components/expenses/MonthSelector.tsx
-@@ -0,0 +1,45 @@
-+import type { ChangeEventHandler } from 'react';
-+
-+interface MonthSelectorProps {
-+  value: string;
-+  options: string[];
-+  error?: string | null;
-+  onChange: (value: string) => void;
-+}
-+
-+export default function MonthSelector({
-+  value,
-+  options,
-+  error,
-+  onChange
-+}: MonthSelectorProps): JSX.Element {
-+  const handleChange: ChangeEventHandler<HTMLInputElement> = (event) => {
-+    onChange(event.target.value);
-+  };
-+
-+  return (
-+    <div className="field">
-+      <label htmlFor="expenses-month">Month filter</label>
-+      <input
-+        id="expenses-month"
-+        name="expenses-month"
-+        type="text"
-+        value={value}
-+        onChange={handleChange}
-+        list="expenses-month-options"
-+        aria-describedby={error ? 'expenses-month-error' : undefined}
-+        placeholder="e.g. February"
-+      />
-+      <datalist id="expenses-month-options">
-+        {options.map((month) => (
-+          <option key={month} value={month} />
-+        ))}
-+      </datalist>
-+      {error ? (
-+        <p id="expenses-month-error" role="alert" className="field-error">
-+          {error}
-+        </p>
-+      ) : null}
-+    </div>
-+  );
-+}
-diff --git a/apps/ui/src/components/expenses/TotalsPanel.tsx b/apps/ui/src/components/expenses/TotalsPanel.tsx
-new file mode 100644
-index 0000000000000000000000000000000000000000..dc5de4e8b97c17e767c00343010fdd5e62b18152
---- /dev/null
-+++ b/apps/ui/src/components/expenses/TotalsPanel.tsx
-@@ -0,0 +1,69 @@
-+import type { ExpenseTotalsResult } from '../../lib/expenses/totals';
-+
-+interface TotalsPanelProps {
-+  totals: ExpenseTotalsResult | null;
-+  currency: string;
-+  hasActiveFilters: boolean;
-+}
-+
-+export default function TotalsPanel({
-+  totals,
-+  currency,
-+  hasActiveFilters
-+}: TotalsPanelProps): JSX.Element {
-+  const formatter = new Intl.NumberFormat('en-US', {
-+    style: 'currency',
-+    currency,
-+    minimumFractionDigits: 2,
-+    maximumFractionDigits: 2
-+  });
-+
-+  if (totals === null) {
-+    return (
-+      <section className="totals" aria-live="polite">
-+        <h3>Expenses Summary</h3>
-+        <p className="totals-empty">Fix the errors above to see totals.</p>
-+      </section>
-+    );
-+  }
-+
-+  if (totals.entries.length === 0) {
-+    return (
-+      <section className="totals" aria-live="polite">
-+        <h3>Expenses Summary</h3>
-+        <p className="totals-empty">
-+          {hasActiveFilters
-+            ? 'No expenses match the selected filters yet.'
-+            : 'No expenses found in the dataset.'}
-+        </p>
-+      </section>
-+    );
-+  }
-+
-+  return (
-+    <section className="totals" aria-live="polite">
-+      <h3>Expenses Summary</h3>
-+      <p data-testid="expenses-total" className="totals-grand">
-+        Total: {formatter.format(totals.total)}
-+      </p>
-+      <table aria-label="Totals by category" className="totals-table">
-+        <thead>
-+          <tr>
-+            <th scope="col">Category</th>
-+            <th scope="col" className="numeric">
-+              Amount
-+            </th>
-+          </tr>
-+        </thead>
-+        <tbody>
-+          {totals.totalsByCategory.map((entry) => (
-+            <tr key={entry.category}>
-+              <th scope="row">{entry.category}</th>
-+              <td className="numeric">{formatter.format(entry.total)}</td>
-+            </tr>
-+          ))}
-+        </tbody>
-+      </table>
-+    </section>
-+  );
-+}
-diff --git a/apps/ui/src/lib/expenses/totals.ts b/apps/ui/src/lib/expenses/totals.ts
-new file mode 100644
-index 0000000000000000000000000000000000000000..ab47704108ba5f2dfb30e03764216b943307fc9d
---- /dev/null
-+++ b/apps/ui/src/lib/expenses/totals.ts
-@@ -0,0 +1,229 @@
-+export interface ExpenseDatum {
-+  id: string;
-+  date: string; // YYYY-MM-DD
-+  category: string;
-+  amount: number;
-+  currency: string;
-+}
-+
-+export interface ExpenseDataset {
-+  currency: string;
-+  records: ExpenseDatum[];
-+}
-+
-+export interface ExpenseTotalsFilters {
-+  month?: string | number | null;
-+  category?: string | null;
-+}
-+
-+export interface ExpenseTotalsByCategory {
-+  category: string;
-+  total: number;
-+}
-+
-+export interface ExpenseTotalsResult {
-+  total: number;
-+  totalsByCategory: ExpenseTotalsByCategory[];
-+  entries: ExpenseDatum[];
-+}
-+
-+const MONTH_NAMES = [
-+  'January',
-+  'February',
-+  'March',
-+  'April',
-+  'May',
-+  'June',
-+  'July',
-+  'August',
-+  'September',
-+  'October',
-+  'November',
-+  'December'
-+];
-+
-+function ensureString(value: string | null | undefined): string | null {
-+  if (value === undefined || value === null) {
-+    return null;
-+  }
-+  const trimmed = String(value).trim();
-+  return trimmed.length === 0 ? null : trimmed;
-+}
-+
-+export class UnknownMonthError extends Error {
-+  constructor(value: string, available: string[]) {
-+    super(`Unknown month "${value}". Choose one of: ${available.join(', ')}.`);
-+    this.name = 'UnknownMonthError';
-+  }
-+}
-+
-+export class UnknownCategoryError extends Error {
-+  constructor(value: string, available: string[]) {
-+    super(`Unknown category "${value}". Choose one of: ${available.join(', ')}.`);
-+    this.name = 'UnknownCategoryError';
-+  }
-+}
-+
-+function parseMonth(value: string | number): number {
-+  if (typeof value === 'number' && Number.isInteger(value)) {
-+    if (value >= 1 && value <= 12) {
-+      return value;
-+    }
-+    throw new Error('Month must be between 1 and 12.');
-+  }
-+
-+  const normalized = String(value).trim().toLowerCase();
-+  if (normalized === '') {
-+    throw new Error('Month cannot be empty.');
-+  }
-+
-+  const numeric = Number.parseInt(normalized, 10);
-+  if (!Number.isNaN(numeric)) {
-+    if (numeric >= 1 && numeric <= 12) {
-+      return numeric;
-+    }
-+    throw new Error('Month must be between 1 and 12.');
-+  }
-+
-+  const monthIndex = MONTH_NAMES.findIndex((month) => month.toLowerCase().startsWith(normalized));
-+  if (monthIndex === -1) {
-+    throw new Error('Invalid month value.');
-+  }
-+  return monthIndex + 1;
-+}
-+
-+function toMonthNumber(date: string): number {
-+  const parsed = new Date(`${date}T00:00:00Z`);
-+  if (Number.isNaN(parsed.getTime())) {
-+    throw new Error(`Invalid expense date: ${date}`);
-+  }
-+  return parsed.getUTCMonth() + 1;
-+}
-+
-+function normalizeCategory(value: string): string {
-+  return value.trim().toLowerCase();
-+}
-+
-+export function getAvailableMonths(dataset: ExpenseDataset): string[] {
-+  const unique = new Set<number>();
-+  dataset.records.forEach((record) => {
-+    unique.add(toMonthNumber(record.date));
-+  });
-+  return Array.from(unique)
-+    .sort((a, b) => a - b)
-+    .map((month) => MONTH_NAMES[month - 1]);
-+}
-+
-+export function getAvailableCategories(dataset: ExpenseDataset): string[] {
-+  const unique = new Set<string>();
-+  dataset.records.forEach((record) => {
-+    unique.add(record.category);
-+  });
-+  return Array.from(unique).sort((a, b) => a.localeCompare(b));
-+}
-+
-+export function calculateExpenseTotals(
-+  dataset: ExpenseDataset,
-+  filters: ExpenseTotalsFilters = {}
-+): ExpenseTotalsResult {
-+  const availableMonths = getAvailableMonths(dataset);
-+  const availableMonthNumbers = new Set(
-+    availableMonths.map((month) => MONTH_NAMES.indexOf(month) + 1)
-+  );
-+  const availableCategories = getAvailableCategories(dataset);
-+  const availableCategorySet = new Set(availableCategories.map((category) => normalizeCategory(category)));
-+
-+  const monthFilterRaw = ensureString(filters.month as string | null);
-+  const categoryFilterRaw = ensureString(filters.category ?? null);
-+
-+  let monthFilter: number | null = null;
-+  if (monthFilterRaw !== null) {
-+    try {
-+      monthFilter = parseMonth(monthFilterRaw);
-+    } catch (error) {
-+      throw new UnknownMonthError(monthFilterRaw, availableMonths);
-+    }
-+    if (!availableMonthNumbers.has(monthFilter)) {
-+      throw new UnknownMonthError(monthFilterRaw, availableMonths);
-+    }
-+  }
-+
-+  let categoryFilter: string | null = null;
-+  if (categoryFilterRaw !== null) {
-+    const normalized = normalizeCategory(categoryFilterRaw);
-+    if (!availableCategorySet.has(normalized)) {
-+      throw new UnknownCategoryError(categoryFilterRaw, availableCategories);
-+    }
-+    categoryFilter = normalized;
-+  }
-+
-+  const filteredEntries = dataset.records.filter((record) => {
-+    const recordMonth = toMonthNumber(record.date);
-+    const matchesMonth = monthFilter === null || recordMonth === monthFilter;
-+    const matchesCategory =
-+      categoryFilter === null || normalizeCategory(record.category) === categoryFilter;
-+    return matchesMonth && matchesCategory;
-+  });
-+
-+  const totalsByCategory = filteredEntries.reduce<ExpenseTotalsByCategory[]>((accumulator, entry) => {
-+    const existing = accumulator.find(
-+      (item) => normalizeCategory(item.category) === normalizeCategory(entry.category)
-+    );
-+    if (existing) {
-+      existing.total += entry.amount;
-+      return accumulator;
-+    }
-+    return [...accumulator, { category: entry.category, total: entry.amount }];
-+  }, []);
-+
-+  totalsByCategory.sort((a, b) => a.category.localeCompare(b.category));
-+
-+  const total = filteredEntries.reduce((sum, entry) => sum + entry.amount, 0);
-+
-+  return {
-+    total,
-+    totalsByCategory,
-+    entries: filteredEntries
-+  };
-+}
-+
-+export const EXPENSES_DATASET: ExpenseDataset = {
-+  currency: 'USD',
-+  records: [
-+    {
-+      id: 'exp-2025-01-10-groceries',
-+      date: '2025-01-10',
-+      category: 'Groceries',
-+      amount: 120.45,
-+      currency: 'USD'
-+    },
-+    {
-+      id: 'exp-2025-02-14-groceries',
-+      date: '2025-02-14',
-+      category: 'Groceries',
-+      amount: 95.1,
-+      currency: 'USD'
-+    },
-+    {
-+      id: 'exp-2025-02-02-transport',
-+      date: '2025-02-02',
-+      category: 'Transport',
-+      amount: 45.2,
-+      currency: 'USD'
-+    },
-+    {
-+      id: 'exp-2025-03-05-utilities',
-+      date: '2025-03-05',
-+      category: 'Utilities',
-+      amount: 150.75,
-+      currency: 'USD'
-+    },
-+    {
-+      id: 'exp-2025-03-18-groceries',
-+      date: '2025-03-18',
-+      category: 'Groceries',
-+      amount: 80,
-+      currency: 'USD'
-+    }
-+  ]
-+};
-diff --git a/apps/ui/src/pages/Expenses.tsx b/apps/ui/src/pages/Expenses.tsx
-new file mode 100644
-index 0000000000000000000000000000000000000000..820fe94524bfcd2a266bd9d8075e94bba23d8cac
---- /dev/null
-+++ b/apps/ui/src/pages/Expenses.tsx
-@@ -0,0 +1,107 @@
-+import { useEffect, useMemo, useState } from 'react';
-+import CategorySelector from '../components/expenses/CategorySelector';
-+import MonthSelector from '../components/expenses/MonthSelector';
-+import TotalsPanel from '../components/expenses/TotalsPanel';
-+import {
-+  EXPENSES_DATASET,
-+  UnknownCategoryError,
-+  UnknownMonthError,
-+  calculateExpenseTotals,
-+  getAvailableCategories,
-+  getAvailableMonths,
-+  type ExpenseTotalsResult
-+} from '../lib/expenses/totals';
-+
-+interface FieldErrors {
-+  month?: string | null;
-+  category?: string | null;
-+}
-+
-+function normalizeFilterValue(value: string): string | null {
-+  const trimmed = value.trim();
-+  return trimmed.length === 0 ? null : trimmed;
-+}
-+
-+export default function Expenses(): JSX.Element {
-+  const months = useMemo(() => getAvailableMonths(EXPENSES_DATASET), []);
-+  const categories = useMemo(() => getAvailableCategories(EXPENSES_DATASET), []);
-+
-+  const [monthInput, setMonthInput] = useState('');
-+  const [categoryInput, setCategoryInput] = useState('');
-+  const [errors, setErrors] = useState<FieldErrors>({});
-+  const [totals, setTotals] = useState<ExpenseTotalsResult | null>(() =>
-+    calculateExpenseTotals(EXPENSES_DATASET)
-+  );
-+
-+  useEffect(() => {
-+    const filters = {
-+      month: normalizeFilterValue(monthInput),
-+      category: normalizeFilterValue(categoryInput)
-+    };
-+
-+    const nextErrors: FieldErrors = { month: null, category: null };
-+    let hasError = false;
-+
-+    if (filters.month !== null) {
-+      try {
-+        calculateExpenseTotals(EXPENSES_DATASET, { month: filters.month });
-+      } catch (error) {
-+        if (error instanceof UnknownMonthError) {
-+          nextErrors.month = error.message;
-+          hasError = true;
-+        } else {
-+          throw error;
-+        }
-+      }
-+    }
-+
-+    if (filters.category !== null) {
-+      try {
-+        calculateExpenseTotals(EXPENSES_DATASET, { category: filters.category });
-+      } catch (error) {
-+        if (error instanceof UnknownCategoryError) {
-+          nextErrors.category = error.message;
-+          hasError = true;
-+        } else {
-+          throw error;
-+        }
-+      }
-+    }
-+
-+    if (hasError) {
-+      setTotals(null);
-+      setErrors(nextErrors);
++  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
++    event.preventDefault();
++    if (isSubmitting) {
 +      return;
 +    }
-+
-+    const result = calculateExpenseTotals(EXPENSES_DATASET, filters);
-+    setTotals(result);
-+    setErrors({});
-+  }, [monthInput, categoryInput]);
++    setIsSubmitting(true);
++    try {
++      const success = await onComplete(taskId.trim());
++      if (success) {
++        setTaskId('');
++      }
++    } finally {
++      setIsSubmitting(false);
++    }
++  };
 +
 +  return (
-+    <section className="expenses" aria-labelledby="expenses-heading">
-+      <h2 id="expenses-heading">Expenses Summary</h2>
-+      <p className="lead">Use the filters to explore monthly spending at a glance.</p>
-+      <div className="field-grid">
-+        <MonthSelector
-+          value={monthInput}
-+          onChange={setMonthInput}
-+          options={months}
-+          error={errors.month ?? null}
-+        />
-+        <CategorySelector
-+          value={categoryInput}
-+          onChange={setCategoryInput}
-+          options={categories}
-+          error={errors.category ?? null}
++    <form className="todo-complete-form" onSubmit={handleSubmit} aria-label="Complete task by id">
++      <div className="todo-complete-form__field">
++        <label htmlFor="todo-complete-id">Complete by id</label>
++        <input
++          id="todo-complete-id"
++          name="todoId"
++          type="text"
++          value={taskId}
++          onChange={(event) => setTaskId(event.target.value)}
++          placeholder="Enter id (e.g., 3)"
++          required
 +        />
 +      </div>
-+      <TotalsPanel
-+        totals={totals}
-+        currency={EXPENSES_DATASET.currency}
-+        hasActiveFilters={Boolean(normalizeFilterValue(monthInput) || normalizeFilterValue(categoryInput))}
++      <button type="submit" className="todo-complete-form__submit" disabled={isSubmitting}>
++        {isSubmitting ? 'Completing…' : 'Mark complete'}
++      </button>
++    </form>
++  );
++}
+diff --git a/apps/ui/src/components/todo/TodoForm.tsx b/apps/ui/src/components/todo/TodoForm.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..92bc01fb922283808fd2fee53dc80cfe1fb32655
+--- /dev/null
++++ b/apps/ui/src/components/todo/TodoForm.tsx
+@@ -0,0 +1,91 @@
++import { type FormEvent, useState } from 'react';
++import type { TodoInput, TodoPriority } from '../../lib/todo/todos.js';
++
++export interface TodoFormProps {
++  onSubmit(input: TodoInput): Promise<boolean> | boolean;
++}
++
++const PRIORITY_LABELS: Record<TodoPriority, string> = {
++  high: 'High',
++  medium: 'Medium',
++  low: 'Low',
++};
++
++export function TodoForm({ onSubmit }: TodoFormProps): JSX.Element {
++  const [title, setTitle] = useState('');
++  const [dueDate, setDueDate] = useState('');
++  const [priority, setPriority] = useState<TodoPriority>('medium');
++  const [isSubmitting, setIsSubmitting] = useState(false);
++
++  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
++    event.preventDefault();
++    if (isSubmitting) {
++      return;
++    }
++    setIsSubmitting(true);
++    try {
++      const success = await onSubmit({
++        title,
++        dueDate: dueDate || undefined,
++        priority,
++      });
++      if (success) {
++        setTitle('');
++        setDueDate('');
++        setPriority('medium');
++      }
++    } finally {
++      setIsSubmitting(false);
++    }
++  };
++
++  return (
++    <form className="todo-form" onSubmit={handleSubmit} aria-label="Add new task">
++      <div className="todo-form__field">
++        <label htmlFor="todo-title">Task title</label>
++        <input
++          id="todo-title"
++          name="title"
++          type="text"
++          value={title}
++          onChange={(event) => setTitle(event.target.value)}
++          placeholder="Write standup notes"
++          required
++        />
++      </div>
++
++      <div className="todo-form__field-group">
++        <div className="todo-form__field">
++          <label htmlFor="todo-due-date">Due date</label>
++          <input
++            id="todo-due-date"
++            name="dueDate"
++            type="date"
++            value={dueDate}
++            onChange={(event) => setDueDate(event.target.value)}
++          />
++        </div>
++
++        <div className="todo-form__field">
++          <label htmlFor="todo-priority">Priority</label>
++          <select
++            id="todo-priority"
++            name="priority"
++            value={priority}
++            onChange={(event) => setPriority(event.target.value as TodoPriority)}
++          >
++            {Object.entries(PRIORITY_LABELS).map(([value, label]) => (
++              <option key={value} value={value}>
++                {label}
++              </option>
++            ))}
++          </select>
++        </div>
++      </div>
++
++      <button type="submit" className="todo-form__submit" disabled={isSubmitting}>
++        {isSubmitting ? 'Adding…' : 'Add task'}
++      </button>
++    </form>
++  );
++}
+diff --git a/apps/ui/src/components/todo/TodoList.tsx b/apps/ui/src/components/todo/TodoList.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..36817fef46fcd8e4e97559082f98d5dd46294dd8
+--- /dev/null
++++ b/apps/ui/src/components/todo/TodoList.tsx
+@@ -0,0 +1,54 @@
++import type { TodoViewItem } from '../../lib/todo/todos.js';
++
++export interface TodoListProps {
++  heading: string;
++  description?: string;
++  items: readonly TodoViewItem[];
++  emptyMessage: string;
++  onComplete?: (id: string) => void;
++  testId?: string;
++}
++
++function formatPriority(priority: string): string {
++  return priority.slice(0, 1).toUpperCase() + priority.slice(1);
++}
++
++export function TodoList({ heading, description, items, emptyMessage, onComplete, testId }: TodoListProps): JSX.Element {
++  return (
++    <section className="todo-list" aria-label={heading} data-testid={testId}>
++      <header className="todo-list__header">
++        <h2>{heading}</h2>
++        {description ? <p>{description}</p> : null}
++      </header>
++
++      {items.length === 0 ? (
++        <p className="todo-list__empty" role="note">
++          {emptyMessage}
++        </p>
++      ) : (
++        <ul className="todo-list__items">
++          {items.map((item) => (
++            <li key={item.id} className={`todo-list__item todo-list__item--${item.dueStatus}`}>
++              <div className="todo-list__item-main">
++                <span className="todo-list__item-title">{item.title}</span>
++                <span className={`todo-list__badge todo-list__badge--${item.priority}`} aria-label={`Priority ${item.priority}`}>
++                  {formatPriority(item.priority)}
++                </span>
++              </div>
++              <div className="todo-list__item-meta">
++                <span className="todo-list__item-due" data-testid={`todo-due-${item.id}`}>
++                  {item.dueLabel}
++                </span>
++              </div>
++              {!item.completed && onComplete ? (
++                <button type="button" className="todo-list__complete" onClick={() => onComplete(item.id)}>
++                  Mark complete
++                </button>
++              ) : null}
++            </li>
++          ))}
++        </ul>
++      )}
++    </section>
++  );
++}
+diff --git a/apps/ui/src/lib/time/clock.ts b/apps/ui/src/lib/time/clock.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..5acb29c5d84be3a24e0881fa778fc4d6014bc23a
+--- /dev/null
++++ b/apps/ui/src/lib/time/clock.ts
+@@ -0,0 +1,112 @@
++export interface Clock {
++  now(): Date;
++}
++
++type ClockInput = Date | string | number;
++
++function toTimestamp(input: ClockInput): number {
++  if (input instanceof Date) {
++    const time = input.getTime();
++    if (Number.isNaN(time)) {
++      throw new Error('Invalid Date provided to clock.');
++    }
++    return time;
++  }
++
++  if (typeof input === 'number') {
++    if (!Number.isFinite(input)) {
++      throw new Error('Timestamp must be a finite number.');
++    }
++    return input;
++  }
++
++  const parsed = new Date(input);
++  const timestamp = parsed.getTime();
++  if (Number.isNaN(timestamp)) {
++    throw new Error('Invalid ISO timestamp provided to clock.');
++  }
++  return timestamp;
++}
++
++function toDate(input: ClockInput): Date {
++  return new Date(toTimestamp(input));
++}
++
++export function createSystemClock(): Clock {
++  return {
++    now(): Date {
++      return new Date();
++    },
++  };
++}
++
++export function createFixedClock(instant: ClockInput): Clock {
++  const timestamp = toTimestamp(instant);
++  return {
++    now(): Date {
++      return new Date(timestamp);
++    },
++  };
++}
++
++export function createAdvanceableClock(initial: ClockInput = new Date()): { clock: Clock; advanceBy(days: number): void; set(instant: ClockInput): void } {
++  let current = toTimestamp(initial);
++  return {
++    clock: {
++      now(): Date {
++        return new Date(current);
++      },
++    },
++    advanceBy(days: number): void {
++      if (!Number.isFinite(days)) {
++        throw new Error('Days must be a finite number.');
++      }
++      current += days * 24 * 60 * 60 * 1000;
++    },
++    set(instant: ClockInput): void {
++      current = toTimestamp(instant);
++    },
++  };
++}
++
++export function toDateOnly(input: ClockInput): string {
++  return toDate(input).toISOString().slice(0, 10);
++}
++
++export function shiftDate(input: ClockInput, days: number): Date {
++  if (!Number.isFinite(days)) {
++    throw new Error('Days must be a finite number.');
++  }
++  const date = toDate(input);
++  const utcYear = date.getUTCFullYear();
++  const utcMonth = date.getUTCMonth();
++  const utcDate = date.getUTCDate();
++  const shifted = new Date(Date.UTC(utcYear, utcMonth, utcDate + days));
++  return shifted;
++}
++
++export function addDaysToIsoDate(isoDate: string, days: number): string {
++  if (!/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) {
++    throw new Error('ISO date must use YYYY-MM-DD format.');
++  }
++  const shifted = shiftDate(`${isoDate}T00:00:00.000Z`, days);
++  return toDateOnly(shifted);
++}
++
++export function compareIsoDates(left: string, right: string): number {
++  const leftDate = new Date(`${left}T00:00:00.000Z`);
++  const rightDate = new Date(`${right}T00:00:00.000Z`);
++  return Math.sign(leftDate.getTime() - rightDate.getTime());
++}
++
++export function formatIsoDateForDisplay(isoDate: string): string {
++  if (!/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) {
++    return isoDate;
++  }
++  const date = new Date(`${isoDate}T00:00:00.000Z`);
++  return date.toLocaleDateString(undefined, {
++    year: 'numeric',
++    month: 'short',
++    day: 'numeric',
++  });
++}
+diff --git a/apps/ui/src/lib/todo/todos.ts b/apps/ui/src/lib/todo/todos.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..4eff0d5cefdb0842657a9d9794b9506cce531cd6
+--- /dev/null
++++ b/apps/ui/src/lib/todo/todos.ts
+@@ -0,0 +1,296 @@
++import { addDaysToIsoDate, compareIsoDates, createSystemClock, formatIsoDateForDisplay, toDateOnly, type Clock } from '../time/clock.js';
++
++export type TodoPriority = 'low' | 'medium' | 'high';
++
++export interface TodoInput {
++  title: string;
++  dueDate?: string | null;
++  priority?: TodoPriority | null;
++}
++
++export interface TodoItem {
++  id: string;
++  title: string;
++  priority: TodoPriority;
++  createdAt: string;
++  completed: boolean;
++  dueDate?: string;
++  completedAt?: string;
++}
++
++export interface TodoState {
++  items: TodoItem[];
++  nextId: number;
++}
++
++export type TodoDueStatus = 'overdue' | 'due-today' | 'upcoming' | 'unscheduled';
++
++export interface TodoViewItem extends TodoItem {
++  dueStatus: TodoDueStatus;
++  dueLabel: string;
++}
++
++export interface TodoSummary {
++  total: number;
++  completed: number;
++  active: number;
++  overdue: number;
++  dueToday: number;
++}
++
++export interface TodoView {
++  active: TodoViewItem[];
++  completed: TodoViewItem[];
++  summary: TodoSummary;
++}
++
++const PRIORITIES: readonly TodoPriority[] = ['high', 'medium', 'low'];
++
++function normalizeTitle(raw: string): string {
++  const title = raw.trim();
++  if (title.length === 0) {
++    throw new Error('Title must be provided.');
++  }
++  return title;
++}
++
++function normalizePriority(raw: TodoPriority | null | undefined): TodoPriority {
++  const normalized = (raw ?? 'medium').toLowerCase();
++  if (!PRIORITIES.includes(normalized as TodoPriority)) {
++    throw new Error('Priority must be low, medium, or high.');
++  }
++  return normalized as TodoPriority;
++}
++
++function normalizeDueDate(raw: string | null | undefined): string | undefined {
++  if (raw === null || raw === undefined || raw.trim() === '') {
++    return undefined;
++  }
++  const trimmed = raw.trim();
++  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
++    throw new Error('Due date must use YYYY-MM-DD format.');
++  }
++  const date = new Date(`${trimmed}T00:00:00.000Z`);
++  if (Number.isNaN(date.getTime())) {
++    throw new Error('Due date is invalid.');
++  }
++  return trimmed;
++}
++
++function nextIdFromItems(items: readonly TodoItem[]): number {
++  if (items.length === 0) {
++    return 1;
++  }
++  const maxId = items.reduce((acc, item) => Math.max(acc, Number.parseInt(item.id, 10) || 0), 0);
++  return maxId + 1;
++}
++
++function toTimestampString(clock: Clock): string {
++  return clock.now().toISOString();
++}
++
++function hasDuplicateTitle(items: readonly TodoItem[], title: string): boolean {
++  const normalized = title.toLowerCase();
++  return items.some((item) => item.title.toLowerCase() === normalized);
++}
++
++export function createInitialState(clock: Clock = createSystemClock(), seed?: TodoItem[]): TodoState {
++  const baseline = seed ?? createSeedTodos(clock);
++  return {
++    items: baseline,
++    nextId: nextIdFromItems(baseline),
++  };
++}
++
++export function createSeedTodos(clock: Clock = createSystemClock()): TodoItem[] {
++  const today = toDateOnly(clock.now());
++  const yesterday = addDaysToIsoDate(today, -1);
++  const tomorrow = addDaysToIsoDate(today, 1);
++
++  const timestamp = clock.now().toISOString();
++  return [
++    {
++      id: '1',
++      title: 'Review expense receipts',
++      priority: 'high',
++      dueDate: yesterday,
++      createdAt: timestamp,
++      completed: false,
++    },
++    {
++      id: '2',
++      title: 'Prepare sprint demo outline',
++      priority: 'medium',
++      dueDate: today,
++      createdAt: timestamp,
++      completed: false,
++    },
++    {
++      id: '3',
++      title: 'Plan weekend backlog grooming',
++      priority: 'low',
++      dueDate: tomorrow,
++      createdAt: timestamp,
++      completed: false,
++    },
++  ];
++}
++
++export function addTodo(state: TodoState, input: TodoInput, clock: Clock = createSystemClock()): { state: TodoState; item: TodoItem } {
++  const title = normalizeTitle(input.title);
++  if (hasDuplicateTitle(state.items, title)) {
++    throw new Error('A task with this title already exists.');
++  }
++
++  const priority = normalizePriority(input.priority ?? 'medium');
++  const dueDate = normalizeDueDate(input.dueDate);
++
++  const item: TodoItem = {
++    id: String(state.nextId),
++    title,
++    priority,
++    dueDate,
++    createdAt: toTimestampString(clock),
++    completed: false,
++  };
++
++  const nextState: TodoState = {
++    items: [...state.items, item],
++    nextId: state.nextId + 1,
++  };
++
++  return { state: nextState, item };
++}
++
++export function completeTodo(state: TodoState, id: string, clock: Clock = createSystemClock()): { state: TodoState; item: TodoItem } {
++  const trimmedId = id.trim();
++  if (trimmedId.length === 0) {
++    throw new Error('Task id is required to complete an item.');
++  }
++
++  const index = state.items.findIndex((item) => item.id === trimmedId);
++  if (index === -1) {
++    throw new Error('Unable to complete task: id not found.');
++  }
++
++  const existing = state.items[index];
++  if (existing.completed) {
++    return { state, item: existing };
++  }
++
++  const updated: TodoItem = {
++    ...existing,
++    completed: true,
++    completedAt: toTimestampString(clock),
++  };
++
++  const items = [...state.items];
++  items[index] = updated;
++  return { state: { items, nextId: state.nextId }, item: updated };
++}
++
++export function evaluateDueStatus(item: TodoItem, clock: Clock = createSystemClock()): TodoDueStatus {
++  if (!item.dueDate) {
++    return 'unscheduled';
++  }
++  const today = toDateOnly(clock.now());
++  if (item.dueDate === today) {
++    return 'due-today';
++  }
++  const comparison = compareIsoDates(item.dueDate, today);
++  if (comparison < 0) {
++    return 'overdue';
++  }
++  return 'upcoming';
++}
++
++function buildDueLabel(item: TodoItem, status: TodoDueStatus): string {
++  if (status === 'unscheduled') {
++    return 'No due date';
++  }
++  if (!item.dueDate) {
++    return 'No due date';
++  }
++  const readable = formatIsoDateForDisplay(item.dueDate);
++  switch (status) {
++    case 'overdue':
++      return `Overdue — due ${readable}`;
++    case 'due-today':
++      return `Due today — ${readable}`;
++    default:
++      return `Upcoming — due ${readable}`;
++  }
++}
++
++function decorate(items: readonly TodoItem[], clock: Clock): TodoViewItem[] {
++  return items.map((item) => {
++    const dueStatus = evaluateDueStatus(item, clock);
++    return {
++      ...item,
++      dueStatus,
++      dueLabel: buildDueLabel(item, dueStatus),
++    };
++  });
++}
++
++function sortActive(items: TodoViewItem[]): TodoViewItem[] {
++  const statusOrder: Record<TodoDueStatus, number> = {
++    overdue: 0,
++    'due-today': 1,
++    upcoming: 2,
++    unscheduled: 3,
++  };
++  const priorityOrder: Record<TodoPriority, number> = {
++    high: 0,
++    medium: 1,
++    low: 2,
++  };
++  return [...items].sort((left, right) => {
++    if (left.dueStatus !== right.dueStatus) {
++      return statusOrder[left.dueStatus] - statusOrder[right.dueStatus];
++    }
++    if (left.dueDate && right.dueDate && left.dueDate !== right.dueDate) {
++      return compareIsoDates(left.dueDate, right.dueDate);
++    }
++    if (left.priority !== right.priority) {
++      return priorityOrder[left.priority] - priorityOrder[right.priority];
++    }
++    return Number.parseInt(left.id, 10) - Number.parseInt(right.id, 10);
++  });
++}
++
++function sortCompleted(items: TodoViewItem[]): TodoViewItem[] {
++  return [...items].sort((left, right) => {
++    if (left.completedAt && right.completedAt) {
++      return right.completedAt.localeCompare(left.completedAt);
++    }
++    if (left.completedAt) {
++      return -1;
++    }
++    if (right.completedAt) {
++      return 1;
++    }
++    return right.id.localeCompare(left.id);
++  });
++}
++
++export function buildTodoView(state: TodoState, clock: Clock = createSystemClock()): TodoView {
++  const decorated = decorate(state.items, clock);
++  const active = sortActive(decorated.filter((item) => !item.completed));
++  const completed = sortCompleted(decorated.filter((item) => item.completed));
++
++  const overdue = active.filter((item) => item.dueStatus === 'overdue').length;
++  const dueToday = active.filter((item) => item.dueStatus === 'due-today').length;
++
++  return {
++    active,
++    completed,
++    summary: {
++      total: decorated.length,
++      completed: completed.length,
++      active: active.length,
++      overdue,
++      dueToday,
++    },
++  };
++}
+diff --git a/apps/ui/src/pages/ToDo.tsx b/apps/ui/src/pages/ToDo.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..55fe8f1cfe3859dee882e31e7dc153464e68dfbb
+--- /dev/null
++++ b/apps/ui/src/pages/ToDo.tsx
+@@ -0,0 +1,142 @@
++import { useMemo, useState } from 'react';
++import { TodoCompleteForm, TodoForm, TodoList } from '../components/index.js';
++import {
++  addTodo,
++  buildTodoView,
++  completeTodo,
++  createInitialState,
++  type TodoInput,
++  type TodoState,
++} from '../lib/todo/todos.js';
++import { createSystemClock, type Clock } from '../lib/time/clock.js';
++
++interface FeedbackState {
++  type: 'success' | 'error';
++  message: string;
++}
++
++export interface ToDoProps {
++  clock?: Clock;
++  initialState?: TodoState;
++}
++
++function toMessage(error: unknown): string {
++  if (error instanceof Error && error.message) {
++    return error.message;
++  }
++  return 'Something went wrong. Please try again.';
++}
++
++export default function ToDo({ clock, initialState }: ToDoProps = {}): JSX.Element {
++  const resolvedClock = useMemo<Clock>(() => clock ?? createSystemClock(), [clock]);
++  const [state, setState] = useState<TodoState>(() => initialState ?? createInitialState(resolvedClock));
++  const [feedback, setFeedback] = useState<FeedbackState | null>(null);
++
++  const view = useMemo(() => buildTodoView(state, resolvedClock), [state, resolvedClock]);
++
++  const handleAdd = (input: TodoInput): boolean => {
++    let wasAdded = false;
++    setState((previous) => {
++      try {
++        const result = addTodo(previous, input, resolvedClock);
++        setFeedback({ type: 'success', message: `Added “${result.item.title}”.` });
++        wasAdded = true;
++        return result.state;
++      } catch (error) {
++        setFeedback({ type: 'error', message: toMessage(error) });
++        return previous;
++      }
++    });
++    return wasAdded;
++  };
++
++  const handleComplete = (id: string): boolean => {
++    let wasCompleted = false;
++    setState((previous) => {
++      try {
++        const result = completeTodo(previous, id, resolvedClock);
++        if (result.item.completed) {
++          setFeedback({ type: 'success', message: `Completed “${result.item.title}”.` });
++        } else {
++          setFeedback({ type: 'success', message: `Task “${result.item.title}” was already completed.` });
++        }
++        wasCompleted = true;
++        return result.state;
++      } catch (error) {
++        setFeedback({ type: 'error', message: toMessage(error) });
++        return previous;
++      }
++    });
++    return wasCompleted;
++  };
++
++  return (
++    <section className="todo-page" aria-labelledby="todo-heading">
++      <header className="todo-page__header">
++        <h1 id="todo-heading">Team ToDo tracker</h1>
++        <p>
++          Capture action items, keep due dates deterministic, and mark work complete without relying on
++          local system clocks.
++        </p>
++      </header>
++
++      {feedback ? (
++        <div
++          className={`todo-feedback todo-feedback--${feedback.type}`}
++          role={feedback.type === 'error' ? 'alert' : 'status'}
++          data-testid="todo-feedback"
++        >
++          {feedback.message}
++        </div>
++      ) : null}
++
++      <div className="todo-page__forms">
++        <TodoForm onSubmit={handleAdd} />
++        <TodoCompleteForm onComplete={handleComplete} />
++      </div>
++
++      <section className="todo-summary" aria-label="Task summary">
++        <h2>Summary</h2>
++        <dl className="todo-summary__metrics">
++          <div className="todo-summary__metric">
++            <dt>Total</dt>
++            <dd>{view.summary.total}</dd>
++          </div>
++          <div className="todo-summary__metric">
++            <dt>Active</dt>
++            <dd>{view.summary.active}</dd>
++          </div>
++          <div className="todo-summary__metric">
++            <dt>Completed</dt>
++            <dd>{view.summary.completed}</dd>
++          </div>
++          <div className="todo-summary__metric">
++            <dt>Due today</dt>
++            <dd>{view.summary.dueToday}</dd>
++          </div>
++          <div className="todo-summary__metric">
++            <dt>Overdue</dt>
++            <dd>{view.summary.overdue}</dd>
++          </div>
++        </dl>
++      </section>
++
++      <TodoList
++        heading="Active tasks"
++        description="Sorted by urgency and priority."
++        items={view.active}
++        emptyMessage="All tasks are complete."
++        onComplete={handleComplete}
++        testId="todo-active-list"
++      />
++
++      <TodoList
++        heading="Completed tasks"
++        description="Recently finished items remain visible for reviewability."
++        items={view.completed}
++        emptyMessage="No tasks have been completed yet."
++        testId="todo-completed-list"
 +      />
 +    </section>
 +  );
 +}
-diff --git a/apps/ui/src/tests/expenses.test.tsx b/apps/ui/src/tests/expenses.test.tsx
+diff --git a/apps/ui/src/pages/ToDoPage.tsx b/apps/ui/src/pages/ToDoPage.tsx
+index e0a9966a86c68e7b518077258f0055dc0737ade0..4f483bd356aa0c2b929f6b77feca82ed804b6638 100644
+--- a/apps/ui/src/pages/ToDoPage.tsx
++++ b/apps/ui/src/pages/ToDoPage.tsx
+@@ -1,20 +1,9 @@
+-import { TodoPlaceholder } from '../components/index.js';
++import ToDo from './ToDo.js';
+ 
+ /**
+- * ToDo page for managing actionable tasks with deterministic clocks.
+- * This page will eventually handle task entry, completion, and time-based filtering.
++ * Compatibility wrapper that exposes the new ToDo route component
++ * under the legacy ToDoPage export used during scaffolding.
+  */
+ export function ToDoPage(): JSX.Element {
+-  return (
+-    <section aria-labelledby="todo-heading" className="page">
+-      <header className="page-header">
+-        <h2 id="todo-heading">ToDo</h2>
+-        <p>
+-          Manage actionable tasks with deterministic clocks. This placeholder keeps routes wired while
+-          ToDo UI logic is under construction.
+-        </p>
+-      </header>
+-      <TodoPlaceholder />
+-    </section>
+-  );
++  return <ToDo />;
+ }
+diff --git a/apps/ui/src/pages/index.ts b/apps/ui/src/pages/index.ts
+index 9aba4d54f071d720036efaa48aae83eab4c7b870..173ea336960ce5feb1b1e9ec00a8f47c3d2da4a0 100644
+--- a/apps/ui/src/pages/index.ts
++++ b/apps/ui/src/pages/index.ts
+@@ -1,3 +1,4 @@
+ export { ExpensesPage } from './ExpensesPage.js';
++export { default as ToDo } from './ToDo.js';
+ export { ToDoPage } from './ToDoPage.js';
+ export { QuotePage } from './QuotePage.js';
+diff --git a/apps/ui/src/tests/todo.test.tsx b/apps/ui/src/tests/todo.test.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..cfbe83bc2cc83e48df565ed3522c423c367ecd41
+index 0000000000000000000000000000000000000000..1857f64167da58b32b4092310e661ad72b0f779d
 --- /dev/null
-+++ b/apps/ui/src/tests/expenses.test.tsx
-@@ -0,0 +1,65 @@
-+import { render, screen } from '@testing-library/react';
++++ b/apps/ui/src/tests/todo.test.tsx
+@@ -0,0 +1,104 @@
++import { render, screen, within } from '@testing-library/react';
 +import userEvent from '@testing-library/user-event';
-+import Expenses from '../pages/Expenses';
++import ToDo from '../pages/ToDo';
++import {
++  addTodo,
++  completeTodo,
++  createInitialState,
++  createSeedTodos,
++  evaluateDueStatus,
++} from '../lib/todo/todos';
++import { createFixedClock } from '../lib/time/clock';
 +
-+describe('Expenses page', () => {
-+  it('lists available months and categories for quick selection', () => {
-+    const { container } = render(<Expenses />);
++describe('todo due status evaluation', () => {
++  const clock = createFixedClock('2025-05-15T10:00:00Z');
++  const baseline = createSeedTodos(clock);
 +
-+    const monthOptions = Array.from(
-+      container.querySelectorAll('#expenses-month-options option')
-+    ).map((option) => option.getAttribute('value'));
-+    const categoryOptions = Array.from(
-+      container.querySelectorAll('#expenses-category-options option')
-+    ).map((option) => option.getAttribute('value'));
++  it('marks yesterday tasks as overdue', () => {
++    const item = baseline[0];
++    expect(evaluateDueStatus(item, clock)).toBe('overdue');
++  });
 +
-+    expect(monthOptions).toEqual(
-+      expect.arrayContaining(['January', 'February', 'March'])
-+    );
-+    expect(categoryOptions).toEqual(
-+      expect.arrayContaining(['Groceries', 'Transport', 'Utilities'])
++  it('marks today tasks as due today', () => {
++    const item = baseline[1];
++    expect(evaluateDueStatus(item, clock)).toBe('due-today');
++  });
++
++  it('marks tomorrow tasks as upcoming', () => {
++    const item = baseline[2];
++    expect(evaluateDueStatus(item, clock)).toBe('upcoming');
++  });
++});
++
++describe('todo state transitions', () => {
++  const clock = createFixedClock('2025-05-15T10:00:00Z');
++  const state = createInitialState(clock);
++
++  it('prevents adding duplicate titles', () => {
++    expect(() => addTodo(state, { title: 'Review expense receipts' }, clock)).toThrow(
++      /already exists/i,
 +    );
 +  });
 +
-+  it('filters totals by month and category', async () => {
-+    const user = userEvent.setup();
-+    render(<Expenses />);
++  it('throws when completing an unknown id', () => {
++    expect(() => completeTodo(state, '999', clock)).toThrow(/id not found/i);
++  });
++});
 +
-+    const monthInput = screen.getByLabelText(/Month filter/i);
-+    const categoryInput = screen.getByLabelText(/Category filter/i);
++describe('ToDo page behaviour', () => {
++  const clock = createFixedClock('2025-05-15T10:00:00Z');
 +
-+    await user.clear(monthInput);
-+    await user.type(monthInput, 'February');
-+    await user.clear(categoryInput);
-+    await user.type(categoryInput, 'Groceries');
++  it('displays due status labels for seed tasks', () => {
++    const initialState = createInitialState(clock);
++    render(<ToDo clock={clock} initialState={initialState} />);
 +
-+    expect(await screen.findByTestId('expenses-total')).toHaveTextContent(
-+      'Total: $95.10'
-+    );
-+
-+    const groceryRow = await screen.findByRole('row', { name: /Groceries/i });
-+    expect(groceryRow).toHaveTextContent('$95.10');
++    const list = screen.getByTestId('todo-active-list');
++    expect(within(list).getByText(/Overdue/)).toBeInTheDocument();
++    expect(within(list).getByText(/Due today/)).toBeInTheDocument();
++    expect(within(list).getByText(/Upcoming/)).toBeInTheDocument();
 +  });
 +
-+  it('shows inline errors for unknown month or category', async () => {
++  it('shows error feedback when duplicate title is submitted', async () => {
++    render(<ToDo clock={clock} />);
 +    const user = userEvent.setup();
-+    render(<Expenses />);
 +
-+    const monthInput = screen.getByLabelText(/Month filter/i);
-+    await user.clear(monthInput);
-+    await user.type(monthInput, 'Smarch');
++    await user.type(screen.getByLabelText(/Task title/i), 'Review expense receipts');
++    await user.click(screen.getByRole('button', { name: /Add task/i }));
 +
-+    expect(
-+      await screen.findByText(/Unknown month "Smarch"/i)
-+    ).toBeInTheDocument();
-+    expect(screen.queryByTestId('expenses-total')).not.toBeInTheDocument();
++    const feedback = await screen.findByTestId('todo-feedback');
++    expect(feedback).toHaveTextContent(/already exists/i);
++  });
 +
-+    const categoryInput = screen.getByLabelText(/Category filter/i);
-+    await user.clear(categoryInput);
-+    await user.type(categoryInput, 'Snacks');
++  it('moves a task to completed when marked complete from list', async () => {
++    render(<ToDo clock={clock} />);
++    const user = userEvent.setup();
 +
-+    expect(
-+      await screen.findByText(/Unknown category "Snacks"/i)
-+    ).toBeInTheDocument();
++    await user.clear(screen.getByLabelText(/Task title/i));
++    await user.type(screen.getByLabelText(/Task title/i), 'Schedule retro');
++    await user.type(screen.getByLabelText(/Due date/i), '2025-05-18');
++    await user.selectOptions(screen.getByLabelText(/Priority/i), 'high');
++    await user.click(screen.getByRole('button', { name: /Add task/i }));
++
++    const newTask = await screen.findByText('Schedule retro');
++    const item = newTask.closest('li');
++    expect(item).not.toBeNull();
++    if (item) {
++      const completeButton = within(item).getByRole('button', { name: /Mark complete/i });
++      await user.click(completeButton);
++    }
++
++    const completedList = screen.getByTestId('todo-completed-list');
++    expect(within(completedList).getByText('Schedule retro')).toBeInTheDocument();
++  });
++
++  it('shows error feedback when completing an unknown id through the form', async () => {
++    render(<ToDo clock={clock} />);
++    const user = userEvent.setup();
++
++    await user.type(screen.getByLabelText(/Complete by id/i), '999');
++    await user.click(screen.getByRole('button', { name: /Mark complete/i }));
++
++    const feedback = await screen.findByTestId('todo-feedback');
++    expect(feedback).toHaveTextContent(/id not found/i);
 +  });
 +});
 diff --git a/specs/001-update-specify-md/tasks.md b/specs/001-update-specify-md/tasks.md
-index ae9160667b1cd30479c72aae7cab8d319e1917c2..79bf3fb3dc786a2a0701ef3c0461ff0424408381 100644
+index ae9160667b1cd30479c72aae7cab8d319e1917c2..b801b9e54bce6699dfc58d62076968ecb14a190c 100644
 --- a/specs/001-update-specify-md/tasks.md
 +++ b/specs/001-update-specify-md/tasks.md
-@@ -11,57 +11,57 @@ Plan: `C:\Users\RAYMOND\Desktop\Work Projects\training-raymond\specs\001-update-
- - [ ] T001 Create UI project folder `apps/ui/` with Vite React scaffold
- - [ ] T002 Add unit test harness (Vitest + React Testing Library) in `apps/ui/`
- - [ ] T003 Add Playwright with one blank smoke test in `apps/ui/playwright/`
- - [ ] T004 Configure GitHub Pages publish pipeline placeholder in `.github/workflows/pages.yml`
- - [ ] T005 Add CI job for lint + unit + coverage export to `review-artifacts/` in `.github/workflows/ci.yml`
- - [ ] T006 Add CI job to run Playwright smoke on PRs to `development` in `.github/workflows/ci.yml`
- - [ ] T007 Create coverage index placeholder `review-artifacts/index.html`
- - [ ] T008 Add README review box placeholder in `README_Week3.md`
- - [ ] T009 Create GitHub Project issues from this tasks.md (GH CLI helper script) in `scripts/gh-import-tasks.ps1`
- 
- ## Phase 2 — Foundational (blocking prerequisites)
- 
- - [ ] T010 Create shared pure logic structure under `src/cli/` for reuse in UI (no code yet)
- - [ ] T011 Define base UI routes/pages placeholders in `apps/ui/src/pages/`
- - [ ] T012 Define base UI components placeholders in `apps/ui/src/components/`
+@@ -26,57 +26,57 @@ Plan: `C:\Users\RAYMOND\Desktop\Work Projects\training-raymond\specs\001-update-
  - [ ] T013 Wire deterministic testing helpers (seeded RNG and injected clock) in `apps/ui/src/tests/helpers.ts`
  - [ ] T014 Ensure branch protection and required checks documented in `README_Week3.md`
  
@@ -932,20 +1397,13 @@ index ae9160667b1cd30479c72aae7cab8d319e1917c2..79bf3fb3dc786a2a0701ef3c0461ff04
  Goal: Minimal Expenses UI mirroring CLI rules; deterministic tests; coverage ≥ 50% statements.
  Independent test: Selecting month/category shows correct totals; malformed rows handled.
  
--- [ ] T015 [US1] Implement Expenses route `apps/ui/src/pages/Expenses.tsx`
--- [ ] T016 [US1] Implement components: selectors and totals `apps/ui/src/components/expenses/`
--- [ ] T017 [US1] Implement validation for unknown month/category (inline error) `apps/ui/src/pages/Expenses.tsx`
--- [ ] T018 [US1] Import or implement core totals logic mirroring CLI `apps/ui/src/lib/expenses/totals.ts`
--- [ ] T019 [P] [US1] Unit tests (table‑driven) for months/categories/malformed rows `apps/ui/src/tests/expenses.test.tsx`
--- [ ] T020 [US1] Playwright smoke: select month/category → totals render `apps/ui/playwright/expenses.smoke.spec.ts`
--- [ ] T021 [US1] Export UI coverage HTML and add to `review-artifacts/` (CI ensures)
-+- [x] T015 [US1] Implement Expenses route `apps/ui/src/pages/Expenses.tsx`
-+- [x] T016 [US1] Implement components: selectors and totals `apps/ui/src/components/expenses/`
-+- [x] T017 [US1] Implement validation for unknown month/category (inline error) `apps/ui/src/pages/Expenses.tsx`
-+- [x] T018 [US1] Import or implement core totals logic mirroring CLI `apps/ui/src/lib/expenses/totals.ts`
-+- [x] T019 [P] [US1] Unit tests (table‑driven) for months/categories/malformed rows `apps/ui/src/tests/expenses.test.tsx`
-+- [x] T020 [US1] Playwright smoke: select month/category → totals render `apps/ui/playwright/expenses.smoke.spec.ts`
-+- [x] T021 [US1] Export UI coverage HTML and add to `review-artifacts/` (CI ensures)
+ - [ ] T015 [US1] Implement Expenses route `apps/ui/src/pages/Expenses.tsx`
+ - [ ] T016 [US1] Implement components: selectors and totals `apps/ui/src/components/expenses/`
+ - [ ] T017 [US1] Implement validation for unknown month/category (inline error) `apps/ui/src/pages/Expenses.tsx`
+ - [ ] T018 [US1] Import or implement core totals logic mirroring CLI `apps/ui/src/lib/expenses/totals.ts`
+ - [ ] T019 [P] [US1] Unit tests (table‑driven) for months/categories/malformed rows `apps/ui/src/tests/expenses.test.tsx`
+ - [ ] T020 [US1] Playwright smoke: select month/category → totals render `apps/ui/playwright/expenses.smoke.spec.ts`
+ - [ ] T021 [US1] Export UI coverage HTML and add to `review-artifacts/` (CI ensures)
  
  ---
  
@@ -954,13 +1412,20 @@ index ae9160667b1cd30479c72aae7cab8d319e1917c2..79bf3fb3dc786a2a0701ef3c0461ff04
  Goal: Add/list/complete with deterministic date boundaries; coverage ≥ 50% statements.
  Independent test: yesterday/today/tomorrow boundaries behave by injected clock; duplicate guards enforced.
  
- - [ ] T022 [US2] Implement ToDo route `apps/ui/src/pages/ToDo.tsx`
- - [ ] T023 [US2] Implement components for list/add/complete `apps/ui/src/components/todo/`
- - [ ] T024 [US2] Duplicate guard + errors for complete nonexistent item `apps/ui/src/pages/ToDo.tsx`
- - [ ] T025 [US2] Injected clock utility for dueToday logic `apps/ui/src/lib/time/clock.ts`
- - [ ] T026 [P] [US2] Unit tests for yesterday/today/tomorrow, duplicate add, bad complete `apps/ui/src/tests/todo.test.tsx`
- - [ ] T027 [US2] Playwright smoke: add → list → complete `apps/ui/playwright/todo.smoke.spec.ts`
- - [ ] T028 [US2] Export UI coverage HTML and add to `review-artifacts/`
+-- [ ] T022 [US2] Implement ToDo route `apps/ui/src/pages/ToDo.tsx`
+-- [ ] T023 [US2] Implement components for list/add/complete `apps/ui/src/components/todo/`
+-- [ ] T024 [US2] Duplicate guard + errors for complete nonexistent item `apps/ui/src/pages/ToDo.tsx`
+-- [ ] T025 [US2] Injected clock utility for dueToday logic `apps/ui/src/lib/time/clock.ts`
+-- [ ] T026 [P] [US2] Unit tests for yesterday/today/tomorrow, duplicate add, bad complete `apps/ui/src/tests/todo.test.tsx`
+-- [ ] T027 [US2] Playwright smoke: add → list → complete `apps/ui/playwright/todo.smoke.spec.ts`
+-- [ ] T028 [US2] Export UI coverage HTML and add to `review-artifacts/`
++- [x] T022 [US2] Implement ToDo route `apps/ui/src/pages/ToDo.tsx`
++- [x] T023 [US2] Implement components for list/add/complete `apps/ui/src/components/todo/`
++- [x] T024 [US2] Duplicate guard + errors for complete nonexistent item `apps/ui/src/pages/ToDo.tsx`
++- [x] T025 [US2] Injected clock utility for dueToday logic `apps/ui/src/lib/time/clock.ts`
++- [x] T026 [P] [US2] Unit tests for yesterday/today/tomorrow, duplicate add, bad complete `apps/ui/src/tests/todo.test.tsx`
++- [x] T027 [US2] Playwright smoke: add → list → complete `apps/ui/playwright/todo.smoke.spec.ts`
++- [x] T028 [US2] Export UI coverage HTML and add to `review-artifacts/`
  
  ---
  
@@ -971,3 +1436,18 @@ index ae9160667b1cd30479c72aae7cab8d319e1917c2..79bf3fb3dc786a2a0701ef3c0461ff04
  
  - [ ] T029 [US3] Implement Quote route `apps/ui/src/pages/Quote.tsx`
  - [ ] T030 [US3] Implement components for filters/result `apps/ui/src/components/quote/`
+ - [ ] T031 [US3] Deterministic random pick (seeded RNG) `apps/ui/src/lib/random/seeded.ts`
+ - [ ] T032 [P] [US3] Unit tests for author/tag filters, empty dataset, seeded RNG `apps/ui/src/tests/quote.test.tsx`
+ - [ ] T033 [US3] Playwright smoke: apply filter → expect deterministic result `apps/ui/playwright/quote.smoke.spec.ts`
+ - [ ] T034 [US3] Export UI coverage HTML and add to `review-artifacts/`
+ 
+ ---
+ 
+ ## Phase 6 — Polish & Reviewability
+ 
+ - [ ] T035 Update README “How to review me” box with actual Release/Pages links `README_Week3.md`
+ - [ ] T036 Generate Coverage Index (CLI + UI) to `review-artifacts/index.html`
+ - [ ] T037 Build Review Packet ZIP and attach to Release `review-artifacts/`
+ - [ ] T038 Capstone PR to `development` with Coverage Table, links, and screenshots `docs/review.md`
+ 
+ ---

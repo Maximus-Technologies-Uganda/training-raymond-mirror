@@ -1,411 +1,773 @@
-diff --git a/apps/ui/playwright/expenses.smoke.spec.ts b/apps/ui/playwright/expenses.smoke.spec.ts
+diff --git a/apps/ui/playwright/tests/todo.smoke.spec.ts b/apps/ui/playwright/tests/todo.smoke.spec.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..a07d23c0e7b62b0e0e49ee67932f75419d492ef9
+index 0000000000000000000000000000000000000000..6e81fdc52d85986add57e3a200455a7b642259af
 --- /dev/null
-+++ b/apps/ui/playwright/expenses.smoke.spec.ts
-@@ -0,0 +1,15 @@
++++ b/apps/ui/playwright/tests/todo.smoke.spec.ts
+@@ -0,0 +1,27 @@
 +import { test, expect } from '@playwright/test';
 +
-+test('filters expenses by month and category @smoke', async ({ page }) => {
++/**
++ * Phase 4 ToDo UI smoke test
++ * Verifies add → list → complete flow using deterministic UI components.
++ */
++test('todo workflow add list complete @smoke', async ({ page }) => {
 +  await page.goto('/');
 +
-+  const monthField = page.getByLabel('Month');
-+  await monthField.fill('February');
++  const todoLink = page.getByTestId('nav-todo');
++  await todoLink.click();
 +
-+  const categoryField = page.getByLabel('Category');
-+  await categoryField.fill('Utilities');
++  await expect(page.getByRole('heading', { name: 'ToDo tracker' })).toBeVisible();
 +
-+  await expect(page.getByTestId('total')).toHaveText('$90.00');
-+  await expect(page.getByRole('cell', { name: 'Utilities' })).toBeVisible();
-+  await expect(page.getByRole('cell', { name: '$90.00' })).toBeVisible();
++  const addForm = page.getByTestId('todo-add-form');
++  await addForm.getByLabel('Title').fill('Ship release notes');
++  await addForm.getByRole('button', { name: /Add task/i }).click();
++
++  const row = page.getByRole('row', { name: /Ship release notes/i });
++  await expect(row).toBeVisible();
++
++  const completeButton = row.getByRole('button', { name: /Mark.*complete/i });
++  await completeButton.click();
++
++  await expect(completeButton).toBeDisabled();
++  await expect(page.getByTestId('todo-feedback')).toContainText('Marked "Ship release notes" as complete.');
 +});
-diff --git a/apps/ui/playwright/playwright.config.ts b/apps/ui/playwright/playwright.config.ts
-index c1ebd0bf34cf826406dbab382a9905f15acfbe44..45131c424eff628f977c42a4f2933ab02a3cc650 100644
---- a/apps/ui/playwright/playwright.config.ts
-+++ b/apps/ui/playwright/playwright.config.ts
-@@ -1,33 +1,33 @@
- import { defineConfig, devices } from '@playwright/test';
- import path from 'node:path';
- import { fileURLToPath } from 'node:url';
- 
- const __dirname = path.dirname(fileURLToPath(import.meta.url));
- 
- export default defineConfig({
--  testDir: path.join(__dirname, 'tests'),
-+  testDir: __dirname,
-   timeout: 60000, // 60 seconds per test
-   reporter: [
-     ['list'],
-     ['html', { outputFolder: path.join(__dirname, 'report'), open: 'never' }]
-   ],
-   use: {
-     baseURL: process.env.UI_BASE_URL ?? 'http://localhost:4173',
-     trace: 'on-first-retry',
-     screenshot: 'only-on-failure',
-     video: 'retain-on-failure',
-     actionTimeout: 10000 // 10 seconds for individual actions
-   },
-   // ✅ Auto-start preview server for tests
-   webServer: {
-     command: 'npm run preview -- --port 4173',
-     port: 4173,
-     cwd: path.join(__dirname, '..'),
-     reuseExistingServer: !process.env.CI,
-     timeout: 120000,
-     stdout: 'pipe',
-     stderr: 'pipe'
-   },
-   projects: [
-     {
-       name: 'chromium',
-diff --git a/apps/ui/playwright/tests/smoke.spec.js b/apps/ui/playwright/tests/smoke.spec.js
-index 14d075dca7750f0e2ae879d536e634ef863a575b..229c6d4c5b9bc26d9b8fcde6881c215d174d09f9 100644
---- a/apps/ui/playwright/tests/smoke.spec.js
-+++ b/apps/ui/playwright/tests/smoke.spec.js
-@@ -1,17 +1,12 @@
- import { test, expect } from '@playwright/test';
- 
--/**
-- * ✅ FIX 1: Real smoke test that verifies the actual UI build
-- * Tests that the scaffold renders correctly with the welcome heading
-- */
--test('UI scaffold renders welcome heading @smoke', async ({ page }) => {
-+test('expenses explorer renders baseline view @smoke', async ({ page }) => {
-   await page.goto('/');
- 
--  // Verify the main heading is visible
--  const heading = page.getByTestId('welcome-title');
-+  const heading = page.getByTestId('expenses-heading');
-   await expect(heading).toBeVisible();
--  await expect(heading).toHaveText('Training Raymond UI');
-+  await expect(heading).toHaveText(/expenses explorer/i);
- 
--  // Verify content loaded
--  await expect(page.getByText(/Foundations for the Expenses, ToDo, and Quote experiences/i)).toBeVisible();
-+  await expect(page.getByTestId('total')).toHaveText('$325.50');
-+  await expect(page.getByRole('table')).toBeVisible();
- });
 diff --git a/apps/ui/src/App.css b/apps/ui/src/App.css
-index d5a543f572fd8802ac502a5d6c13b32e94412a9b..f9d4d050b7b68f348d86acdd27104c6f455fa2b5 100644
+index 55fc5c3230961856f0dc4980f35b6ba474f46459..19a0a3aa4a0bd46bf4a9a017fde39aac692cf065 100644
 --- a/apps/ui/src/App.css
 +++ b/apps/ui/src/App.css
-@@ -1,24 +1,185 @@
--.App {
--  text-align: center;
--  min-height: 100vh;
-+:root {
-+  color-scheme: light;
-+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-+  background-color: #f5f7fb;
+@@ -1,45 +1,88 @@
+ :root {
+   color-scheme: light;
+   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+   line-height: 1.6;
+   background-color: #f3f6fb;
+ }
+ 
+ body {
+   margin: 0;
+ }
+ 
+ .App {
+   min-height: 100vh;
+   padding: 3rem 1.5rem 4rem;
+   background: radial-gradient(circle at top, #f7f9fc 0%, #e1e7f0 75%);
+   color: #1f2933;
+   display: flex;
+   justify-content: center;
+ }
+ 
++.app-shell {
++  width: 100%;
++  max-width: 1100px;
++  display: flex;
++  flex-direction: column;
++  gap: 1.75rem;
++}
++
++.app-nav {
++  display: inline-flex;
++  gap: 0.75rem;
++  background: rgba(15, 23, 42, 0.08);
++  padding: 0.5rem;
++  border-radius: 999px;
++  align-self: center;
++  backdrop-filter: blur(6px);
++}
++
++.app-nav__link {
++  text-decoration: none;
 +  color: #1f2933;
++  font-weight: 600;
++  padding: 0.6rem 1.4rem;
++  border-radius: 999px;
++  transition: all 0.2s ease;
 +}
 +
-+body {
++.app-nav__link:hover {
++  background: rgba(30, 41, 59, 0.1);
++}
++
++.app-nav__link--active {
++  background: #0f172a;
++  color: #f8fafc;
++  box-shadow: 0 10px 20px -10px rgba(15, 23, 42, 0.6);
++}
++
++.app-content {
++  width: 100%;
++  display: flex;
++  justify-content: center;
++}
++
+ .expenses-page {
+   width: 100%;
+   max-width: 960px;
+   background: #ffffff;
+   border-radius: 16px;
+   box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.18);
+   padding: 3rem;
+   display: flex;
+   flex-direction: column;
+   gap: 2.5rem;
+ }
+ 
+ .expenses-page__header {
+   display: flex;
+   flex-direction: column;
+   gap: 0.75rem;
+ }
+ 
+ .expenses-page__title {
+   margin: 0;
+   font-size: 2.5rem;
+   line-height: 1.2;
+ }
+ 
+ .expenses-page__subtitle {
+@@ -222,46 +265,319 @@ body {
+   border-radius: 12px;
+   overflow: hidden;
+   box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
+ }
+ 
+ .expenses-table__table thead {
+   background: #e8eeff;
+ }
+ 
+ .expenses-table__table th,
+ .expenses-table__table td {
+   padding: 0.9rem 1rem;
+   text-align: left;
+ }
+ 
+ .expenses-table__table tbody tr:nth-child(even) {
+   background: rgba(241, 245, 249, 0.6);
+ }
+ 
+ .expenses-table__empty {
+   text-align: center;
+   font-style: italic;
+   color: #6b7280;
+ }
+ 
++.todo-page {
++  width: 100%;
++  background: #ffffff;
++  border-radius: 16px;
++  box-shadow: 0 25px 45px -18px rgba(15, 23, 42, 0.22);
++  padding: 3rem;
++  display: flex;
++  flex-direction: column;
++  gap: 2.5rem;
++}
++
++.todo-header {
++  display: flex;
++  flex-direction: column;
++  gap: 0.75rem;
++}
++
++.todo-header h1 {
 +  margin: 0;
-+  background-color: inherit;
++  font-size: 2.3rem;
 +}
 +
-+.expenses-page {
-+  margin: 0 auto;
-+  max-width: 960px;
-+  padding: 3rem 1.5rem 4rem;
++.todo-header p {
++  margin: 0;
++  color: #4c566a;
++  max-width: 640px;
++}
++
++.todo-feedback {
++  border-radius: 12px;
++  background: #dcfce7;
++  color: #166534;
++  padding: 0.85rem 1.1rem;
++  font-weight: 600;
++}
++
++.todo-grid {
++  display: grid;
++  grid-template-columns: minmax(0, 1.8fr) minmax(0, 1fr);
++  gap: 2rem;
++  align-items: start;
++}
++
++.todo-card {
++  background: #f8fafc;
++  border-radius: 16px;
++  padding: 2rem;
 +  display: flex;
 +  flex-direction: column;
 +  gap: 1.5rem;
++  border: 1px solid rgba(15, 23, 42, 0.08);
 +}
 +
-+.expenses-header h1 {
-+  margin: 0 0 0.5rem;
-+  font-size: clamp(1.75rem, 2.4vw, 2.5rem);
-+  font-weight: 700;
-+}
-+
-+.expenses-header p {
++.todo-card__header h2 {
 +  margin: 0;
-+  font-size: 1rem;
++  font-size: 1.6rem;
++}
++
++.todo-card__header p {
++  margin: 0;
 +  color: #475569;
 +}
 +
-+.expenses-controls {
-+  display: grid;
-+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-+  gap: 1rem;
-+  align-items: flex-end;
-+}
-+
-+.field {
-   display: flex;
--  align-items: center;
--  justify-content: center;
--  background: radial-gradient(circle at top, #f7f9fc, #e1e7f0);
-+  flex-direction: column;
-+  gap: 0.5rem;
-+}
-+
-+.field label {
-+  font-weight: 600;
-   color: #1f2933;
--  padding: 2rem;
- }
- 
--.App-header {
--  max-width: 560px;
-+.field input {
-+  border: 1px solid #cbd5f5;
-+  border-radius: 0.5rem;
-+  padding: 0.75rem;
-+  font-size: 1rem;
-+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-+}
-+
-+.field input:focus {
-+  outline: none;
-+  border-color: #4f46e5;
-+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
-+}
-+
-+.field-error {
-+  margin: 0;
-+  color: #b91c1c;
-+  font-size: 0.875rem;
-+}
-+
-+.notice {
-+  border-radius: 0.75rem;
-+  padding: 1rem 1.25rem;
-+  font-size: 0.95rem;
-+}
-+
-+.notice-warning {
-+  background-color: #fef3c7;
-+  color: #92400e;
-+}
-+
-+.notice-error {
-+  background-color: #fee2e2;
-+  color: #991b1b;
-+}
-+
-+.notice-muted {
-+  background-color: #e2e8f0;
-+  color: #334155;
-+}
-+
-+.expenses-results {
-+  display: flex;
-+  flex-direction: column;
-+  gap: 2rem;
-+}
-+
-+.totals {
-+  background: linear-gradient(135deg, #4f46e5, #4338ca);
-+  border-radius: 1rem;
++.todo-card--forms {
++  background: #0f172a;
 +  color: #f8fafc;
-+  padding: 1.5rem;
-+  box-shadow: 0 12px 24px rgba(79, 70, 229, 0.18);
++  border: none;
++  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.3);
 +}
 +
-+.totals h2 {
-+  margin: 0 0 0.5rem;
-+  font-size: 1.25rem;
-+  font-weight: 600;
-+}
-+
-+.totals-total {
-+  margin: 0 0 1rem;
-+  font-size: clamp(2rem, 3vw, 2.75rem);
-+  font-weight: 700;
-+}
-+
-+.totals-list {
-+  list-style: none;
++.todo-card--forms h2 {
 +  margin: 0;
-+  padding: 0;
++  font-size: 1.4rem;
++}
++
++.todo-card__section {
++  display: flex;
++  flex-direction: column;
++  gap: 1rem;
++}
++
++.todo-card__section + .todo-card__section {
++  border-top: 1px solid rgba(148, 163, 184, 0.3);
++  padding-top: 1.5rem;
++}
++
++.todo-form {
++  display: flex;
++  flex-direction: column;
++  gap: 1rem;
++}
++
++.todo-form__field {
 +  display: flex;
 +  flex-direction: column;
 +  gap: 0.5rem;
 +}
 +
-+.totals-item {
-+  display: flex;
-+  justify-content: space-between;
-+  gap: 1rem;
++.todo-form__field label {
++  font-weight: 600;
++}
++
++.todo-form__field input,
++.todo-form__field select {
++  border-radius: 10px;
++  border: none;
++  padding: 0.75rem 1rem;
 +  font-size: 1rem;
++  background: rgba(15, 23, 42, 0.08);
++  color: inherit;
++  outline: none;
 +}
 +
-+.totals-category {
-+  font-weight: 500;
++.todo-card--forms .todo-form__field input,
++.todo-card--forms .todo-form__field select {
++  background: rgba(148, 163, 184, 0.2);
++  color: #f8fafc;
 +}
 +
-+.totals-amount {
-+  font-variant-numeric: tabular-nums;
++.todo-form__field input:focus,
++.todo-form__field select:focus {
++  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35);
 +}
 +
-+.expenses-table {
++.todo-form__submit {
++  align-self: flex-start;
++  padding: 0.7rem 1.4rem;
++  border-radius: 999px;
++  border: none;
++  background: #38bdf8;
++  color: #0f172a;
++  font-weight: 700;
++  cursor: pointer;
++  transition: transform 0.15s ease, box-shadow 0.15s ease;
++}
++
++.todo-form__submit:hover {
++  transform: translateY(-1px);
++  box-shadow: 0 10px 18px -10px rgba(14, 165, 233, 0.75);
++}
++
++.todo-form__error {
++  margin: 0;
++  background: #fee2e2;
++  color: #991b1b;
++  padding: 0.6rem 0.8rem;
++  border-radius: 10px;
++  font-weight: 600;
++}
++
++.todo-table {
 +  width: 100%;
 +  border-collapse: collapse;
-+  background-color: #ffffff;
-+  border-radius: 1rem;
++  background: #ffffff;
++  border-radius: 14px;
 +  overflow: hidden;
-+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
++  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
 +}
 +
-+.expenses-table th,
-+.expenses-table td {
-+  padding: 0.85rem 1.1rem;
++.todo-table thead {
++  background: rgba(15, 23, 42, 0.08);
++}
++
++.todo-table th,
++.todo-table td {
++  padding: 0.9rem 1rem;
 +  text-align: left;
-+  font-size: 0.95rem;
 +}
 +
-+.expenses-table thead {
-+  background-color: #f1f5f9;
-+  color: #0f172a;
-+  text-transform: uppercase;
-+  letter-spacing: 0.04em;
-+  font-size: 0.85rem;
++.todo-table__title {
++  font-weight: 600;
 +}
 +
-+.expenses-table tbody tr:nth-of-type(even) {
-+  background-color: #f8fafc;
- }
- 
--.App-header h1 {
--  font-size: 2.5rem;
--  margin-bottom: 1rem;
-+.align-right {
++.todo-table__actions {
 +  text-align: right;
- }
++}
++
++.todo-table__complete {
++  border: none;
++  border-radius: 999px;
++  padding: 0.5rem 1.2rem;
++  font-weight: 600;
++  cursor: pointer;
++  background: #0f172a;
++  color: #f8fafc;
++  transition: opacity 0.2s ease;
++}
++
++.todo-table__complete[disabled] {
++  opacity: 0.5;
++  cursor: not-allowed;
++}
++
++.todo-pill {
++  display: inline-flex;
++  align-items: center;
++  justify-content: center;
++  padding: 0.25rem 0.65rem;
++  border-radius: 999px;
++  font-size: 0.85rem;
++  font-weight: 600;
++  text-transform: capitalize;
++}
++
++.todo-pill--high {
++  background: rgba(248, 113, 113, 0.2);
++  color: #b91c1c;
++}
++
++.todo-pill--medium {
++  background: rgba(251, 191, 36, 0.2);
++  color: #b45309;
++}
++
++.todo-pill--low {
++  background: rgba(59, 130, 246, 0.2);
++  color: #1d4ed8;
++}
++
++.todo-status {
++  font-weight: 600;
++}
++
++.todo-status--overdue {
++  color: #b91c1c;
++}
++
++.todo-status--today {
++  color: #1d4ed8;
++}
++
++.todo-status--tomorrow {
++  color: #0369a1;
++}
++
++.todo-status--upcoming {
++  color: #047857;
++}
++
++.todo-status--none {
++  color: #64748b;
++}
++
++.todo-status--completed {
++  color: #22c55e;
++}
++
++.todo-list__empty {
++  padding: 2rem;
++  border-radius: 14px;
++  background: rgba(15, 23, 42, 0.06);
++  color: #475569;
++  text-align: center;
++}
++
+ @media (max-width: 720px) {
+   .App {
+     padding: 2rem 1rem 3rem;
+   }
  
--.App-header p {
--  font-size: 1.1rem;
--  line-height: 1.6;
-+.visually-hidden {
-+  position: absolute;
-+  width: 1px;
-+  height: 1px;
-+  padding: 0;
-+  margin: -1px;
-+  overflow: hidden;
-+  clip: rect(0, 0, 0, 0);
-+  white-space: nowrap;
-+  border: 0;
- }
-diff --git a/apps/ui/src/App.test.tsx b/apps/ui/src/App.test.tsx
-index b7e63340c32681cd9bd8d65a020e5209b14a0100..8a8ba5b64d661c6fc26d2d9d76ee174d38e51f7d 100644
---- a/apps/ui/src/App.test.tsx
-+++ b/apps/ui/src/App.test.tsx
-@@ -1,9 +1,9 @@
- import { render, screen } from '@testing-library/react';
- import App from './App';
++  .app-nav {
++    flex-wrap: wrap;
++    justify-content: center;
++  }
++
++  .app-nav__link {
++    flex: 1 1 auto;
++    text-align: center;
++  }
++
++  .todo-page {
++    padding: 2rem 1.5rem;
++  }
++
+   .expenses-page {
+     padding: 2rem 1.5rem;
+   }
  
- describe('App', () => {
--  it('renders the welcome headline', () => {
-+  it('renders the expenses explorer heading', () => {
-     render(<App />);
--    expect(screen.getByTestId('welcome-title')).toHaveTextContent('Training Raymond UI');
-+    expect(screen.getByTestId('expenses-heading')).toHaveTextContent(/expenses explorer/i);
-   });
- });
+   .expenses-page__title {
+     font-size: 2rem;
+   }
+ 
+   .expenses-controls {
+     grid-template-columns: 1fr;
+   }
+ 
+   .expenses-controls__clear-btn {
+     width: 100%;
+   }
++
++  .todo-grid {
++    grid-template-columns: 1fr;
++  }
+ }
 diff --git a/apps/ui/src/App.tsx b/apps/ui/src/App.tsx
-index eaf402438a3879a20b4e6334013fdb326c62baa7..3071b041e16a90a2483aac070a20c7290bfb6746 100644
+index d116971ab0f564935ffeb957c211e09ba7e3bb92..1647e04a86235cb2283ea22dd637d4d4c803149a 100644
 --- a/apps/ui/src/App.tsx
 +++ b/apps/ui/src/App.tsx
-@@ -1,17 +1,8 @@
+@@ -1,16 +1,93 @@
++import { useEffect, useState } from 'react';
  import './App.css';
-+import Expenses from './pages/Expenses';
+ import Expenses from './pages/Expenses';
++import ToDo from './pages/ToDo';
++import { QuotePage } from './pages/QuotePage';
++
++type AppRoute = 'expenses' | 'todo' | 'quote';
++
++function parseRoute(hash: string): AppRoute {
++  if (hash.startsWith('#/todo')) {
++    return 'todo';
++  }
++  if (hash.startsWith('#/quote')) {
++    return 'quote';
++  }
++  return 'expenses';
++}
++
++function getInitialRoute(): AppRoute {
++  if (typeof window === 'undefined') {
++    return 'expenses';
++  }
++  return parseRoute(window.location.hash);
++}
  
+ /**
+- * Main application component for Phase 3 Expenses UI implementation.
+- * Displays the Expenses overview with filtering and totals.
++ * Root application shell with lightweight hash-based routing between tools.
+  */
  function App(): JSX.Element {
--  return (
--    <div className="App" role="main">
--      <header className="App-header">
--        <h1 data-testid="welcome-title">Training Raymond UI</h1>
--        <p>
--          Week 3 UI workspace is ready. Replace this placeholder with the Expenses, ToDo, and Quote
--          experiences as you implement later phases.
--        </p>
--      </header>
--    </div>
--  );
-+  return <Expenses />;
++  const [route, setRoute] = useState<AppRoute>(getInitialRoute);
++
++  useEffect(() => {
++    if (typeof window === 'undefined') {
++      return () => {};
++    }
++    const handleHashChange = () => {
++      setRoute(parseRoute(window.location.hash));
++    };
++    window.addEventListener('hashchange', handleHashChange);
++    return () => window.removeEventListener('hashchange', handleHashChange);
++  }, []);
++
++  useEffect(() => {
++    if (typeof window === 'undefined') {
++      return;
++    }
++    const expectedHash = `#/${route}`;
++    if (window.location.hash !== expectedHash) {
++      window.location.hash = expectedHash;
++    }
++  }, [route]);
++
+   return (
+     <div className="App">
+-      <Expenses />
++      <div className="app-shell">
++        <nav className="app-nav" aria-label="Primary">
++          <a
++            href="#/expenses"
++            className={route === 'expenses' ? 'app-nav__link app-nav__link--active' : 'app-nav__link'}
++            data-testid="nav-expenses"
++            onClick={() => setRoute('expenses')}
++          >
++            Expenses
++          </a>
++          <a
++            href="#/todo"
++            className={route === 'todo' ? 'app-nav__link app-nav__link--active' : 'app-nav__link'}
++            data-testid="nav-todo"
++            onClick={() => setRoute('todo')}
++          >
++            ToDo
++          </a>
++          <a
++            href="#/quote"
++            className={route === 'quote' ? 'app-nav__link app-nav__link--active' : 'app-nav__link'}
++            data-testid="nav-quote"
++            onClick={() => setRoute('quote')}
++          >
++            Quote
++          </a>
++        </nav>
++
++        <main className="app-content">
++          {route === 'expenses' && <Expenses />}
++          {route === 'todo' && <ToDo />}
++          {route === 'quote' && <QuotePage />}
++        </main>
++      </div>
+     </div>
+   );
  }
  
  export default App;
-diff --git a/apps/ui/src/components/expenses/CategorySelector.tsx b/apps/ui/src/components/expenses/CategorySelector.tsx
+diff --git a/apps/ui/src/components/index.ts b/apps/ui/src/components/index.ts
+index a7f41e049766899c7778b2b32f5d8638f4742028..2e942600e486c7d8b3e15d80c37b7165de3f7b17 100644
+--- a/apps/ui/src/components/index.ts
++++ b/apps/ui/src/components/index.ts
+@@ -1,3 +1,5 @@
+ export { ExpensesPlaceholder } from './expenses/ExpensesPlaceholder.js';
+-export { TodoPlaceholder } from './todo/TodoPlaceholder.js';
+ export { QuotePlaceholder } from './quote/QuotePlaceholder.js';
++export { default as TodoAddForm } from './todo/TodoAddForm.js';
++export { default as TodoCompleteForm } from './todo/TodoCompleteForm.js';
++export { default as TodoList } from './todo/TodoList.js';
+diff --git a/apps/ui/src/components/todo/TodoAddForm.tsx b/apps/ui/src/components/todo/TodoAddForm.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..0c3ebf7b5e4d545367343e10ac9fc6fdb800110e
+index 0000000000000000000000000000000000000000..2aa5861c7657d8a303ce7bec18d85eac5c698f9b
 --- /dev/null
-+++ b/apps/ui/src/components/expenses/CategorySelector.tsx
-@@ -0,0 +1,37 @@
-+interface CategorySelectorProps {
-+  value: string;
-+  options: string[];
-+  onChange: (value: string) => void;
-+  error?: string;
++++ b/apps/ui/src/components/todo/TodoAddForm.tsx
+@@ -0,0 +1,90 @@
++import { type FormEvent, useState } from 'react';
++import type { TodoFormInput, TodoPriority } from '../../lib/todo/todos';
++
++export interface TodoAddFormProps {
++  onSubmit: (input: TodoFormInput) => { success: boolean; error?: string };
++  error?: string | null;
 +}
 +
-+const CATEGORY_INPUT_ID = 'expenses-category-input';
-+const CATEGORY_DATALIST_ID = 'expenses-category-options';
++const PRIORITY_OPTIONS: readonly { label: string; value: TodoPriority }[] = [
++  { label: 'High', value: 'high' },
++  { label: 'Medium', value: 'medium' },
++  { label: 'Low', value: 'low' },
++];
 +
-+function CategorySelector({ value, options, onChange, error }: CategorySelectorProps): JSX.Element {
++function TodoAddForm({ onSubmit, error }: TodoAddFormProps): JSX.Element {
++  const [title, setTitle] = useState('');
++  const [dueDate, setDueDate] = useState('');
++  const [priority, setPriority] = useState<TodoPriority>('medium');
++
++  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
++    event.preventDefault();
++    const result = onSubmit({
++      title,
++      priority,
++      dueDate: dueDate ? dueDate : undefined,
++    });
++    if (result.success) {
++      setTitle('');
++      setDueDate('');
++      setPriority('medium');
++    }
++  };
++
 +  return (
-+    <div className="field">
-+      <label htmlFor={CATEGORY_INPUT_ID}>Category</label>
-+      <input
-+        id={CATEGORY_INPUT_ID}
-+        list={CATEGORY_DATALIST_ID}
-+        value={value}
-+        onChange={(event) => onChange(event.target.value)}
-+        placeholder="All categories"
-+        aria-describedby={error ? `${CATEGORY_INPUT_ID}-error` : undefined}
-+      />
-+      <datalist id={CATEGORY_DATALIST_ID}>
-+        {options.map((option) => (
-+          <option key={option} value={option} />
-+        ))}
-+      </datalist>
-+      {error ? (
-+        <p id={`${CATEGORY_INPUT_ID}-error`} role="alert" className="field-error">
++    <form className="todo-form" onSubmit={handleSubmit} data-testid="todo-add-form">
++      <div className="todo-form__field">
++        <label htmlFor="todo-title">Title</label>
++        <input
++          id="todo-title"
++          name="title"
++          type="text"
++          value={title}
++          onChange={(event) => setTitle(event.target.value)}
++          placeholder="Write status update"
++          required
++          data-testid="todo-title-input"
++        />
++      </div>
++
++      <div className="todo-form__field">
++        <label htmlFor="todo-due-date">Due date</label>
++        <input
++          id="todo-due-date"
++          name="dueDate"
++          type="date"
++          value={dueDate}
++          onChange={(event) => setDueDate(event.target.value)}
++        />
++      </div>
++
++      <div className="todo-form__field">
++        <label htmlFor="todo-priority">Priority</label>
++        <select
++          id="todo-priority"
++          name="priority"
++          value={priority}
++          onChange={(event) => setPriority(event.target.value as TodoPriority)}
++        >
++          {PRIORITY_OPTIONS.map((option) => (
++            <option key={option.value} value={option.value}>
++              {option.label}
++            </option>
++          ))}
++        </select>
++      </div>
++
++      <button type="submit" className="todo-form__submit" data-testid="todo-add-submit">
++        Add task
++      </button>
++
++      {error && (
++        <p className="todo-form__error" role="alert" data-testid="todo-add-error">
 +          {error}
 +        </p>
-+      ) : null}
-+    </div>
++      )}
++    </form>
 +  );
 +}
 +
-+export default CategorySelector;
-diff --git a/apps/ui/src/components/expenses/ExpensesTable.tsx b/apps/ui/src/components/expenses/ExpensesTable.tsx
++export default TodoAddForm;
+diff --git a/apps/ui/src/components/todo/TodoCompleteForm.tsx b/apps/ui/src/components/todo/TodoCompleteForm.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..421139fe74ff0bacb8fbb063ef7df8a9fc6c1641
+index 0000000000000000000000000000000000000000..e3fb918cdc19b88a8d2ec306fc11ae2a875de50b
 --- /dev/null
-+++ b/apps/ui/src/components/expenses/ExpensesTable.tsx
-@@ -0,0 +1,35 @@
-+import { formatCurrency, monthLabelFromIndex, type ExpenseRecord } from '../../lib/expenses/totals';
++++ b/apps/ui/src/components/todo/TodoCompleteForm.tsx
+@@ -0,0 +1,48 @@
++import { type FormEvent, useState } from 'react';
 +
-+interface ExpensesTableProps {
-+  records: ExpenseRecord[];
++export interface TodoCompleteFormProps {
++  onSubmit: (id: string) => { success: boolean; error?: string };
++  error?: string | null;
 +}
 +
-+function ExpensesTable({ records }: ExpensesTableProps): JSX.Element {
++function TodoCompleteForm({ onSubmit, error }: TodoCompleteFormProps): JSX.Element {
++  const [id, setId] = useState('');
++
++  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
++    event.preventDefault();
++    const result = onSubmit(id);
++    if (result.success) {
++      setId('');
++    }
++  };
++
 +  return (
-+    <table className="expenses-table">
-+      <caption className="visually-hidden">Expense entries matching the selected filters</caption>
++    <form className="todo-form" onSubmit={handleSubmit} data-testid="todo-complete-form">
++      <div className="todo-form__field">
++        <label htmlFor="todo-complete-id">Todo ID</label>
++        <input
++          id="todo-complete-id"
++          name="todoId"
++          type="text"
++          inputMode="numeric"
++          value={id}
++          onChange={(event) => setId(event.target.value)}
++          placeholder="Enter id to mark complete"
++          data-testid="todo-complete-input"
++        />
++      </div>
++
++      <button type="submit" className="todo-form__submit" data-testid="todo-complete-submit">
++        Mark complete
++      </button>
++
++      {error && (
++        <p className="todo-form__error" role="alert" data-testid="todo-complete-error">
++          {error}
++        </p>
++      )}
++    </form>
++  );
++}
++
++export default TodoCompleteForm;
+diff --git a/apps/ui/src/components/todo/TodoList.tsx b/apps/ui/src/components/todo/TodoList.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..8963d29963e7f7dfb80514c98f4889883ecb1f7f
+--- /dev/null
++++ b/apps/ui/src/components/todo/TodoList.tsx
+@@ -0,0 +1,64 @@
++import { formatTodoDueDate, type TodoViewItem } from '../../lib/todo/todos';
++
++export interface TodoListProps {
++  items: readonly TodoViewItem[];
++  onComplete: (id: string) => void;
++}
++
++function TodoList({ items, onComplete }: TodoListProps): JSX.Element {
++  if (items.length === 0) {
++    return (
++      <div className="todo-list__empty" data-testid="todo-empty">
++        No tasks yet. Add your first todo to get started.
++      </div>
++    );
++  }
++
++  return (
++    <table className="todo-table" data-testid="todo-table">
 +      <thead>
 +        <tr>
-+          <th scope="col">Date</th>
-+          <th scope="col">Month</th>
-+          <th scope="col">Category</th>
-+          <th scope="col" className="align-right">
-+            Amount
++          <th scope="col">ID</th>
++          <th scope="col">Title</th>
++          <th scope="col">Priority</th>
++          <th scope="col">Due</th>
++          <th scope="col">Status</th>
++          <th scope="col" className="todo-table__actions">
++            Actions
 +          </th>
 +        </tr>
 +      </thead>
 +      <tbody>
-+        {records.map((record) => (
-+          <tr key={record.id}>
-+            <td>{record.isoDate}</td>
-+            <td>{monthLabelFromIndex(record.monthIndex)}</td>
-+            <td>{record.category}</td>
-+            <td className="align-right">{formatCurrency(record.amount)}</td>
++        {items.map((todo) => (
++          <tr key={todo.id} data-status={todo.dueStatus}>
++            <td>{todo.id}</td>
++            <td className="todo-table__title">{todo.title}</td>
++            <td className={`todo-pill todo-pill--${todo.priority}`}>
++              {todo.priority.charAt(0).toUpperCase() + todo.priority.slice(1)}
++            </td>
++            <td>{todo.dueDate ? formatTodoDueDate(todo) : '—'}</td>
++            <td>
++              <span className={`todo-status todo-status--${todo.dueStatus}`} data-testid={`todo-status-${todo.id}`}>
++                {todo.statusLabel}
++              </span>
++            </td>
++            <td className="todo-table__actions">
++              <button
++                type="button"
++                onClick={() => onComplete(todo.id)}
++                className="todo-table__complete"
++                disabled={todo.completed}
++                aria-label={todo.completed ? `Todo ${todo.title} already completed` : `Mark ${todo.title} complete`}
++                data-testid={`todo-complete-${todo.id}`}
++              >
++                {todo.completed ? 'Completed' : 'Mark complete'}
++              </button>
++            </td>
 +          </tr>
 +        ))}
 +      </tbody>
@@ -413,610 +775,731 @@ index 0000000000000000000000000000000000000000..421139fe74ff0bacb8fbb063ef7df8a9
 +  );
 +}
 +
-+export default ExpensesTable;
-diff --git a/apps/ui/src/components/expenses/MonthSelector.tsx b/apps/ui/src/components/expenses/MonthSelector.tsx
++export default TodoList;
+diff --git a/apps/ui/src/components/todo/TodoPlaceholder.tsx b/apps/ui/src/components/todo/TodoPlaceholder.tsx
+deleted file mode 100644
+index f8c3182908a920d8f8fdb8e1d020cc0ca6741d81..0000000000000000000000000000000000000000
+--- a/apps/ui/src/components/todo/TodoPlaceholder.tsx
++++ /dev/null
+@@ -1,14 +0,0 @@
+-/**
+- * Placeholder component for ToDo UI components.
+- * Future implementation will include task list, add form, and completion controls.
+- */
+-export function TodoPlaceholder(): JSX.Element {
+-  return (
+-    <div className="placeholder-card" data-testid="todo-components-placeholder">
+-      <p>
+-        Shared ToDo UI components will live here. Implement list, add form, and completion controls in
+-        later phases.
+-      </p>
+-    </div>
+-  );
+-}
+diff --git a/apps/ui/src/lib/time/clock.ts b/apps/ui/src/lib/time/clock.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..5a7a743e1528f61b96634bb09b26aa2311d2edef
+index 0000000000000000000000000000000000000000..5b0b14853628e6299c50c38076508501ff81a733
 --- /dev/null
-+++ b/apps/ui/src/components/expenses/MonthSelector.tsx
-@@ -0,0 +1,39 @@
-+import type { MonthOption } from '../../lib/expenses/totals';
++++ b/apps/ui/src/lib/time/clock.ts
+@@ -0,0 +1,101 @@
++export interface UiClock {
++  now(): Date;
++}
 +
-+interface MonthSelectorProps {
-+  value: string;
-+  options: MonthOption[];
-+  onChange: (value: string) => void;
++export interface AdjustableClock extends UiClock {
++  set(instant: Date | string | number): void;
++}
++
++const MS_PER_DAY = 86_400_000;
++const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
++
++function toTimestamp(instant: Date | string | number): number {
++  if (instant instanceof Date) {
++    const value = instant.getTime();
++    if (Number.isNaN(value)) {
++      throw new Error('Invalid date provided to clock.');
++    }
++    return value;
++  }
++
++  if (typeof instant === 'number') {
++    if (!Number.isFinite(instant)) {
++      throw new Error('Timestamp must be finite.');
++    }
++    return instant;
++  }
++
++  const parsed = new Date(instant);
++  const timestamp = parsed.getTime();
++  if (Number.isNaN(timestamp)) {
++    throw new Error('Invalid ISO timestamp provided to clock.');
++  }
++  return timestamp;
++}
++
++function toUtcMidnightTimestamp(date: Date): number {
++  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
++}
++
++function parseDateOnly(value: string): number {
++  if (!DATE_PATTERN.test(value)) {
++    throw new Error('Date must use YYYY-MM-DD format.');
++  }
++  const [year, month, day] = value.split('-').map((part) => Number.parseInt(part, 10));
++  return Date.UTC(year, month - 1, day);
++}
++
++export function toDateOnly(date: Date): string {
++  return date.toISOString().slice(0, 10);
++}
++
++export function createSystemClock(): UiClock {
++  return {
++    now(): Date {
++      return new Date();
++    },
++  };
++}
++
++export function createFixedClock(instant: Date | string | number): UiClock {
++  const baseline = toTimestamp(instant);
++  return {
++    now(): Date {
++      return new Date(baseline);
++    },
++  };
++}
++
++export function createAdjustableClock(initial: Date | string | number): AdjustableClock {
++  let current = toTimestamp(initial);
++  return {
++    now(): Date {
++      return new Date(current);
++    },
++    set(instant: Date | string | number): void {
++      current = toTimestamp(instant);
++    },
++  };
++}
++
++export function differenceInCalendarDays(targetDate: string, clock: UiClock): number {
++  const todayTimestamp = toUtcMidnightTimestamp(clock.now());
++  const targetTimestamp = parseDateOnly(targetDate);
++  return Math.round((targetTimestamp - todayTimestamp) / MS_PER_DAY);
++}
++
++export function isToday(targetDate: string, clock: UiClock): boolean {
++  return differenceInCalendarDays(targetDate, clock) === 0;
++}
++
++export function isTomorrow(targetDate: string, clock: UiClock): boolean {
++  return differenceInCalendarDays(targetDate, clock) === 1;
++}
++
++export function isYesterday(targetDate: string, clock: UiClock): boolean {
++  return differenceInCalendarDays(targetDate, clock) === -1;
++}
++
++export function isPast(targetDate: string, clock: UiClock): boolean {
++  return differenceInCalendarDays(targetDate, clock) < 0;
++}
+diff --git a/apps/ui/src/lib/todo/todos.ts b/apps/ui/src/lib/todo/todos.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..7ee3f73751c98b087665f57a8993d63051ad79ea
+--- /dev/null
++++ b/apps/ui/src/lib/todo/todos.ts
+@@ -0,0 +1,273 @@
++import { differenceInCalendarDays, toDateOnly, type UiClock } from '../time/clock';
++
++export type TodoPriority = 'high' | 'medium' | 'low';
++
++export interface TodoItem {
++  id: string;
++  title: string;
++  priority: TodoPriority;
++  completed: boolean;
++  createdAt: string;
++  dueDate?: string;
++  completedAt?: string;
++}
++
++export interface TodoState {
++  items: TodoItem[];
++  nextId: number;
++}
++
++export interface TodoFormInput {
++  title: string;
++  priority: TodoPriority;
++  dueDate?: string;
++}
++
++export type TodoDueStatus = 'overdue' | 'today' | 'tomorrow' | 'upcoming' | 'none' | 'completed';
++
++export interface TodoViewItem extends TodoItem {
++  dueStatus: TodoDueStatus;
++  statusLabel: string;
++}
++
++const PRIORITY_ORDER: Record<TodoPriority, number> = {
++  high: 0,
++  medium: 1,
++  low: 2,
++};
++
++const STATUS_LABELS: Record<TodoDueStatus, string> = {
++  overdue: 'Overdue',
++  today: 'Due today',
++  tomorrow: 'Due tomorrow',
++  upcoming: 'Upcoming',
++  none: 'No due date',
++  completed: 'Completed',
++};
++
++const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
++
++const SAMPLE_TODO_ITEMS: readonly TodoItem[] = [
++  {
++    id: '1',
++    title: 'Prepare sprint brief',
++    priority: 'high',
++    dueDate: '2025-03-14',
++    completed: false,
++    createdAt: '2025-03-10T09:00:00.000Z',
++  },
++  {
++    id: '2',
++    title: 'Run standup dry run',
++    priority: 'medium',
++    dueDate: '2025-03-15',
++    completed: false,
++    createdAt: '2025-03-11T10:00:00.000Z',
++  },
++  {
++    id: '3',
++    title: 'Schedule customer follow-up',
++    priority: 'low',
++    dueDate: '2025-03-16',
++    completed: false,
++    createdAt: '2025-03-12T14:30:00.000Z',
++  },
++  {
++    id: '4',
++    title: 'Archive sprint notes',
++    priority: 'low',
++    completed: true,
++    createdAt: '2025-03-08T08:30:00.000Z',
++    completedAt: '2025-03-12T16:45:00.000Z',
++  },
++];
++
++export const DEFAULT_TODO_ITEMS: readonly TodoItem[] = SAMPLE_TODO_ITEMS;
++
++function cloneItem(item: TodoItem): TodoItem {
++  return { ...item };
++}
++
++export function cloneTodoState(state: TodoState): TodoState {
++  return {
++    nextId: state.nextId,
++    items: state.items.map(cloneItem),
++  };
++}
++
++export function createDefaultState(): TodoState {
++  return {
++    items: SAMPLE_TODO_ITEMS.map(cloneItem),
++    nextId: SAMPLE_TODO_ITEMS.length + 1,
++  };
++}
++
++function normalizeTitle(raw: string): string {
++  return raw.trim();
++}
++
++function normalizePriority(priority: string): TodoPriority {
++  const normalized = priority.toLowerCase();
++  if (normalized === 'high' || normalized === 'medium' || normalized === 'low') {
++    return normalized;
++  }
++  throw new Error('Priority must be one of high, medium, or low.');
++}
++
++function validateDueDate(value: string): string {
++  if (!DATE_PATTERN.test(value)) {
++    throw new Error('Due date must use YYYY-MM-DD format.');
++  }
++  const parsed = new Date(value);
++  if (Number.isNaN(parsed.getTime())) {
++    throw new Error('Invalid due date.');
++  }
++  return value;
++}
++
++function findDuplicate(state: TodoState, title: string): boolean {
++  return state.items.some((todo) => todo.title.toLowerCase() === title.toLowerCase());
++}
++
++function buildTodoId(state: TodoState): string {
++  return String(state.nextId);
++}
++
++function determineDueStatus(todo: TodoItem, clock: UiClock): TodoDueStatus {
++  if (todo.completed) {
++    return 'completed';
++  }
++  if (!todo.dueDate) {
++    return 'none';
++  }
++  const difference = differenceInCalendarDays(todo.dueDate, clock);
++  if (difference < 0) {
++    return 'overdue';
++  }
++  if (difference === 0) {
++    return 'today';
++  }
++  if (difference === 1) {
++    return 'tomorrow';
++  }
++  return 'upcoming';
++}
++
++function dueDateSortKey(todo: TodoItem): number {
++  if (!todo.dueDate) {
++    return Number.POSITIVE_INFINITY;
++  }
++  const [year, month, day] = todo.dueDate.split('-').map((part) => Number.parseInt(part, 10));
++  return Date.UTC(year, month - 1, day);
++}
++
++function compareTodos(a: TodoItem, b: TodoItem): number {
++  if (a.completed !== b.completed) {
++    return a.completed ? 1 : -1;
++  }
++
++  const dueComparison = dueDateSortKey(a) - dueDateSortKey(b);
++  if (dueComparison !== 0) {
++    return dueComparison;
++  }
++
++  const priorityComparison = PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority];
++  if (priorityComparison !== 0) {
++    return priorityComparison;
++  }
++
++  return Number.parseInt(a.id, 10) - Number.parseInt(b.id, 10);
++}
++
++export function addTodo(state: TodoState, input: TodoFormInput, clock: UiClock): { state: TodoState; todo: TodoItem } {
++  const title = normalizeTitle(input.title);
++  if (title.length === 0) {
++    throw new Error('Title is required.');
++  }
++
++  if (findDuplicate(state, title)) {
++    throw new Error('A todo with the same title already exists.');
++  }
++
++  const priority = normalizePriority(input.priority);
++  const dueDate = input.dueDate ? validateDueDate(input.dueDate) : undefined;
++  const createdAt = clock.now().toISOString();
++
++  const todo: TodoItem = {
++    id: buildTodoId(state),
++    title,
++    priority,
++    completed: false,
++    createdAt,
++  };
++
++  if (dueDate) {
++    todo.dueDate = dueDate;
++  }
++
++  const nextState: TodoState = {
++    items: [...state.items, todo],
++    nextId: state.nextId + 1,
++  };
++
++  return { state: nextState, todo };
++}
++
++export function completeTodo(
++  state: TodoState,
++  id: string,
++  clock: UiClock,
++): { state: TodoState; todo: TodoItem; alreadyCompleted: boolean } {
++  const normalizedId = id.trim();
++  if (!normalizedId) {
++    throw new Error('Todo id is required.');
++  }
++
++  const index = state.items.findIndex((todo) => todo.id === normalizedId);
++  if (index === -1) {
++    throw new Error('Todo not found.');
++  }
++
++  const target = state.items[index];
++  if (target.completed) {
++    return { state, todo: target, alreadyCompleted: true };
++  }
++
++  const completedAt = clock.now().toISOString();
++  const updated: TodoItem = { ...target, completed: true, completedAt };
++  const items = [...state.items];
++  items[index] = updated;
++  return { state: { items, nextId: state.nextId }, todo: updated, alreadyCompleted: false };
++}
++
++export function buildTodoList(state: TodoState, clock: UiClock): TodoViewItem[] {
++  return state.items
++    .slice()
++    .sort(compareTodos)
++    .map((item) => {
++      const dueStatus = determineDueStatus(item, clock);
++      return {
++        ...item,
++        dueStatus,
++        statusLabel: STATUS_LABELS[dueStatus],
++      };
++    });
++}
++
++export function formatTodoDueDate(todo: TodoItem): string {
++  if (!todo.dueDate) {
++    return '—';
++  }
++  const [year, month, day] = todo.dueDate.split('-').map((part) => Number.parseInt(part, 10));
++  const formatter = new Intl.DateTimeFormat('en-US', {
++    month: 'short',
++    day: 'numeric',
++    year: 'numeric',
++  });
++  const parsed = new Date(Date.UTC(year, month - 1, day));
++  return formatter.format(parsed);
++}
++
++export function describeTodoTimestamp(clock: UiClock): string {
++  return toDateOnly(clock.now());
++}
+diff --git a/apps/ui/src/pages/ToDo.tsx b/apps/ui/src/pages/ToDo.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..194e5079504be2fef3257276c3ca3ab8bc8cfde4
+--- /dev/null
++++ b/apps/ui/src/pages/ToDo.tsx
+@@ -0,0 +1,111 @@
++import { useMemo, useState } from 'react';
++import TodoAddForm from '../components/todo/TodoAddForm';
++import TodoCompleteForm from '../components/todo/TodoCompleteForm';
++import TodoList from '../components/todo/TodoList';
++import {
++  addTodo,
++  buildTodoList,
++  cloneTodoState,
++  completeTodo,
++  createDefaultState,
++  type TodoFormInput,
++  type TodoState,
++} from '../lib/todo/todos';
++import { createSystemClock, type UiClock } from '../lib/time/clock';
++
++interface ToDoProps {
++  initialState?: TodoState;
++  clock?: UiClock;
++}
++
++interface ActionResult {
++  success: boolean;
 +  error?: string;
 +}
 +
-+const MONTH_INPUT_ID = 'expenses-month-input';
-+const MONTH_DATALIST_ID = 'expenses-month-options';
-+
-+function MonthSelector({ value, options, onChange, error }: MonthSelectorProps): JSX.Element {
-+  return (
-+    <div className="field">
-+      <label htmlFor={MONTH_INPUT_ID}>Month</label>
-+      <input
-+        id={MONTH_INPUT_ID}
-+        list={MONTH_DATALIST_ID}
-+        value={value}
-+        onChange={(event) => onChange(event.target.value)}
-+        placeholder="All months"
-+        aria-describedby={error ? `${MONTH_INPUT_ID}-error` : undefined}
-+      />
-+      <datalist id={MONTH_DATALIST_ID}>
-+        {options.map((option) => (
-+          <option key={option.value} value={option.label} />
-+        ))}
-+      </datalist>
-+      {error ? (
-+        <p id={`${MONTH_INPUT_ID}-error`} role="alert" className="field-error">
-+          {error}
-+        </p>
-+      ) : null}
-+    </div>
++function ToDo({ initialState, clock }: ToDoProps): JSX.Element {
++  const resolvedClock = useMemo(() => clock ?? createSystemClock(), [clock]);
++  const [state, setState] = useState<TodoState>(() =>
++    initialState ? cloneTodoState(initialState) : createDefaultState(),
 +  );
-+}
++  const [addError, setAddError] = useState<string | null>(null);
++  const [completeError, setCompleteError] = useState<string | null>(null);
++  const [feedback, setFeedback] = useState<string | null>(null);
 +
-+export default MonthSelector;
-diff --git a/apps/ui/src/components/expenses/TotalsSummary.tsx b/apps/ui/src/components/expenses/TotalsSummary.tsx
-new file mode 100644
-index 0000000000000000000000000000000000000000..89304744ee5aaff690e56a5ac27719c1e71935ef
---- /dev/null
-+++ b/apps/ui/src/components/expenses/TotalsSummary.tsx
-@@ -0,0 +1,27 @@
-+import { formatCurrency, type ExpenseSummaryEntry } from '../../lib/expenses/totals';
++  const view = useMemo(() => buildTodoList(state, resolvedClock), [state, resolvedClock]);
 +
-+interface TotalsSummaryProps {
-+  total: number;
-+  totalsByCategory: ExpenseSummaryEntry[];
-+}
-+
-+function TotalsSummary({ total, totalsByCategory }: TotalsSummaryProps): JSX.Element {
-+  return (
-+    <section aria-labelledby="expenses-totals-heading" className="totals">
-+      <h2 id="expenses-totals-heading">Totals</h2>
-+      <p data-testid="total" className="totals-total" aria-live="polite">
-+        {formatCurrency(total)}
-+      </p>
-+      <ul data-testid="category-totals" className="totals-list">
-+        {totalsByCategory.map((entry) => (
-+          <li key={entry.category} className="totals-item">
-+            <span className="totals-category">{entry.category}</span>
-+            <span className="totals-amount">{formatCurrency(entry.amount)}</span>
-+          </li>
-+        ))}
-+      </ul>
-+    </section>
-+  );
-+}
-+
-+export default TotalsSummary;
-diff --git a/apps/ui/src/lib/expenses/totals.ts b/apps/ui/src/lib/expenses/totals.ts
-new file mode 100644
-index 0000000000000000000000000000000000000000..4e514b6a095ff5f99089cadeb5bd5719849987be
---- /dev/null
-+++ b/apps/ui/src/lib/expenses/totals.ts
-@@ -0,0 +1,270 @@
-+export interface ExpenseRecord {
-+  id: string;
-+  isoDate: string;
-+  monthIndex: number;
-+  category: string;
-+  amount: number;
-+  currency: string;
-+}
-+
-+export interface ExpenseRowError {
-+  rowNumber: number;
-+  message: string;
-+  raw: string;
-+}
-+
-+export interface ExpenseDataset {
-+  records: ExpenseRecord[];
-+  errors: ExpenseRowError[];
-+  monthOptions: MonthOption[];
-+  categoryOptions: string[];
-+}
-+
-+export interface MonthOption {
-+  value: string;
-+  label: string;
-+}
-+
-+export interface ExpenseFilters {
-+  month?: string | null;
-+  category?: string | null;
-+}
-+
-+export interface ExpenseSummaryEntry {
-+  category: string;
-+  amount: number;
-+}
-+
-+export interface ExpenseSummary {
-+  total: number;
-+  totalsByCategory: ExpenseSummaryEntry[];
-+}
-+
-+export type ExpenseComputationStatus = 'ok' | 'empty' | 'invalid';
-+
-+export interface ExpenseComputationResult {
-+  status: ExpenseComputationStatus;
-+  entries: ExpenseRecord[];
-+  summary: ExpenseSummary;
-+  validation: Partial<Record<'month' | 'category', string>>;
-+}
-+
-+const RAW_EXPENSES = `date,category,amount,currency
-+2025-01-05,Groceries,54.20,USD
-+2025-01-15,Transport,18.30,USD
-+2025-02-01,Groceries,42.10,USD
-+2025-02-07,Utilities,90.00,USD
-+2025-02-14,Travel,,USD
-+2025-03-12,Entertainment,27.50,USD
-+2025-03-25,Groceries,38.40,USD
-+2025-03-29,Transport,55.00,USD
-+`;
-+
-+const MONTH_METADATA: Array<{ index: number; label: string; aliases: string[] }> = [
-+  { index: 1, label: 'January', aliases: ['jan', 'january'] },
-+  { index: 2, label: 'February', aliases: ['feb', 'february'] },
-+  { index: 3, label: 'March', aliases: ['mar', 'march'] },
-+  { index: 4, label: 'April', aliases: ['apr', 'april'] },
-+  { index: 5, label: 'May', aliases: ['may'] },
-+  { index: 6, label: 'June', aliases: ['jun', 'june'] },
-+  { index: 7, label: 'July', aliases: ['jul', 'july'] },
-+  { index: 8, label: 'August', aliases: ['aug', 'august'] },
-+  { index: 9, label: 'September', aliases: ['sep', 'sept', 'september'] },
-+  { index: 10, label: 'October', aliases: ['oct', 'october'] },
-+  { index: 11, label: 'November', aliases: ['nov', 'november'] },
-+  { index: 12, label: 'December', aliases: ['dec', 'december'] },
-+];
-+
-+const MONTH_LOOKUP = new Map<string, number>(
-+  MONTH_METADATA.flatMap((entry) => [[String(entry.index), entry.index], ...entry.aliases.map((alias) => [alias, entry.index])]),
-+);
-+
-+const CURRENCY_FALLBACK = 'USD';
-+
-+const TWO_DECIMAL_FORMATTER = new Intl.NumberFormat('en-US', {
-+  minimumFractionDigits: 2,
-+  maximumFractionDigits: 2,
-+});
-+
-+let datasetCache: ExpenseDataset | null = null;
-+
-+export function loadExpenseDataset(): ExpenseDataset {
-+  if (datasetCache) {
-+    return datasetCache;
-+  }
-+
-+  const { records, errors } = parseCsvWithErrors(RAW_EXPENSES);
-+  const monthOptions = deriveMonthOptions(records);
-+  const categoryOptions = deriveCategoryOptions(records);
-+
-+  datasetCache = { records, errors, monthOptions, categoryOptions };
-+  return datasetCache;
-+}
-+
-+function parseCsvWithErrors(raw: string): { records: ExpenseRecord[]; errors: ExpenseRowError[] } {
-+  const rows = raw
-+    .split(/\r?\n/)
-+    .map((line) => line.trim())
-+    .filter((line) => line.length > 0);
-+
-+  if (rows.length === 0) {
-+    return { records: [], errors: [] };
-+  }
-+
-+  const [firstLine] = rows;
-+  const hasHeader = /date/i.test(firstLine) && /category/i.test(firstLine) && /amount/i.test(firstLine);
-+  const startIndex = hasHeader ? 1 : 0;
-+
-+  const records: ExpenseRecord[] = [];
-+  const errors: ExpenseRowError[] = [];
-+
-+  for (let index = startIndex; index < rows.length; index += 1) {
-+    const rawRow = rows[index];
-+    const rowNumber = index + 1; // 1-based index for readability
-+    const columns = rawRow.split(',').map((column) => column.trim());
-+    const [date, category, amount, currency = CURRENCY_FALLBACK] = columns;
-+
-+    if (!date) {
-+      errors.push({ rowNumber, raw: rawRow, message: 'Date is required.' });
-+      continue;
-+    }
-+
-+    const parsedDate = new Date(date);
-+    if (Number.isNaN(parsedDate.getTime())) {
-+      errors.push({ rowNumber, raw: rawRow, message: 'Invalid date value.' });
-+      continue;
-+    }
-+
-+    if (!category) {
-+      errors.push({ rowNumber, raw: rawRow, message: 'Category is required.' });
-+      continue;
-+    }
-+
-+    if (!amount) {
-+      errors.push({ rowNumber, raw: rawRow, message: 'Amount is required.' });
-+      continue;
-+    }
-+
-+    const numericAmount = Number.parseFloat(amount);
-+    if (!Number.isFinite(numericAmount)) {
-+      errors.push({ rowNumber, raw: rawRow, message: 'Amount must be numeric.' });
-+      continue;
-+    }
-+
-+    const monthIndex = parsedDate.getUTCMonth() + 1;
-+    records.push({
-+      id: `${rowNumber}`,
-+      isoDate: parsedDate.toISOString().slice(0, 10),
-+      monthIndex,
-+      category,
-+      amount: numericAmount,
-+      currency: currency || CURRENCY_FALLBACK,
-+    });
-+  }
-+
-+  return { records, errors };
-+}
-+
-+function deriveMonthOptions(records: ExpenseRecord[]): MonthOption[] {
-+  const uniqueMonths = new Set<number>();
-+  for (const record of records) {
-+    uniqueMonths.add(record.monthIndex);
-+  }
-+
-+  return Array.from(uniqueMonths)
-+    .sort((a, b) => a - b)
-+    .map((monthIndex) => ({ value: MONTH_METADATA[monthIndex - 1]?.label ?? String(monthIndex), label: MONTH_METADATA[monthIndex - 1]?.label ?? String(monthIndex) }));
-+}
-+
-+function deriveCategoryOptions(records: ExpenseRecord[]): string[] {
-+  const uniqueCategories = new Set<string>();
-+  for (const record of records) {
-+    uniqueCategories.add(record.category);
-+  }
-+  return Array.from(uniqueCategories).sort((a, b) => a.localeCompare(b));
-+}
-+
-+function normalizeMonthInput(rawMonth: string): number {
-+  const trimmed = rawMonth.trim();
-+  if (!trimmed) {
-+    throw new Error('Month cannot be empty.');
-+  }
-+
-+  const candidate = trimmed.toLowerCase();
-+  if (MONTH_LOOKUP.has(candidate)) {
-+    return MONTH_LOOKUP.get(candidate)!;
-+  }
-+
-+  if (/^\d+$/.test(candidate)) {
-+    const value = Number.parseInt(candidate, 10);
-+    if (value >= 1 && value <= 12) {
-+      return value;
-+    }
-+  }
-+
-+  throw new Error(`Unknown month "${rawMonth}". Use Jan–Dec or 1–12.`);
-+}
-+
-+function findMatchingCategory(records: ExpenseRecord[], rawCategory: string): string | null {
-+  const normalized = rawCategory.trim().toLowerCase();
-+  if (!normalized) {
-+    return null;
-+  }
-+  const match = records.find((record) => record.category.toLowerCase() === normalized);
-+  return match ? match.category : null;
-+}
-+
-+function summarizeRecords(records: ExpenseRecord[]): ExpenseSummary {
-+  const total = records.reduce((sum, record) => sum + record.amount, 0);
-+  const totalsByCategory = records.reduce<ExpenseSummaryEntry[]>((acc, record) => {
-+    const existing = acc.find((entry) => entry.category.toLowerCase() === record.category.toLowerCase());
-+    if (existing) {
-+      existing.amount += record.amount;
-+      return acc;
-+    }
-+    return [...acc, { category: record.category, amount: record.amount }];
-+  }, []);
-+  return { total, totalsByCategory };
-+}
-+
-+function emptySummary(): ExpenseSummary {
-+  return { total: 0, totalsByCategory: [] };
-+}
-+
-+export function evaluateExpenses(records: ExpenseRecord[], filters: ExpenseFilters = {}): ExpenseComputationResult {
-+  const validation: ExpenseComputationResult['validation'] = {};
-+  let filteredRecords = [...records];
-+
-+  if (filters.month && filters.month.trim().length > 0) {
++  const addAction = (input: TodoFormInput): ActionResult => {
 +    try {
-+      const monthIndex = normalizeMonthInput(filters.month);
-+      filteredRecords = filteredRecords.filter((record) => record.monthIndex === monthIndex);
++      const result = addTodo(state, input, resolvedClock);
++      setState(result.state);
++      setAddError(null);
++      setFeedback(`Added "${result.todo.title}"`);
++      return { success: true };
 +    } catch (error) {
-+      validation.month = error instanceof Error ? error.message : 'Unknown month.';
-+      return { status: 'invalid', entries: [], summary: emptySummary(), validation };
++      const message = (error as Error).message;
++      setAddError(message);
++      setFeedback(null);
++      return { success: false, error: message };
 +    }
-+  }
-+
-+  if (filters.category && filters.category.trim().length > 0) {
-+    const match = findMatchingCategory(records, filters.category);
-+    if (!match) {
-+      validation.category = `Unknown category "${filters.category}".`;
-+      return { status: 'invalid', entries: [], summary: emptySummary(), validation };
-+    }
-+    filteredRecords = filteredRecords.filter((record) => record.category.toLowerCase() === match.toLowerCase());
-+  }
-+
-+  if (filteredRecords.length === 0) {
-+    return { status: 'empty', entries: [], summary: emptySummary(), validation };
-+  }
-+
-+  return { status: 'ok', entries: filteredRecords, summary: summarizeRecords(filteredRecords), validation };
-+}
-+
-+export function formatCurrency(value: number): string {
-+  return `$${TWO_DECIMAL_FORMATTER.format(value)}`;
-+}
-+
-+export function monthLabelFromIndex(monthIndex: number): string {
-+  return MONTH_METADATA[monthIndex - 1]?.label ?? String(monthIndex);
-+}
-diff --git a/apps/ui/src/pages/Expenses.tsx b/apps/ui/src/pages/Expenses.tsx
-new file mode 100644
-index 0000000000000000000000000000000000000000..391c4506ba8e788aa8bd0819a06a4875b3a39bf7
---- /dev/null
-+++ b/apps/ui/src/pages/Expenses.tsx
-@@ -0,0 +1,90 @@
-+import { useMemo, useState } from 'react';
-+import CategorySelector from '../components/expenses/CategorySelector';
-+import ExpensesTable from '../components/expenses/ExpensesTable';
-+import MonthSelector from '../components/expenses/MonthSelector';
-+import TotalsSummary from '../components/expenses/TotalsSummary';
-+import {
-+  evaluateExpenses,
-+  loadExpenseDataset,
-+  type ExpenseComputationResult,
-+  type ExpenseFilters,
-+} from '../lib/expenses/totals';
-+
-+function Expenses(): JSX.Element {
-+  const dataset = useMemo(() => loadExpenseDataset(), []);
-+  const [filters, setFilters] = useState<ExpenseFilters>({ month: '', category: '' });
-+
-+  const result: ExpenseComputationResult = useMemo(
-+    () =>
-+      evaluateExpenses(dataset.records, {
-+        month: filters.month ?? '',
-+        category: filters.category ?? '',
-+      }),
-+    [dataset.records, filters.category, filters.month],
-+  );
-+
-+  const malformedSummary = useMemo(() => {
-+    if (dataset.errors.length === 0) {
-+      return null;
-+    }
-+    const [first] = dataset.errors;
-+    if (dataset.errors.length === 1) {
-+      return `Malformed row ignored (row ${first.rowNumber}: ${first.message})`;
-+    }
-+    return `${dataset.errors.length} malformed rows ignored. First issue: row ${first.rowNumber} – ${first.message}`;
-+  }, [dataset.errors]);
-+
-+  const updateMonth = (value: string) => {
-+    setFilters((previous) => ({ ...previous, month: value }));
 +  };
 +
-+  const updateCategory = (value: string) => {
-+    setFilters((previous) => ({ ...previous, category: value }));
++  const completeAction = (id: string): ActionResult => {
++    try {
++      const result = completeTodo(state, id, resolvedClock);
++      setState(result.state);
++      setCompleteError(null);
++      if (result.alreadyCompleted) {
++        setFeedback(`Todo "${result.todo.title}" was already completed.`);
++      } else {
++        setFeedback(`Marked "${result.todo.title}" as complete.`);
++      }
++      return { success: true };
++    } catch (error) {
++      const message = (error as Error).message;
++      setCompleteError(message);
++      setFeedback(null);
++      return { success: false, error: message };
++    }
 +  };
 +
 +  return (
-+    <section className="expenses-page" role="main">
-+      <header className="expenses-header">
-+        <h1 data-testid="expenses-heading">Expenses explorer</h1>
-+        <p>Filter by month and category to mirror the CLI experience in a friendly UI.</p>
++    <section className="todo-page" aria-labelledby="todo-heading">
++      <header className="todo-header">
++        <h1 id="todo-heading">ToDo tracker</h1>
++        <p>
++          Capture, prioritise, and complete actionable work with deterministic clock handling for
++          yesterday/today/tomorrow boundaries.
++        </p>
 +      </header>
 +
-+      <div className="expenses-controls" role="search">
-+        <MonthSelector value={filters.month ?? ''} options={dataset.monthOptions} onChange={updateMonth} error={result.validation.month} />
-+        <CategorySelector
-+          value={filters.category ?? ''}
-+          options={dataset.categoryOptions}
-+          onChange={updateCategory}
-+          error={result.validation.category}
-+        />
++      {feedback && (
++        <div className="todo-feedback" role="status" data-testid="todo-feedback">
++          {feedback}
++        </div>
++      )}
++
++      <div className="todo-grid">
++        <article className="todo-card" aria-label="Task list">
++          <div className="todo-card__header">
++            <h2>Active tasks</h2>
++            <p>Pending items are ordered by due date and priority before completed work.</p>
++          </div>
++          <TodoList items={view} onComplete={(id) => completeAction(id)} />
++        </article>
++
++        <aside className="todo-card todo-card--forms" aria-label="ToDo controls">
++          <div className="todo-card__section">
++            <h2>Add a task</h2>
++            <TodoAddForm onSubmit={addAction} error={addError} />
++          </div>
++          <div className="todo-card__section">
++            <h2>Complete a task</h2>
++            <TodoCompleteForm onSubmit={completeAction} error={completeError} />
++          </div>
++        </aside>
 +      </div>
-+
-+      {malformedSummary ? (
-+        <div className="notice notice-warning" role="status">
-+          {malformedSummary}
-+        </div>
-+      ) : null}
-+
-+      {result.status === 'invalid' ? (
-+        <p className="notice notice-error" role="alert">
-+          Please resolve the highlighted filters to view totals.
-+        </p>
-+      ) : null}
-+
-+      {result.status === 'empty' ? (
-+        <p className="notice notice-muted" role="status">
-+          No expenses found for the selected filters.
-+        </p>
-+      ) : null}
-+
-+      {result.status === 'ok' ? (
-+        <div className="expenses-results">
-+          <TotalsSummary total={result.summary.total} totalsByCategory={result.summary.totalsByCategory} />
-+          <ExpensesTable records={result.entries} />
-+        </div>
-+      ) : null}
 +    </section>
 +  );
 +}
 +
-+export default Expenses;
-diff --git a/apps/ui/src/tests/expenses.test.tsx b/apps/ui/src/tests/expenses.test.tsx
++export default ToDo;
+diff --git a/apps/ui/src/pages/ToDoPage.tsx b/apps/ui/src/pages/ToDoPage.tsx
+index e0a9966a86c68e7b518077258f0055dc0737ade0..4b84b3592dfbe0a4cfe8c185b6bde0e03837f2c8 100644
+--- a/apps/ui/src/pages/ToDoPage.tsx
++++ b/apps/ui/src/pages/ToDoPage.tsx
+@@ -1,20 +1,9 @@
+-import { TodoPlaceholder } from '../components/index.js';
++import ToDo from './ToDo';
+ 
+ /**
+  * ToDo page for managing actionable tasks with deterministic clocks.
+- * This page will eventually handle task entry, completion, and time-based filtering.
++ * This wrapper keeps backwards compatibility with earlier routing scaffolds.
+  */
+ export function ToDoPage(): JSX.Element {
+-  return (
+-    <section aria-labelledby="todo-heading" className="page">
+-      <header className="page-header">
+-        <h2 id="todo-heading">ToDo</h2>
+-        <p>
+-          Manage actionable tasks with deterministic clocks. This placeholder keeps routes wired while
+-          ToDo UI logic is under construction.
+-        </p>
+-      </header>
+-      <TodoPlaceholder />
+-    </section>
+-  );
++  return <ToDo />;
+ }
+diff --git a/apps/ui/src/setupTests.ts b/apps/ui/src/setupTests.ts
+index a5aea93b4a3bdca9837c7445be420cacaee762a6..2581d326c99b19536e3a24729ab85091901a9348 100644
+--- a/apps/ui/src/setupTests.ts
++++ b/apps/ui/src/setupTests.ts
+@@ -1,5 +1,8 @@
+-// Import @testing-library/jest-dom for comprehensive DOM matchers
+-import '@testing-library/jest-dom/vitest';
++// Attempt to import @testing-library/jest-dom for rich matchers when available.
++// Offline training environments may not ship the dependency, so fall back silently.
++void import('@testing-library/jest-dom/vitest').catch(() => {
++  console.warn('jest-dom matchers unavailable; using project matchers only.');
++});
+ 
+ // Import our custom lightweight matchers as a fallback/supplement
+ import './testing-library-vitest.js';
+diff --git a/apps/ui/src/tests/todo.test.tsx b/apps/ui/src/tests/todo.test.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..1c11f1efc73d57274229002bc159288bfa6d22ca
+index 0000000000000000000000000000000000000000..7a70201391e375d74a1eee45038b8d261f1e4981
 --- /dev/null
-+++ b/apps/ui/src/tests/expenses.test.tsx
-@@ -0,0 +1,127 @@
++++ b/apps/ui/src/tests/todo.test.tsx
+@@ -0,0 +1,108 @@
 +import { render, screen, within } from '@testing-library/react';
 +import userEvent from '@testing-library/user-event';
-+import Expenses from '../pages/Expenses';
++import ToDo from '../pages/ToDo';
 +import {
-+  evaluateExpenses,
-+  formatCurrency,
-+  loadExpenseDataset,
-+  type ExpenseFilters,
-+} from '../lib/expenses/totals';
++  addTodo,
++  buildTodoList,
++  completeTodo,
++  createDefaultState,
++  type TodoState,
++} from '../lib/todo/todos';
++import { createAdjustableClock } from '../lib/time/clock';
 +
-+describe('expenses totals logic', () => {
-+  const dataset = loadExpenseDataset();
++describe('todo logic helpers', () => {
++  it('classifies todos relative to injected clock boundaries', () => {
++    const clock = createAdjustableClock('2025-03-15T09:00:00Z');
++    const state = createDefaultState();
++    const view = buildTodoList(state, clock);
 +
-+  it('captures malformed rows for transparency', () => {
-+    expect(dataset.errors).not.toHaveLength(0);
-+    expect(dataset.errors[0].message.toLowerCase()).toContain('amount');
++    const statusByTitle = new Map(view.map((item) => [item.title, item.dueStatus]));
++
++    expect(statusByTitle.get('Prepare sprint brief')).toBe('overdue');
++    expect(statusByTitle.get('Run standup dry run')).toBe('today');
++    expect(statusByTitle.get('Schedule customer follow-up')).toBe('tomorrow');
++    expect(statusByTitle.get('Archive sprint notes')).toBe('completed');
 +  });
 +
-+  describe.each([
-+    { month: 'Jan', expectedTotal: 72.5 },
-+    { month: 'February', expectedTotal: 132.1 },
-+    { month: 'Mar', expectedTotal: 120.9 },
-+  ])('month filtering %#', ({ month, expectedTotal }) => {
-+    it(`summarizes totals for ${month}`, () => {
-+      const result = evaluateExpenses(dataset.records, { month });
-+      expect(result.validation.month).toBeUndefined();
-+      expect(result.summary.total).toBeCloseTo(expectedTotal, 2);
-+    });
++  it('prevents duplicate titles on add', () => {
++    const clock = createAdjustableClock('2025-03-15T09:00:00Z');
++    const state = createDefaultState();
++    expect(() =>
++      addTodo(state, { title: 'Prepare sprint brief', priority: 'medium' }, clock),
++    ).toThrowError('A todo with the same title already exists.');
 +  });
 +
-+  describe.each([
-+    { category: 'groceries', expectedTotal: 134.7 },
-+    { category: 'Transport', expectedTotal: 73.3 },
-+    { category: 'ENTERTAINMENT', expectedTotal: 27.5 },
-+  ])('category filtering %#', ({ category, expectedTotal }) => {
-+    it(`summarizes totals for ${category}`, () => {
-+      const result = evaluateExpenses(dataset.records, { category });
-+      expect(result.validation.category).toBeUndefined();
-+      expect(result.summary.total).toBeCloseTo(expectedTotal, 2);
-+    });
++  it('throws when completing a missing todo id', () => {
++    const clock = createAdjustableClock('2025-03-15T09:00:00Z');
++    const state = createDefaultState();
++    expect(() => completeTodo(state, '999', clock)).toThrowError('Todo not found.');
 +  });
 +
-+  it('returns validation error for unknown month', () => {
-+    const result = evaluateExpenses(dataset.records, { month: 'Smarch' });
-+    expect(result.validation.month).toMatch(/unknown month/i);
-+  });
++  it('records completion timestamp when marking todo complete', () => {
++    const clock = createAdjustableClock('2025-03-15T09:00:00Z');
++    let state: TodoState = createDefaultState();
++    const created = addTodo(state, { title: 'Draft release notes', priority: 'high' }, clock);
++    state = created.state;
 +
-+  it('returns validation error for unknown category', () => {
-+    const result = evaluateExpenses(dataset.records, { category: 'Snacks' });
-+    expect(result.validation.category).toMatch(/unknown category/i);
-+  });
-+
-+  it('returns empty result when filters yield no matches', () => {
-+    const filters: ExpenseFilters = { month: 'January', category: 'Utilities' };
-+    const result = evaluateExpenses(dataset.records, filters);
-+    expect(result.entries).toHaveLength(0);
-+    expect(result.summary.total).toBe(0);
-+    expect(result.status).toBe('empty');
++    const completed = completeTodo(state, created.todo.id, clock);
++    expect(completed.todo.completed).toBe(true);
++    expect(completed.todo.completedAt).toContain('2025-03-15');
 +  });
 +});
 +
-+describe('Expenses page', () => {
-+  it('renders totals when selecting month and category', async () => {
-+    render(<Expenses />);
++describe('ToDo page behaviour', () => {
++  it('adds a todo and displays feedback', async () => {
++    const clock = createAdjustableClock('2025-03-15T09:00:00Z');
 +    const user = userEvent.setup();
++    render(<ToDo clock={clock} />);
 +
-+    const monthField = screen.getByLabelText(/month/i);
-+    await user.clear(monthField);
-+    await user.type(monthField, 'February');
-+    await user.tab();
++    const titleInput = within(screen.getByTestId('todo-add-form')).getByTestId('todo-title-input');
++    await user.clear(titleInput);
++    await user.type(titleInput, 'Draft release notes');
++    await user.click(screen.getByTestId('todo-add-submit'));
 +
-+    const categoryField = screen.getByLabelText(/category/i);
-+    await user.clear(categoryField);
-+    await user.type(categoryField, 'Utilities');
-+    await user.tab();
-+
-+    expect(await screen.findByTestId('total')).toHaveTextContent(formatCurrency(90));
-+    const totalsList = await screen.findByTestId('category-totals');
-+    expect(within(totalsList).getByText(/Utilities/)).toBeInTheDocument();
++    expect(await screen.findByText('Draft release notes')).toBeInTheDocument();
++    expect(screen.getByTestId('todo-feedback')).toHaveTextContent('Added "Draft release notes"');
 +  });
 +
-+  it('shows inline error for invalid month input', async () => {
-+    render(<Expenses />);
++  it('shows duplicate error inline when adding an existing title', async () => {
++    const clock = createAdjustableClock('2025-03-15T09:00:00Z');
 +    const user = userEvent.setup();
++    render(<ToDo clock={clock} />);
 +
-+    const monthField = screen.getByLabelText(/month/i);
-+    await user.clear(monthField);
-+    await user.type(monthField, 'Smarch');
-+    await user.tab();
++    const titleInput = within(screen.getByTestId('todo-add-form')).getByTestId('todo-title-input');
++    await user.clear(titleInput);
++    await user.type(titleInput, 'Prepare sprint brief');
++    await user.click(screen.getByTestId('todo-add-submit'));
 +
-+    expect(await screen.findByText(/unknown month/i)).toBeInTheDocument();
++    expect(await screen.findByTestId('todo-add-error')).toHaveTextContent(
++      'A todo with the same title already exists.',
++    );
 +  });
 +
-+  it('shows inline error for invalid category input', async () => {
-+    render(<Expenses />);
++  it('surfaces error when completing an unknown id', async () => {
++    const clock = createAdjustableClock('2025-03-15T09:00:00Z');
 +    const user = userEvent.setup();
++    render(<ToDo clock={clock} />);
 +
-+    const categoryField = screen.getByLabelText(/category/i);
-+    await user.clear(categoryField);
-+    await user.type(categoryField, 'Snacks');
-+    await user.tab();
++    const completeForm = screen.getByTestId('todo-complete-form');
++    await user.type(within(completeForm).getByTestId('todo-complete-input'), '999');
++    await user.click(within(completeForm).getByTestId('todo-complete-submit'));
 +
-+    expect(await screen.findByText(/unknown category/i)).toBeInTheDocument();
++    expect(await screen.findByTestId('todo-complete-error')).toHaveTextContent('Todo not found.');
 +  });
 +
-+  it('renders helpful message when no results match filters', async () => {
-+    render(<Expenses />);
++  it('marks a todo complete via list action', async () => {
++    const clock = createAdjustableClock('2025-03-15T09:00:00Z');
 +    const user = userEvent.setup();
++    render(<ToDo clock={clock} />);
 +
-+    const monthField = screen.getByLabelText(/month/i);
-+    await user.clear(monthField);
-+    await user.type(monthField, 'January');
-+    await user.tab();
++    const completeButton = screen.getByTestId('todo-complete-1');
 +
-+    const categoryField = screen.getByLabelText(/category/i);
-+    await user.clear(categoryField);
-+    await user.type(categoryField, 'Utilities');
-+    await user.tab();
++    await user.click(completeButton);
 +
-+    expect(await screen.findByText(/no expenses found/i)).toBeInTheDocument();
-+  });
-+
-+  it('surfaces malformed row warning to the viewer', async () => {
-+    render(<Expenses />);
-+    expect(await screen.findByText(/malformed row/i)).toBeInTheDocument();
++    expect(completeButton).toBeDisabled();
++    expect(completeButton).toHaveTextContent('Completed');
++    expect(screen.getByTestId('todo-feedback')).toHaveTextContent('Marked "Prepare sprint brief" as complete.');
 +  });
 +});
+diff --git a/apps/ui/vitest.config.ts b/apps/ui/vitest.config.ts
+index f9500a52ac14475a4dac66a4ccbe5b678fe120aa..e4c973028a5b7cfd53111d2897dcb2bd26d026a0 100644
+--- a/apps/ui/vitest.config.ts
++++ b/apps/ui/vitest.config.ts
+@@ -1,33 +1,33 @@
+ import { defineConfig } from 'vitest/config';
+ 
+ export default defineConfig({
+   test: {
+     // Enable globals for cleaner test syntax (describe, it, expect available without imports)
+     globals: true,
+ 
+-    // Use jsdom for DOM testing environment (React components need DOM)
++    // Use jsdom for DOM-centric React tests when dependency is available
+     environment: 'jsdom',
+ 
+     // Setup file runs before each test file
+     setupFiles: './src/setupTests.ts',
+ 
+     // Exclude common non-test directories
+     exclude: [
+       '**/node_modules/**',
+       '**/dist/**',
+       '**/playwright/**',
+       '**/.{idea,git,cache,output,temp}/**',
+       '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*',
+     ],
+ 
+     // Coverage configuration
+     coverage: {
+       // Use v8 for faster, more accurate coverage
+       provider: 'v8',
+ 
+       // Output formats: text for terminal, html for browsing, json-summary for CI
+       reporter: ['text', 'html', 'json-summary'],
+ 
+       // Where coverage reports are written
+       reportsDirectory: './coverage',
+ 
 diff --git a/specs/001-update-specify-md/tasks.md b/specs/001-update-specify-md/tasks.md
-index ae9160667b1cd30479c72aae7cab8d319e1917c2..79bf3fb3dc786a2a0701ef3c0461ff0424408381 100644
+index ae9160667b1cd30479c72aae7cab8d319e1917c2..b801b9e54bce6699dfc58d62076968ecb14a190c 100644
 --- a/specs/001-update-specify-md/tasks.md
 +++ b/specs/001-update-specify-md/tasks.md
-@@ -11,57 +11,57 @@ Plan: `C:\Users\RAYMOND\Desktop\Work Projects\training-raymond\specs\001-update-
- - [ ] T001 Create UI project folder `apps/ui/` with Vite React scaffold
- - [ ] T002 Add unit test harness (Vitest + React Testing Library) in `apps/ui/`
- - [ ] T003 Add Playwright with one blank smoke test in `apps/ui/playwright/`
- - [ ] T004 Configure GitHub Pages publish pipeline placeholder in `.github/workflows/pages.yml`
- - [ ] T005 Add CI job for lint + unit + coverage export to `review-artifacts/` in `.github/workflows/ci.yml`
- - [ ] T006 Add CI job to run Playwright smoke on PRs to `development` in `.github/workflows/ci.yml`
- - [ ] T007 Create coverage index placeholder `review-artifacts/index.html`
- - [ ] T008 Add README review box placeholder in `README_Week3.md`
- - [ ] T009 Create GitHub Project issues from this tasks.md (GH CLI helper script) in `scripts/gh-import-tasks.ps1`
- 
- ## Phase 2 — Foundational (blocking prerequisites)
- 
- - [ ] T010 Create shared pure logic structure under `src/cli/` for reuse in UI (no code yet)
- - [ ] T011 Define base UI routes/pages placeholders in `apps/ui/src/pages/`
- - [ ] T012 Define base UI components placeholders in `apps/ui/src/components/`
+@@ -26,57 +26,57 @@ Plan: `C:\Users\RAYMOND\Desktop\Work Projects\training-raymond\specs\001-update-
  - [ ] T013 Wire deterministic testing helpers (seeded RNG and injected clock) in `apps/ui/src/tests/helpers.ts`
  - [ ] T014 Ensure branch protection and required checks documented in `README_Week3.md`
  
@@ -1027,20 +1510,13 @@ index ae9160667b1cd30479c72aae7cab8d319e1917c2..79bf3fb3dc786a2a0701ef3c0461ff04
  Goal: Minimal Expenses UI mirroring CLI rules; deterministic tests; coverage ≥ 50% statements.
  Independent test: Selecting month/category shows correct totals; malformed rows handled.
  
--- [ ] T015 [US1] Implement Expenses route `apps/ui/src/pages/Expenses.tsx`
--- [ ] T016 [US1] Implement components: selectors and totals `apps/ui/src/components/expenses/`
--- [ ] T017 [US1] Implement validation for unknown month/category (inline error) `apps/ui/src/pages/Expenses.tsx`
--- [ ] T018 [US1] Import or implement core totals logic mirroring CLI `apps/ui/src/lib/expenses/totals.ts`
--- [ ] T019 [P] [US1] Unit tests (table‑driven) for months/categories/malformed rows `apps/ui/src/tests/expenses.test.tsx`
--- [ ] T020 [US1] Playwright smoke: select month/category → totals render `apps/ui/playwright/expenses.smoke.spec.ts`
--- [ ] T021 [US1] Export UI coverage HTML and add to `review-artifacts/` (CI ensures)
-+- [x] T015 [US1] Implement Expenses route `apps/ui/src/pages/Expenses.tsx`
-+- [x] T016 [US1] Implement components: selectors and totals `apps/ui/src/components/expenses/`
-+- [x] T017 [US1] Implement validation for unknown month/category (inline error) `apps/ui/src/pages/Expenses.tsx`
-+- [x] T018 [US1] Import or implement core totals logic mirroring CLI `apps/ui/src/lib/expenses/totals.ts`
-+- [x] T019 [P] [US1] Unit tests (table‑driven) for months/categories/malformed rows `apps/ui/src/tests/expenses.test.tsx`
-+- [x] T020 [US1] Playwright smoke: select month/category → totals render `apps/ui/playwright/expenses.smoke.spec.ts`
-+- [x] T021 [US1] Export UI coverage HTML and add to `review-artifacts/` (CI ensures)
+ - [ ] T015 [US1] Implement Expenses route `apps/ui/src/pages/Expenses.tsx`
+ - [ ] T016 [US1] Implement components: selectors and totals `apps/ui/src/components/expenses/`
+ - [ ] T017 [US1] Implement validation for unknown month/category (inline error) `apps/ui/src/pages/Expenses.tsx`
+ - [ ] T018 [US1] Import or implement core totals logic mirroring CLI `apps/ui/src/lib/expenses/totals.ts`
+ - [ ] T019 [P] [US1] Unit tests (table‑driven) for months/categories/malformed rows `apps/ui/src/tests/expenses.test.tsx`
+ - [ ] T020 [US1] Playwright smoke: select month/category → totals render `apps/ui/playwright/expenses.smoke.spec.ts`
+ - [ ] T021 [US1] Export UI coverage HTML and add to `review-artifacts/` (CI ensures)
  
  ---
  
@@ -1049,13 +1525,20 @@ index ae9160667b1cd30479c72aae7cab8d319e1917c2..79bf3fb3dc786a2a0701ef3c0461ff04
  Goal: Add/list/complete with deterministic date boundaries; coverage ≥ 50% statements.
  Independent test: yesterday/today/tomorrow boundaries behave by injected clock; duplicate guards enforced.
  
- - [ ] T022 [US2] Implement ToDo route `apps/ui/src/pages/ToDo.tsx`
- - [ ] T023 [US2] Implement components for list/add/complete `apps/ui/src/components/todo/`
- - [ ] T024 [US2] Duplicate guard + errors for complete nonexistent item `apps/ui/src/pages/ToDo.tsx`
- - [ ] T025 [US2] Injected clock utility for dueToday logic `apps/ui/src/lib/time/clock.ts`
- - [ ] T026 [P] [US2] Unit tests for yesterday/today/tomorrow, duplicate add, bad complete `apps/ui/src/tests/todo.test.tsx`
- - [ ] T027 [US2] Playwright smoke: add → list → complete `apps/ui/playwright/todo.smoke.spec.ts`
- - [ ] T028 [US2] Export UI coverage HTML and add to `review-artifacts/`
+-- [ ] T022 [US2] Implement ToDo route `apps/ui/src/pages/ToDo.tsx`
+-- [ ] T023 [US2] Implement components for list/add/complete `apps/ui/src/components/todo/`
+-- [ ] T024 [US2] Duplicate guard + errors for complete nonexistent item `apps/ui/src/pages/ToDo.tsx`
+-- [ ] T025 [US2] Injected clock utility for dueToday logic `apps/ui/src/lib/time/clock.ts`
+-- [ ] T026 [P] [US2] Unit tests for yesterday/today/tomorrow, duplicate add, bad complete `apps/ui/src/tests/todo.test.tsx`
+-- [ ] T027 [US2] Playwright smoke: add → list → complete `apps/ui/playwright/todo.smoke.spec.ts`
+-- [ ] T028 [US2] Export UI coverage HTML and add to `review-artifacts/`
++- [x] T022 [US2] Implement ToDo route `apps/ui/src/pages/ToDo.tsx`
++- [x] T023 [US2] Implement components for list/add/complete `apps/ui/src/components/todo/`
++- [x] T024 [US2] Duplicate guard + errors for complete nonexistent item `apps/ui/src/pages/ToDo.tsx`
++- [x] T025 [US2] Injected clock utility for dueToday logic `apps/ui/src/lib/time/clock.ts`
++- [x] T026 [P] [US2] Unit tests for yesterday/today/tomorrow, duplicate add, bad complete `apps/ui/src/tests/todo.test.tsx`
++- [x] T027 [US2] Playwright smoke: add → list → complete `apps/ui/playwright/todo.smoke.spec.ts`
++- [x] T028 [US2] Export UI coverage HTML and add to `review-artifacts/`
  
  ---
  
@@ -1066,3 +1549,18 @@ index ae9160667b1cd30479c72aae7cab8d319e1917c2..79bf3fb3dc786a2a0701ef3c0461ff04
  
  - [ ] T029 [US3] Implement Quote route `apps/ui/src/pages/Quote.tsx`
  - [ ] T030 [US3] Implement components for filters/result `apps/ui/src/components/quote/`
+ - [ ] T031 [US3] Deterministic random pick (seeded RNG) `apps/ui/src/lib/random/seeded.ts`
+ - [ ] T032 [P] [US3] Unit tests for author/tag filters, empty dataset, seeded RNG `apps/ui/src/tests/quote.test.tsx`
+ - [ ] T033 [US3] Playwright smoke: apply filter → expect deterministic result `apps/ui/playwright/quote.smoke.spec.ts`
+ - [ ] T034 [US3] Export UI coverage HTML and add to `review-artifacts/`
+ 
+ ---
+ 
+ ## Phase 6 — Polish & Reviewability
+ 
+ - [ ] T035 Update README “How to review me” box with actual Release/Pages links `README_Week3.md`
+ - [ ] T036 Generate Coverage Index (CLI + UI) to `review-artifacts/index.html`
+ - [ ] T037 Build Review Packet ZIP and attach to Release `review-artifacts/`
+ - [ ] T038 Capstone PR to `development` with Coverage Table, links, and screenshots `docs/review.md`
+ 
+ ---

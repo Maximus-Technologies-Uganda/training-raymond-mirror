@@ -35,9 +35,24 @@ function ensureNode(value: MaybeElement, matcherName: string): asserts value is 
  *
  * @example
  * expect(screen.getByRole('button')).toBeInTheDocument();
+ * expect(screen.queryByRole('button')).not.toBeInTheDocument();
  */
 function toBeInTheDocument(this: unknown, received: MaybeElement): MatcherResult {
-  ensureNode(received, 'toBeInTheDocument');
+  // Allow null/undefined for .not.toBeInTheDocument() assertions
+  if (!received) {
+    return {
+      pass: false,
+      message: () => 'Expected element to be present in the document, but received a nullish value.',
+    };
+  }
+
+  if (typeof Node === 'undefined') {
+    throw new Error('toBeInTheDocument requires a DOM-like environment (jsdom or happy-dom).');
+  }
+
+  if (!(received instanceof Node)) {
+    throw new Error(`toBeInTheDocument expects a DOM Node, but received ${typeof received}.`);
+  }
 
   const ownerDocument = received.ownerDocument ?? null;
   const pass = Boolean(ownerDocument?.documentElement?.contains(received));
