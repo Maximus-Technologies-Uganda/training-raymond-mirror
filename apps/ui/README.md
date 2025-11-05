@@ -1,6 +1,6 @@
 # Training Raymond UI
 
-Week 3 UI workspace for Expenses, ToDo, and Quote tools built with React + Vite.
+Phase 3 implementation of the Expenses UI with filtering, totals, and comprehensive testing built with React + Vite + TypeScript.
 
 ## Quick Start
 
@@ -30,29 +30,65 @@ npm run test
 # Run tests in watch mode
 npm run test:watch
 
-# Run tests with coverage (≥50% threshold enforced)
+# Run tests with coverage (≥60% threshold enforced) and export to review-artifacts
 npm run test:coverage
+
+# Export coverage reports manually (automatically runs after test:coverage)
+npm run export:coverage
 
 # Run Playwright e2e smoke tests
 npm run test:e2e
 ```
+
+## Phase 3: Expenses UI Features
+
+### Implemented Features
+- ✅ **Filter by Month & Category:** Dropdown selectors with "All" options
+- ✅ **Clear Filters Button:** Conditionally shown only when filters are active
+- ✅ **Totals Summary:** Real-time calculation with category breakdown
+- ✅ **Data Quality Notices:** Inline alerts for malformed CSV rows
+- ✅ **Expenses Table:** Responsive display of filtered results
+- ✅ **Error Handling:** User-friendly messages when no data matches filters
+- ✅ **Automated Coverage Export:** Runs after test:coverage command
+- ✅ **Comprehensive Testing:** Component tests, integration tests, and E2E smoke tests
+
+### Coverage Statistics
+- **Statements:** 78.03% (target: ≥60%)
+- **Branches:** 83.55% (target: ≥60%)
+- **Functions:** 76.78% (target: ≥60%)
+- **Lines:** 78.03% (target: ≥60%)
 
 ## Project Structure
 
 ```
 apps/ui/
 ├── src/
-│   ├── main.tsx           # Application entry point
-│   ├── App.tsx            # Root component
-│   ├── setupTests.ts      # Vitest test setup
-│   └── App.test.tsx       # Example unit test
+│   ├── main.tsx                     # Application entry point
+│   ├── App.tsx                      # Root component (Phase 3: Expenses)
+│   ├── App.css                      # Global styles with BEM naming
+│   ├── setupTests.ts                # Vitest test setup
+│   ├── App.test.tsx                 # App component tests
+│   ├── components/
+│   │   └── expenses/
+│   │       ├── MonthSelector.tsx    # Month filter dropdown
+│   │       ├── CategorySelector.tsx # Category filter dropdown
+│   │       └── TotalsSummary.tsx    # Totals display with breakdown
+│   ├── lib/
+│   │   └── expenses/
+│   │       └── totals.ts            # Core business logic & data types
+│   ├── pages/
+│   │   └── Expenses.tsx             # Main expenses page with filters
+│   └── tests/
+│       └── expenses.test.tsx        # Comprehensive test suite
 ├── playwright/
 │   ├── tests/
-│   │   └── smoke.spec.js  # E2E smoke tests (@smoke tag)
+│   │   └── expenses.smoke.spec.ts   # E2E smoke tests (@smoke tag)
 │   └── playwright.config.ts
-├── coverage/              # Generated test coverage reports
-├── dist/                  # Production build output
-└── public/                # Static assets
+├── scripts/
+│   └── export-coverage.mjs          # Automated coverage export script
+├── coverage/                        # Generated test coverage reports
+├── dist/                            # Production build output
+└── public/                          # Static assets
 ```
 
 ## Testing Strategy
@@ -69,15 +105,28 @@ apps/ui/
 - Chromium browser only in CI
 - Located in `playwright/tests/`
 
-## Coverage Requirements
+## Coverage Requirements & Export
 
 All UI features must maintain:
-- Statements: ≥50%
-- Branches: ≥50%
-- Functions: ≥50%
-- Lines: ≥50%
+- Statements: ≥60%
+- Branches: ≥60%
+- Functions: ≥60%
+- Lines: ≥60%
 
-Coverage reports are exported to `coverage/unit/index.html` and included in review artifacts.
+### Automated Coverage Export
+
+The `npm run test:coverage` command now automatically:
+1. Runs tests with v8 coverage provider
+2. Generates HTML reports in `coverage/`
+3. Executes `scripts/export-coverage.mjs` to copy reports to `review-artifacts/ui/unit/`
+
+This automation ensures coverage reports are always available for PR reviews without manual intervention. The export script:
+- Creates the target directory structure if needed
+- Cleans previous reports
+- Copies the complete coverage directory
+- Logs success confirmation
+
+**Manual Export:** Run `npm run export:coverage` if you need to re-export existing coverage reports.
 
 ## Tech Stack
 

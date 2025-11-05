@@ -10,7 +10,8 @@
     "lint": "eslint src --ext .ts,.tsx",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
+    "test:coverage": "vitest run --coverage && npm run export:coverage",
+    "export:coverage": "node ./scripts/export-coverage.mjs",
     "test:e2e": "playwright test --config playwright/playwright.config.ts"
   },
   "dependencies": {

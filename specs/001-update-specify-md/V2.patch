@@ -1,521 +1,1007 @@
-diff --git a/README_Week3.md b/README_Week3.md
-index 88dae091731341924927c9fee2e68beb4d38a7dc..ad8b15bf3eee19189c170f4681847687df776e29 100644
---- a/README_Week3.md
-+++ b/README_Week3.md
-@@ -21,50 +21,61 @@ Build **reviewable UIs** for your existing CLIs. Drive the work via **SpecKit**
- > ### How to review me (Week 3 placeholder)
- > - **Release (Packet):** _TBD — link will point to the Week 3 Review Packet once generated._
- > - **GitHub Pages:** _TBD — GitHub Pages deployment will surface the Coverage Index & UI demo._
- > - **Capstone PR:** _TBD — Week 3 capstone PR will summarize coverage tables, screenshots, and links._
- >
- > _Replace the TBD items with live links as soon as Phase 3+ deliverables are available._
- 
- ---
- 
- ## Go/No‑Go Gate (All must be true by **Fri 7 Nov EOD**)
- 
- - **Week 2 finishers** complete and evidenced (see **Day 0** below).
- - **UI for three tools** (Expenses, ToDo, Quote) built in a small React app (Vite or Next OK) with:
-   - Deterministic **unit tests** (Vitest + RTL) and **UI statements coverage ≥ 50% per tool**.
-   - **Playwright** smoke: one happy‑path e2e per tool.
-   - **Input validation** mirrors CLI rules (non‑zero/inline error equivalents).
- - **SpecKit discipline**: `/specify` (problem + rules), `/plan` (design + test plan), `/tasks` (implementation steps) added/updated for each tool.
- - **Reviewability uplift** complete:
-   - **GitHub Release** with the **Review Packet** ZIP (coverage HTML + `review.md` + e2e report).
-   - **GitHub Pages** (or Cloud Run preview) exposing **Coverage Index** and **UI demo link(s)**.
-   - **README** contains a **“How to review me”** box that points to Releases/Pages and lists Week 3 artifacts.
- - **Linear discipline**: issues link to PRs; branches follow `feature/LIN-####-scope`; PR screenshots prove the linking.
- - **Branch protection** on `development` still enforced; **green checks required**.
- - **Capstone PR** merged to `development` including: Review Packet link, **Coverage Table (CLI + UI)**, Pages/preview links, Linear screenshots.
- 
-+### Branch protection & required checks (Week 3)
+diff --git a/apps/ui/playwright/expenses.smoke.spec.ts b/apps/ui/playwright/expenses.smoke.spec.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..a07d23c0e7b62b0e0e49ee67932f75419d492ef9
+--- /dev/null
++++ b/apps/ui/playwright/expenses.smoke.spec.ts
+@@ -0,0 +1,15 @@
++import { test, expect } from '@playwright/test';
 +
-+- **Protected branch**: `development`.
-+- **Conditions to merge**:
-+  - PR must be up to date with `development` (no behind commits).
-+  - Status checks must pass:
-+    - Root CLI pipeline: lint, unit tests, and coverage export.
-+    - UI pipeline: lint, Vitest unit tests with coverage export, and Playwright smoke.
-+  - Reviewers verify evidence links (Release Packet, Pages preview) are accessible before approval.
-+- **Who can override**: Maintainers only; overrides require posting the reason plus the compensating control in the PR discussion.
++test('filters expenses by month and category @smoke', async ({ page }) => {
++  await page.goto('/');
 +
- ---
++  const monthField = page.getByLabel('Month');
++  await monthField.fill('February');
++
++  const categoryField = page.getByLabel('Category');
++  await categoryField.fill('Utilities');
++
++  await expect(page.getByTestId('total')).toHaveText('$90.00');
++  await expect(page.getByRole('cell', { name: 'Utilities' })).toBeVisible();
++  await expect(page.getByRole('cell', { name: '$90.00' })).toBeVisible();
++});
+diff --git a/apps/ui/playwright/playwright.config.ts b/apps/ui/playwright/playwright.config.ts
+index c1ebd0bf34cf826406dbab382a9905f15acfbe44..45131c424eff628f977c42a4f2933ab02a3cc650 100644
+--- a/apps/ui/playwright/playwright.config.ts
++++ b/apps/ui/playwright/playwright.config.ts
+@@ -1,33 +1,33 @@
+ import { defineConfig, devices } from '@playwright/test';
+ import path from 'node:path';
+ import { fileURLToPath } from 'node:url';
  
- ## Day 0 — Mon 3 Nov (Close Week 2 gaps)
+ const __dirname = path.dirname(fileURLToPath(import.meta.url));
  
- **Goal:** Close Week 2 reviewability gaps before touching Week 3 features.
+ export default defineConfig({
+-  testDir: path.join(__dirname, 'tests'),
++  testDir: __dirname,
+   timeout: 60000, // 60 seconds per test
+   reporter: [
+     ['list'],
+     ['html', { outputFolder: path.join(__dirname, 'report'), open: 'never' }]
+   ],
+   use: {
+     baseURL: process.env.UI_BASE_URL ?? 'http://localhost:4173',
+     trace: 'on-first-retry',
+     screenshot: 'only-on-failure',
+     video: 'retain-on-failure',
+     actionTimeout: 10000 // 10 seconds for individual actions
+   },
+   // ✅ Auto-start preview server for tests
+   webServer: {
+     command: 'npm run preview -- --port 4173',
+     port: 4173,
+     cwd: path.join(__dirname, '..'),
+     reuseExistingServer: !process.env.CI,
+     timeout: 120000,
+     stdout: 'pipe',
+     stderr: 'pipe'
+   },
+   projects: [
+     {
+       name: 'chromium',
+diff --git a/apps/ui/playwright/tests/smoke.spec.js b/apps/ui/playwright/tests/smoke.spec.js
+index 14d075dca7750f0e2ae879d536e634ef863a575b..229c6d4c5b9bc26d9b8fcde6881c215d174d09f9 100644
+--- a/apps/ui/playwright/tests/smoke.spec.js
++++ b/apps/ui/playwright/tests/smoke.spec.js
+@@ -1,17 +1,12 @@
+ import { test, expect } from '@playwright/test';
  
- ### Tasks
- - Publish a **Release** containing Week 2 **Review Packet** (`review-artifacts/` ZIP).
- - Update **README** with a **“How to review me”** box (Release link → Coverage Index + list of Week 2 CLIs).
- - Capstone PR evidence: paste **branch‑protection screenshot**, **Linear autolink proof**, **Coverage table**, and **Packet link**.
+-/**
+- * ✅ FIX 1: Real smoke test that verifies the actual UI build
+- * Tests that the scaffold renders correctly with the welcome heading
+- */
+-test('UI scaffold renders welcome heading @smoke', async ({ page }) => {
++test('expenses explorer renders baseline view @smoke', async ({ page }) => {
+   await page.goto('/');
  
- ### Evidence to capture
- - Screenshot of the Release showing the Packet asset.
- - README diff snippet with the new review box.
- - PR body screenshots (branch protection, Linear link) + Coverage table rendered.
+-  // Verify the main heading is visible
+-  const heading = page.getByTestId('welcome-title');
++  const heading = page.getByTestId('expenses-heading');
+   await expect(heading).toBeVisible();
+-  await expect(heading).toHaveText('Training Raymond UI');
++  await expect(heading).toHaveText(/expenses explorer/i);
  
- ---
+-  // Verify content loaded
+-  await expect(page.getByText(/Foundations for the Expenses, ToDo, and Quote experiences/i)).toBeVisible();
++  await expect(page.getByTestId('total')).toHaveText('$325.50');
++  await expect(page.getByRole('table')).toBeVisible();
+ });
+diff --git a/apps/ui/src/App.css b/apps/ui/src/App.css
+index d5a543f572fd8802ac502a5d6c13b32e94412a9b..f9d4d050b7b68f348d86acdd27104c6f455fa2b5 100644
+--- a/apps/ui/src/App.css
++++ b/apps/ui/src/App.css
+@@ -1,24 +1,185 @@
+-.App {
+-  text-align: center;
+-  min-height: 100vh;
++:root {
++  color-scheme: light;
++  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
++  background-color: #f5f7fb;
++  color: #1f2933;
++}
++
++body {
++  margin: 0;
++  background-color: inherit;
++}
++
++.expenses-page {
++  margin: 0 auto;
++  max-width: 960px;
++  padding: 3rem 1.5rem 4rem;
++  display: flex;
++  flex-direction: column;
++  gap: 1.5rem;
++}
++
++.expenses-header h1 {
++  margin: 0 0 0.5rem;
++  font-size: clamp(1.75rem, 2.4vw, 2.5rem);
++  font-weight: 700;
++}
++
++.expenses-header p {
++  margin: 0;
++  font-size: 1rem;
++  color: #475569;
++}
++
++.expenses-controls {
++  display: grid;
++  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
++  gap: 1rem;
++  align-items: flex-end;
++}
++
++.field {
+   display: flex;
+-  align-items: center;
+-  justify-content: center;
+-  background: radial-gradient(circle at top, #f7f9fc, #e1e7f0);
++  flex-direction: column;
++  gap: 0.5rem;
++}
++
++.field label {
++  font-weight: 600;
+   color: #1f2933;
+-  padding: 2rem;
+ }
  
- ## Daily Plan & Checklists
+-.App-header {
+-  max-width: 560px;
++.field input {
++  border: 1px solid #cbd5f5;
++  border-radius: 0.5rem;
++  padding: 0.75rem;
++  font-size: 1rem;
++  transition: border-color 0.2s ease, box-shadow 0.2s ease;
++}
++
++.field input:focus {
++  outline: none;
++  border-color: #4f46e5;
++  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
++}
++
++.field-error {
++  margin: 0;
++  color: #b91c1c;
++  font-size: 0.875rem;
++}
++
++.notice {
++  border-radius: 0.75rem;
++  padding: 1rem 1.25rem;
++  font-size: 0.95rem;
++}
++
++.notice-warning {
++  background-color: #fef3c7;
++  color: #92400e;
++}
++
++.notice-error {
++  background-color: #fee2e2;
++  color: #991b1b;
++}
++
++.notice-muted {
++  background-color: #e2e8f0;
++  color: #334155;
++}
++
++.expenses-results {
++  display: flex;
++  flex-direction: column;
++  gap: 2rem;
++}
++
++.totals {
++  background: linear-gradient(135deg, #4f46e5, #4338ca);
++  border-radius: 1rem;
++  color: #f8fafc;
++  padding: 1.5rem;
++  box-shadow: 0 12px 24px rgba(79, 70, 229, 0.18);
++}
++
++.totals h2 {
++  margin: 0 0 0.5rem;
++  font-size: 1.25rem;
++  font-weight: 600;
++}
++
++.totals-total {
++  margin: 0 0 1rem;
++  font-size: clamp(2rem, 3vw, 2.75rem);
++  font-weight: 700;
++}
++
++.totals-list {
++  list-style: none;
++  margin: 0;
++  padding: 0;
++  display: flex;
++  flex-direction: column;
++  gap: 0.5rem;
++}
++
++.totals-item {
++  display: flex;
++  justify-content: space-between;
++  gap: 1rem;
++  font-size: 1rem;
++}
++
++.totals-category {
++  font-weight: 500;
++}
++
++.totals-amount {
++  font-variant-numeric: tabular-nums;
++}
++
++.expenses-table {
++  width: 100%;
++  border-collapse: collapse;
++  background-color: #ffffff;
++  border-radius: 1rem;
++  overflow: hidden;
++  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
++}
++
++.expenses-table th,
++.expenses-table td {
++  padding: 0.85rem 1.1rem;
++  text-align: left;
++  font-size: 0.95rem;
++}
++
++.expenses-table thead {
++  background-color: #f1f5f9;
++  color: #0f172a;
++  text-transform: uppercase;
++  letter-spacing: 0.04em;
++  font-size: 0.85rem;
++}
++
++.expenses-table tbody tr:nth-of-type(even) {
++  background-color: #f8fafc;
+ }
  
- ### **Day 1 — Mon 3 Nov: SpecKit & UI Foundations**
+-.App-header h1 {
+-  font-size: 2.5rem;
+-  margin-bottom: 1rem;
++.align-right {
++  text-align: right;
+ }
  
- **Goals:** Lock the plan before code; scaffold the UI project; wire CI for tests/Pages.
+-.App-header p {
+-  font-size: 1.1rem;
+-  line-height: 1.6;
++.visually-hidden {
++  position: absolute;
++  width: 1px;
++  height: 1px;
++  padding: 0;
++  margin: -1px;
++  overflow: hidden;
++  clip: rect(0, 0, 0, 0);
++  white-space: nowrap;
++  border: 0;
+ }
+diff --git a/apps/ui/src/App.test.tsx b/apps/ui/src/App.test.tsx
+index b7e63340c32681cd9bd8d65a020e5209b14a0100..8a8ba5b64d661c6fc26d2d9d76ee174d38e51f7d 100644
+--- a/apps/ui/src/App.test.tsx
++++ b/apps/ui/src/App.test.tsx
+@@ -1,9 +1,9 @@
+ import { render, screen } from '@testing-library/react';
+ import App from './App';
  
- **Tasks**
-diff --git a/apps/ui/src/components/expenses/ExpensesShell.tsx b/apps/ui/src/components/expenses/ExpensesShell.tsx
+ describe('App', () => {
+-  it('renders the welcome headline', () => {
++  it('renders the expenses explorer heading', () => {
+     render(<App />);
+-    expect(screen.getByTestId('welcome-title')).toHaveTextContent('Training Raymond UI');
++    expect(screen.getByTestId('expenses-heading')).toHaveTextContent(/expenses explorer/i);
+   });
+ });
+diff --git a/apps/ui/src/App.tsx b/apps/ui/src/App.tsx
+index eaf402438a3879a20b4e6334013fdb326c62baa7..3071b041e16a90a2483aac070a20c7290bfb6746 100644
+--- a/apps/ui/src/App.tsx
++++ b/apps/ui/src/App.tsx
+@@ -1,17 +1,8 @@
+ import './App.css';
++import Expenses from './pages/Expenses';
+ 
+ function App(): JSX.Element {
+-  return (
+-    <div className="App" role="main">
+-      <header className="App-header">
+-        <h1 data-testid="welcome-title">Training Raymond UI</h1>
+-        <p>
+-          Week 3 UI workspace is ready. Replace this placeholder with the Expenses, ToDo, and Quote
+-          experiences as you implement later phases.
+-        </p>
+-      </header>
+-    </div>
+-  );
++  return <Expenses />;
+ }
+ 
+ export default App;
+diff --git a/apps/ui/src/components/expenses/CategorySelector.tsx b/apps/ui/src/components/expenses/CategorySelector.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..754e168d19484a47211e7cd49c04a52ddd30d74d
+index 0000000000000000000000000000000000000000..0c3ebf7b5e4d545367343e10ac9fc6fdb800110e
 --- /dev/null
-+++ b/apps/ui/src/components/expenses/ExpensesShell.tsx
-@@ -0,0 +1,7 @@
-+export function ExpensesShell(): JSX.Element {
++++ b/apps/ui/src/components/expenses/CategorySelector.tsx
+@@ -0,0 +1,37 @@
++interface CategorySelectorProps {
++  value: string;
++  options: string[];
++  onChange: (value: string) => void;
++  error?: string;
++}
++
++const CATEGORY_INPUT_ID = 'expenses-category-input';
++const CATEGORY_DATALIST_ID = 'expenses-category-options';
++
++function CategorySelector({ value, options, onChange, error }: CategorySelectorProps): JSX.Element {
 +  return (
-+    <div aria-live="polite" data-testid="expenses-shell">
-+      <p>Expenses workspace coming soon.</p>
++    <div className="field">
++      <label htmlFor={CATEGORY_INPUT_ID}>Category</label>
++      <input
++        id={CATEGORY_INPUT_ID}
++        list={CATEGORY_DATALIST_ID}
++        value={value}
++        onChange={(event) => onChange(event.target.value)}
++        placeholder="All categories"
++        aria-describedby={error ? `${CATEGORY_INPUT_ID}-error` : undefined}
++      />
++      <datalist id={CATEGORY_DATALIST_ID}>
++        {options.map((option) => (
++          <option key={option} value={option} />
++        ))}
++      </datalist>
++      {error ? (
++        <p id={`${CATEGORY_INPUT_ID}-error`} role="alert" className="field-error">
++          {error}
++        </p>
++      ) : null}
 +    </div>
 +  );
 +}
-diff --git a/apps/ui/src/components/expenses/index.ts b/apps/ui/src/components/expenses/index.ts
++
++export default CategorySelector;
+diff --git a/apps/ui/src/components/expenses/ExpensesTable.tsx b/apps/ui/src/components/expenses/ExpensesTable.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..98473f408f771342b55ccfc48c3869c21f3cc0ef
+index 0000000000000000000000000000000000000000..421139fe74ff0bacb8fbb063ef7df8a9fc6c1641
 --- /dev/null
-+++ b/apps/ui/src/components/expenses/index.ts
-@@ -0,0 +1 @@
-+export { ExpensesShell } from './ExpensesShell.js';
-diff --git a/apps/ui/src/components/index.ts b/apps/ui/src/components/index.ts
-new file mode 100644
-index 0000000000000000000000000000000000000000..959219e3953586da56fb0fb5309c7a21d9f116cc
---- /dev/null
-+++ b/apps/ui/src/components/index.ts
-@@ -0,0 +1,3 @@
-+export * from './expenses/index.js';
-+export * from './todo/index.js';
-+export * from './quote/index.js';
-diff --git a/apps/ui/src/components/quote/QuoteShell.tsx b/apps/ui/src/components/quote/QuoteShell.tsx
-new file mode 100644
-index 0000000000000000000000000000000000000000..4aab92e277f25e0898293e48e6047563ba124ca9
---- /dev/null
-+++ b/apps/ui/src/components/quote/QuoteShell.tsx
-@@ -0,0 +1,7 @@
-+export function QuoteShell(): JSX.Element {
++++ b/apps/ui/src/components/expenses/ExpensesTable.tsx
+@@ -0,0 +1,35 @@
++import { formatCurrency, monthLabelFromIndex, type ExpenseRecord } from '../../lib/expenses/totals';
++
++interface ExpensesTableProps {
++  records: ExpenseRecord[];
++}
++
++function ExpensesTable({ records }: ExpensesTableProps): JSX.Element {
 +  return (
-+    <div aria-live="polite" data-testid="quote-shell">
-+      <p>Quote workspace coming soon.</p>
++    <table className="expenses-table">
++      <caption className="visually-hidden">Expense entries matching the selected filters</caption>
++      <thead>
++        <tr>
++          <th scope="col">Date</th>
++          <th scope="col">Month</th>
++          <th scope="col">Category</th>
++          <th scope="col" className="align-right">
++            Amount
++          </th>
++        </tr>
++      </thead>
++      <tbody>
++        {records.map((record) => (
++          <tr key={record.id}>
++            <td>{record.isoDate}</td>
++            <td>{monthLabelFromIndex(record.monthIndex)}</td>
++            <td>{record.category}</td>
++            <td className="align-right">{formatCurrency(record.amount)}</td>
++          </tr>
++        ))}
++      </tbody>
++    </table>
++  );
++}
++
++export default ExpensesTable;
+diff --git a/apps/ui/src/components/expenses/MonthSelector.tsx b/apps/ui/src/components/expenses/MonthSelector.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..5a7a743e1528f61b96634bb09b26aa2311d2edef
+--- /dev/null
++++ b/apps/ui/src/components/expenses/MonthSelector.tsx
+@@ -0,0 +1,39 @@
++import type { MonthOption } from '../../lib/expenses/totals';
++
++interface MonthSelectorProps {
++  value: string;
++  options: MonthOption[];
++  onChange: (value: string) => void;
++  error?: string;
++}
++
++const MONTH_INPUT_ID = 'expenses-month-input';
++const MONTH_DATALIST_ID = 'expenses-month-options';
++
++function MonthSelector({ value, options, onChange, error }: MonthSelectorProps): JSX.Element {
++  return (
++    <div className="field">
++      <label htmlFor={MONTH_INPUT_ID}>Month</label>
++      <input
++        id={MONTH_INPUT_ID}
++        list={MONTH_DATALIST_ID}
++        value={value}
++        onChange={(event) => onChange(event.target.value)}
++        placeholder="All months"
++        aria-describedby={error ? `${MONTH_INPUT_ID}-error` : undefined}
++      />
++      <datalist id={MONTH_DATALIST_ID}>
++        {options.map((option) => (
++          <option key={option.value} value={option.label} />
++        ))}
++      </datalist>
++      {error ? (
++        <p id={`${MONTH_INPUT_ID}-error`} role="alert" className="field-error">
++          {error}
++        </p>
++      ) : null}
 +    </div>
 +  );
 +}
-diff --git a/apps/ui/src/components/quote/index.ts b/apps/ui/src/components/quote/index.ts
++
++export default MonthSelector;
+diff --git a/apps/ui/src/components/expenses/TotalsSummary.tsx b/apps/ui/src/components/expenses/TotalsSummary.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..2ff3e5feca0a7695ee8e070b5aa0f28223d9e136
+index 0000000000000000000000000000000000000000..89304744ee5aaff690e56a5ac27719c1e71935ef
 --- /dev/null
-+++ b/apps/ui/src/components/quote/index.ts
-@@ -0,0 +1 @@
-+export { QuoteShell } from './QuoteShell.js';
-diff --git a/apps/ui/src/components/todo/ToDoShell.tsx b/apps/ui/src/components/todo/ToDoShell.tsx
-new file mode 100644
-index 0000000000000000000000000000000000000000..871f75908373b86470b1466b92b81244d96137e1
---- /dev/null
-+++ b/apps/ui/src/components/todo/ToDoShell.tsx
-@@ -0,0 +1,7 @@
-+export function ToDoShell(): JSX.Element {
++++ b/apps/ui/src/components/expenses/TotalsSummary.tsx
+@@ -0,0 +1,27 @@
++import { formatCurrency, type ExpenseSummaryEntry } from '../../lib/expenses/totals';
++
++interface TotalsSummaryProps {
++  total: number;
++  totalsByCategory: ExpenseSummaryEntry[];
++}
++
++function TotalsSummary({ total, totalsByCategory }: TotalsSummaryProps): JSX.Element {
 +  return (
-+    <div aria-live="polite" data-testid="todo-shell">
-+      <p>ToDo workspace coming soon.</p>
-+    </div>
++    <section aria-labelledby="expenses-totals-heading" className="totals">
++      <h2 id="expenses-totals-heading">Totals</h2>
++      <p data-testid="total" className="totals-total" aria-live="polite">
++        {formatCurrency(total)}
++      </p>
++      <ul data-testid="category-totals" className="totals-list">
++        {totalsByCategory.map((entry) => (
++          <li key={entry.category} className="totals-item">
++            <span className="totals-category">{entry.category}</span>
++            <span className="totals-amount">{formatCurrency(entry.amount)}</span>
++          </li>
++        ))}
++      </ul>
++    </section>
 +  );
 +}
-diff --git a/apps/ui/src/components/todo/index.ts b/apps/ui/src/components/todo/index.ts
++
++export default TotalsSummary;
+diff --git a/apps/ui/src/lib/expenses/totals.ts b/apps/ui/src/lib/expenses/totals.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..3b6622aa72e85ce4928e1a03d577f4b08cef3f78
+index 0000000000000000000000000000000000000000..4e514b6a095ff5f99089cadeb5bd5719849987be
 --- /dev/null
-+++ b/apps/ui/src/components/todo/index.ts
-@@ -0,0 +1 @@
-+export { ToDoShell } from './ToDoShell.js';
++++ b/apps/ui/src/lib/expenses/totals.ts
+@@ -0,0 +1,270 @@
++export interface ExpenseRecord {
++  id: string;
++  isoDate: string;
++  monthIndex: number;
++  category: string;
++  amount: number;
++  currency: string;
++}
++
++export interface ExpenseRowError {
++  rowNumber: number;
++  message: string;
++  raw: string;
++}
++
++export interface ExpenseDataset {
++  records: ExpenseRecord[];
++  errors: ExpenseRowError[];
++  monthOptions: MonthOption[];
++  categoryOptions: string[];
++}
++
++export interface MonthOption {
++  value: string;
++  label: string;
++}
++
++export interface ExpenseFilters {
++  month?: string | null;
++  category?: string | null;
++}
++
++export interface ExpenseSummaryEntry {
++  category: string;
++  amount: number;
++}
++
++export interface ExpenseSummary {
++  total: number;
++  totalsByCategory: ExpenseSummaryEntry[];
++}
++
++export type ExpenseComputationStatus = 'ok' | 'empty' | 'invalid';
++
++export interface ExpenseComputationResult {
++  status: ExpenseComputationStatus;
++  entries: ExpenseRecord[];
++  summary: ExpenseSummary;
++  validation: Partial<Record<'month' | 'category', string>>;
++}
++
++const RAW_EXPENSES = `date,category,amount,currency
++2025-01-05,Groceries,54.20,USD
++2025-01-15,Transport,18.30,USD
++2025-02-01,Groceries,42.10,USD
++2025-02-07,Utilities,90.00,USD
++2025-02-14,Travel,,USD
++2025-03-12,Entertainment,27.50,USD
++2025-03-25,Groceries,38.40,USD
++2025-03-29,Transport,55.00,USD
++`;
++
++const MONTH_METADATA: Array<{ index: number; label: string; aliases: string[] }> = [
++  { index: 1, label: 'January', aliases: ['jan', 'january'] },
++  { index: 2, label: 'February', aliases: ['feb', 'february'] },
++  { index: 3, label: 'March', aliases: ['mar', 'march'] },
++  { index: 4, label: 'April', aliases: ['apr', 'april'] },
++  { index: 5, label: 'May', aliases: ['may'] },
++  { index: 6, label: 'June', aliases: ['jun', 'june'] },
++  { index: 7, label: 'July', aliases: ['jul', 'july'] },
++  { index: 8, label: 'August', aliases: ['aug', 'august'] },
++  { index: 9, label: 'September', aliases: ['sep', 'sept', 'september'] },
++  { index: 10, label: 'October', aliases: ['oct', 'october'] },
++  { index: 11, label: 'November', aliases: ['nov', 'november'] },
++  { index: 12, label: 'December', aliases: ['dec', 'december'] },
++];
++
++const MONTH_LOOKUP = new Map<string, number>(
++  MONTH_METADATA.flatMap((entry) => [[String(entry.index), entry.index], ...entry.aliases.map((alias) => [alias, entry.index])]),
++);
++
++const CURRENCY_FALLBACK = 'USD';
++
++const TWO_DECIMAL_FORMATTER = new Intl.NumberFormat('en-US', {
++  minimumFractionDigits: 2,
++  maximumFractionDigits: 2,
++});
++
++let datasetCache: ExpenseDataset | null = null;
++
++export function loadExpenseDataset(): ExpenseDataset {
++  if (datasetCache) {
++    return datasetCache;
++  }
++
++  const { records, errors } = parseCsvWithErrors(RAW_EXPENSES);
++  const monthOptions = deriveMonthOptions(records);
++  const categoryOptions = deriveCategoryOptions(records);
++
++  datasetCache = { records, errors, monthOptions, categoryOptions };
++  return datasetCache;
++}
++
++function parseCsvWithErrors(raw: string): { records: ExpenseRecord[]; errors: ExpenseRowError[] } {
++  const rows = raw
++    .split(/\r?\n/)
++    .map((line) => line.trim())
++    .filter((line) => line.length > 0);
++
++  if (rows.length === 0) {
++    return { records: [], errors: [] };
++  }
++
++  const [firstLine] = rows;
++  const hasHeader = /date/i.test(firstLine) && /category/i.test(firstLine) && /amount/i.test(firstLine);
++  const startIndex = hasHeader ? 1 : 0;
++
++  const records: ExpenseRecord[] = [];
++  const errors: ExpenseRowError[] = [];
++
++  for (let index = startIndex; index < rows.length; index += 1) {
++    const rawRow = rows[index];
++    const rowNumber = index + 1; // 1-based index for readability
++    const columns = rawRow.split(',').map((column) => column.trim());
++    const [date, category, amount, currency = CURRENCY_FALLBACK] = columns;
++
++    if (!date) {
++      errors.push({ rowNumber, raw: rawRow, message: 'Date is required.' });
++      continue;
++    }
++
++    const parsedDate = new Date(date);
++    if (Number.isNaN(parsedDate.getTime())) {
++      errors.push({ rowNumber, raw: rawRow, message: 'Invalid date value.' });
++      continue;
++    }
++
++    if (!category) {
++      errors.push({ rowNumber, raw: rawRow, message: 'Category is required.' });
++      continue;
++    }
++
++    if (!amount) {
++      errors.push({ rowNumber, raw: rawRow, message: 'Amount is required.' });
++      continue;
++    }
++
++    const numericAmount = Number.parseFloat(amount);
++    if (!Number.isFinite(numericAmount)) {
++      errors.push({ rowNumber, raw: rawRow, message: 'Amount must be numeric.' });
++      continue;
++    }
++
++    const monthIndex = parsedDate.getUTCMonth() + 1;
++    records.push({
++      id: `${rowNumber}`,
++      isoDate: parsedDate.toISOString().slice(0, 10),
++      monthIndex,
++      category,
++      amount: numericAmount,
++      currency: currency || CURRENCY_FALLBACK,
++    });
++  }
++
++  return { records, errors };
++}
++
++function deriveMonthOptions(records: ExpenseRecord[]): MonthOption[] {
++  const uniqueMonths = new Set<number>();
++  for (const record of records) {
++    uniqueMonths.add(record.monthIndex);
++  }
++
++  return Array.from(uniqueMonths)
++    .sort((a, b) => a - b)
++    .map((monthIndex) => ({ value: MONTH_METADATA[monthIndex - 1]?.label ?? String(monthIndex), label: MONTH_METADATA[monthIndex - 1]?.label ?? String(monthIndex) }));
++}
++
++function deriveCategoryOptions(records: ExpenseRecord[]): string[] {
++  const uniqueCategories = new Set<string>();
++  for (const record of records) {
++    uniqueCategories.add(record.category);
++  }
++  return Array.from(uniqueCategories).sort((a, b) => a.localeCompare(b));
++}
++
++function normalizeMonthInput(rawMonth: string): number {
++  const trimmed = rawMonth.trim();
++  if (!trimmed) {
++    throw new Error('Month cannot be empty.');
++  }
++
++  const candidate = trimmed.toLowerCase();
++  if (MONTH_LOOKUP.has(candidate)) {
++    return MONTH_LOOKUP.get(candidate)!;
++  }
++
++  if (/^\d+$/.test(candidate)) {
++    const value = Number.parseInt(candidate, 10);
++    if (value >= 1 && value <= 12) {
++      return value;
++    }
++  }
++
++  throw new Error(`Unknown month "${rawMonth}". Use Jan–Dec or 1–12.`);
++}
++
++function findMatchingCategory(records: ExpenseRecord[], rawCategory: string): string | null {
++  const normalized = rawCategory.trim().toLowerCase();
++  if (!normalized) {
++    return null;
++  }
++  const match = records.find((record) => record.category.toLowerCase() === normalized);
++  return match ? match.category : null;
++}
++
++function summarizeRecords(records: ExpenseRecord[]): ExpenseSummary {
++  const total = records.reduce((sum, record) => sum + record.amount, 0);
++  const totalsByCategory = records.reduce<ExpenseSummaryEntry[]>((acc, record) => {
++    const existing = acc.find((entry) => entry.category.toLowerCase() === record.category.toLowerCase());
++    if (existing) {
++      existing.amount += record.amount;
++      return acc;
++    }
++    return [...acc, { category: record.category, amount: record.amount }];
++  }, []);
++  return { total, totalsByCategory };
++}
++
++function emptySummary(): ExpenseSummary {
++  return { total: 0, totalsByCategory: [] };
++}
++
++export function evaluateExpenses(records: ExpenseRecord[], filters: ExpenseFilters = {}): ExpenseComputationResult {
++  const validation: ExpenseComputationResult['validation'] = {};
++  let filteredRecords = [...records];
++
++  if (filters.month && filters.month.trim().length > 0) {
++    try {
++      const monthIndex = normalizeMonthInput(filters.month);
++      filteredRecords = filteredRecords.filter((record) => record.monthIndex === monthIndex);
++    } catch (error) {
++      validation.month = error instanceof Error ? error.message : 'Unknown month.';
++      return { status: 'invalid', entries: [], summary: emptySummary(), validation };
++    }
++  }
++
++  if (filters.category && filters.category.trim().length > 0) {
++    const match = findMatchingCategory(records, filters.category);
++    if (!match) {
++      validation.category = `Unknown category "${filters.category}".`;
++      return { status: 'invalid', entries: [], summary: emptySummary(), validation };
++    }
++    filteredRecords = filteredRecords.filter((record) => record.category.toLowerCase() === match.toLowerCase());
++  }
++
++  if (filteredRecords.length === 0) {
++    return { status: 'empty', entries: [], summary: emptySummary(), validation };
++  }
++
++  return { status: 'ok', entries: filteredRecords, summary: summarizeRecords(filteredRecords), validation };
++}
++
++export function formatCurrency(value: number): string {
++  return `$${TWO_DECIMAL_FORMATTER.format(value)}`;
++}
++
++export function monthLabelFromIndex(monthIndex: number): string {
++  return MONTH_METADATA[monthIndex - 1]?.label ?? String(monthIndex);
++}
 diff --git a/apps/ui/src/pages/Expenses.tsx b/apps/ui/src/pages/Expenses.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..0b9af6aeeb8eb3778c52d845d3c6cad94e4123fd
+index 0000000000000000000000000000000000000000..391c4506ba8e788aa8bd0819a06a4875b3a39bf7
 --- /dev/null
 +++ b/apps/ui/src/pages/Expenses.tsx
-@@ -0,0 +1,10 @@
-+import { ExpensesShell } from '../components/expenses/index.js';
+@@ -0,0 +1,90 @@
++import { useMemo, useState } from 'react';
++import CategorySelector from '../components/expenses/CategorySelector';
++import ExpensesTable from '../components/expenses/ExpensesTable';
++import MonthSelector from '../components/expenses/MonthSelector';
++import TotalsSummary from '../components/expenses/TotalsSummary';
++import {
++  evaluateExpenses,
++  loadExpenseDataset,
++  type ExpenseComputationResult,
++  type ExpenseFilters,
++} from '../lib/expenses/totals';
 +
-+export function ExpensesPage(): JSX.Element {
-+  return (
-+    <section aria-labelledby="expenses-title" data-testid="expenses-page">
-+      <h1 id="expenses-title">Expenses</h1>
-+      <ExpensesShell />
-+    </section>
++function Expenses(): JSX.Element {
++  const dataset = useMemo(() => loadExpenseDataset(), []);
++  const [filters, setFilters] = useState<ExpenseFilters>({ month: '', category: '' });
++
++  const result: ExpenseComputationResult = useMemo(
++    () =>
++      evaluateExpenses(dataset.records, {
++        month: filters.month ?? '',
++        category: filters.category ?? '',
++      }),
++    [dataset.records, filters.category, filters.month],
 +  );
-+}
-diff --git a/apps/ui/src/pages/Quote.tsx b/apps/ui/src/pages/Quote.tsx
-new file mode 100644
-index 0000000000000000000000000000000000000000..f9bf10adf60947e2f30e65fd141be7fe8751817f
---- /dev/null
-+++ b/apps/ui/src/pages/Quote.tsx
-@@ -0,0 +1,10 @@
-+import { QuoteShell } from '../components/quote/index.js';
 +
-+export function QuotePage(): JSX.Element {
-+  return (
-+    <section aria-labelledby="quote-title" data-testid="quote-page">
-+      <h1 id="quote-title">Quote</h1>
-+      <QuoteShell />
-+    </section>
-+  );
-+}
-diff --git a/apps/ui/src/pages/ToDo.tsx b/apps/ui/src/pages/ToDo.tsx
-new file mode 100644
-index 0000000000000000000000000000000000000000..040026f4bc0296ca4f7bf4739fdd857db6169270
---- /dev/null
-+++ b/apps/ui/src/pages/ToDo.tsx
-@@ -0,0 +1,10 @@
-+import { ToDoShell } from '../components/todo/index.js';
++  const malformedSummary = useMemo(() => {
++    if (dataset.errors.length === 0) {
++      return null;
++    }
++    const [first] = dataset.errors;
++    if (dataset.errors.length === 1) {
++      return `Malformed row ignored (row ${first.rowNumber}: ${first.message})`;
++    }
++    return `${dataset.errors.length} malformed rows ignored. First issue: row ${first.rowNumber} – ${first.message}`;
++  }, [dataset.errors]);
 +
-+export function ToDoPage(): JSX.Element {
-+  return (
-+    <section aria-labelledby="todo-title" data-testid="todo-page">
-+      <h1 id="todo-title">ToDo</h1>
-+      <ToDoShell />
-+    </section>
-+  );
-+}
-diff --git a/apps/ui/src/pages/index.ts b/apps/ui/src/pages/index.ts
-new file mode 100644
-index 0000000000000000000000000000000000000000..d7aeb8a31c46e354d1a858f5e3374a54532f3105
---- /dev/null
-+++ b/apps/ui/src/pages/index.ts
-@@ -0,0 +1,3 @@
-+export { ExpensesPage } from './Expenses.js';
-+export { ToDoPage } from './ToDo.js';
-+export { QuotePage } from './Quote.js';
-diff --git a/apps/ui/src/setupTests.ts b/apps/ui/src/setupTests.ts
-index bb02c60cd055452852c33afe9078e35455935fb0..5870716e8842ca31cb4f1fb5ee9bcf6efb2fd25e 100644
---- a/apps/ui/src/setupTests.ts
-+++ b/apps/ui/src/setupTests.ts
-@@ -1 +1 @@
--import '@testing-library/jest-dom/vitest';
-+import './testing-library-jest-dom.js';
-diff --git a/apps/ui/src/testing-library-jest-dom.ts b/apps/ui/src/testing-library-jest-dom.ts
-new file mode 100644
-index 0000000000000000000000000000000000000000..d61f205d4106b290609ac92147237c9f3ada0a65
---- /dev/null
-+++ b/apps/ui/src/testing-library-jest-dom.ts
-@@ -0,0 +1,54 @@
-+import { expect } from 'vitest';
-+
-+type MatcherResult = {
-+  pass: boolean;
-+  message: () => string;
-+};
-+
-+type MaybeElement = Node | null | undefined;
-+
-+function ensureNode(value: MaybeElement, matcherName: string): asserts value is Node {
-+  if (!value) {
-+    throw new Error(`${matcherName} received a nullish value.`);
-+  }
-+
-+  if (typeof Node === 'undefined') {
-+    throw new Error(`${matcherName} requires a DOM-like environment.`);
-+  }
-+
-+  if (!(value instanceof Node)) {
-+    throw new Error(`${matcherName} expects a DOM Node.`);
-+  }
-+}
-+
-+function toBeInTheDocument(this: unknown, received: MaybeElement): MatcherResult {
-+  ensureNode(received, 'toBeInTheDocument');
-+  const ownerDocument = received.ownerDocument ?? null;
-+  const pass = Boolean(ownerDocument?.documentElement?.contains(received));
-+  return {
-+    pass,
-+    message: () =>
-+      pass
-+        ? 'Expected element not to be present in the document.'
-+        : 'Expected element to be present in the document, but it was not found.',
++  const updateMonth = (value: string) => {
++    setFilters((previous) => ({ ...previous, month: value }));
 +  };
-+}
 +
-+function toHaveTextContent(this: unknown, received: MaybeElement, expected: string | RegExp): MatcherResult {
-+  ensureNode(received, 'toHaveTextContent');
-+  const actual = received.textContent ?? '';
-+  const pass =
-+    typeof expected === 'string'
-+      ? actual.includes(expected)
-+      : expected.test(actual);
-+
-+  return {
-+    pass,
-+    message: () =>
-+      pass
-+        ? `Expected element text not to match ${expected}.`
-+        : `Expected element text to match ${expected}, but received "${actual}".`,
++  const updateCategory = (value: string) => {
++    setFilters((previous) => ({ ...previous, category: value }));
 +  };
++
++  return (
++    <section className="expenses-page" role="main">
++      <header className="expenses-header">
++        <h1 data-testid="expenses-heading">Expenses explorer</h1>
++        <p>Filter by month and category to mirror the CLI experience in a friendly UI.</p>
++      </header>
++
++      <div className="expenses-controls" role="search">
++        <MonthSelector value={filters.month ?? ''} options={dataset.monthOptions} onChange={updateMonth} error={result.validation.month} />
++        <CategorySelector
++          value={filters.category ?? ''}
++          options={dataset.categoryOptions}
++          onChange={updateCategory}
++          error={result.validation.category}
++        />
++      </div>
++
++      {malformedSummary ? (
++        <div className="notice notice-warning" role="status">
++          {malformedSummary}
++        </div>
++      ) : null}
++
++      {result.status === 'invalid' ? (
++        <p className="notice notice-error" role="alert">
++          Please resolve the highlighted filters to view totals.
++        </p>
++      ) : null}
++
++      {result.status === 'empty' ? (
++        <p className="notice notice-muted" role="status">
++          No expenses found for the selected filters.
++        </p>
++      ) : null}
++
++      {result.status === 'ok' ? (
++        <div className="expenses-results">
++          <TotalsSummary total={result.summary.total} totalsByCategory={result.summary.totalsByCategory} />
++          <ExpensesTable records={result.entries} />
++        </div>
++      ) : null}
++    </section>
++  );
 +}
 +
-+expect.extend({ toBeInTheDocument, toHaveTextContent });
-diff --git a/apps/ui/src/tests/helpers.test.ts b/apps/ui/src/tests/helpers.test.ts
++export default Expenses;
+diff --git a/apps/ui/src/tests/expenses.test.tsx b/apps/ui/src/tests/expenses.test.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..2140dad467c327034b9010f75c0fb15fc8b1ff4e
+index 0000000000000000000000000000000000000000..1c11f1efc73d57274229002bc159288bfa6d22ca
 --- /dev/null
-+++ b/apps/ui/src/tests/helpers.test.ts
-@@ -0,0 +1,70 @@
-+import { describe, expect, it } from 'vitest';
-+import { createSeededRandom, createTestClock } from './helpers.js';
++++ b/apps/ui/src/tests/expenses.test.tsx
+@@ -0,0 +1,127 @@
++import { render, screen, within } from '@testing-library/react';
++import userEvent from '@testing-library/user-event';
++import Expenses from '../pages/Expenses';
++import {
++  evaluateExpenses,
++  formatCurrency,
++  loadExpenseDataset,
++  type ExpenseFilters,
++} from '../lib/expenses/totals';
 +
-+describe('createSeededRandom', () => {
-+  it('produces deterministic sequences for the same seed', () => {
-+    const generatorA = createSeededRandom(42);
-+    const generatorB = createSeededRandom(42);
++describe('expenses totals logic', () => {
++  const dataset = loadExpenseDataset();
 +
-+    const sequenceA = [generatorA.next(), generatorA.next(), generatorA.next()];
-+    const sequenceB = [generatorB.next(), generatorB.next(), generatorB.next()];
-+
-+    expect(sequenceA).toEqual(sequenceB);
++  it('captures malformed rows for transparency', () => {
++    expect(dataset.errors).not.toHaveLength(0);
++    expect(dataset.errors[0].message.toLowerCase()).toContain('amount');
 +  });
 +
-+  it('supports resetting to the initial seed', () => {
-+    const generator = createSeededRandom('seed');
-+
-+    const firstRun = [generator.nextInt(10), generator.nextInt(10)];
-+    generator.reset();
-+    const secondRun = [generator.nextInt(10), generator.nextInt(10)];
-+
-+    expect(firstRun).toEqual(secondRun);
++  describe.each([
++    { month: 'Jan', expectedTotal: 72.5 },
++    { month: 'February', expectedTotal: 132.1 },
++    { month: 'Mar', expectedTotal: 120.9 },
++  ])('month filtering %#', ({ month, expectedTotal }) => {
++    it(`summarizes totals for ${month}`, () => {
++      const result = evaluateExpenses(dataset.records, { month });
++      expect(result.validation.month).toBeUndefined();
++      expect(result.summary.total).toBeCloseTo(expectedTotal, 2);
++    });
 +  });
 +
-+  it('selects stable items when using pick', () => {
-+    const generator = createSeededRandom(7);
-+    const items = ['alpha', 'beta', 'gamma', 'delta'];
++  describe.each([
++    { category: 'groceries', expectedTotal: 134.7 },
++    { category: 'Transport', expectedTotal: 73.3 },
++    { category: 'ENTERTAINMENT', expectedTotal: 27.5 },
++  ])('category filtering %#', ({ category, expectedTotal }) => {
++    it(`summarizes totals for ${category}`, () => {
++      const result = evaluateExpenses(dataset.records, { category });
++      expect(result.validation.category).toBeUndefined();
++      expect(result.summary.total).toBeCloseTo(expectedTotal, 2);
++    });
++  });
 +
-+    const picked = [
-+      generator.pick(items),
-+      generator.pick(items),
-+      generator.pick(items),
-+    ];
++  it('returns validation error for unknown month', () => {
++    const result = evaluateExpenses(dataset.records, { month: 'Smarch' });
++    expect(result.validation.month).toMatch(/unknown month/i);
++  });
 +
-+    expect(picked).toMatchInlineSnapshot(`
-+      [
-+        "alpha",
-+        "alpha",
-+        "delta",
-+      ]
-+    `);
++  it('returns validation error for unknown category', () => {
++    const result = evaluateExpenses(dataset.records, { category: 'Snacks' });
++    expect(result.validation.category).toMatch(/unknown category/i);
++  });
++
++  it('returns empty result when filters yield no matches', () => {
++    const filters: ExpenseFilters = { month: 'January', category: 'Utilities' };
++    const result = evaluateExpenses(dataset.records, filters);
++    expect(result.entries).toHaveLength(0);
++    expect(result.summary.total).toBe(0);
++    expect(result.status).toBe('empty');
 +  });
 +});
 +
-+describe('createTestClock', () => {
-+  it('starts at the provided instant', () => {
-+    const clock = createTestClock('2025-01-01T00:00:00Z');
-+    expect(clock.now().toISOString()).toBe('2025-01-01T00:00:00.000Z');
++describe('Expenses page', () => {
++  it('renders totals when selecting month and category', async () => {
++    render(<Expenses />);
++    const user = userEvent.setup();
++
++    const monthField = screen.getByLabelText(/month/i);
++    await user.clear(monthField);
++    await user.type(monthField, 'February');
++    await user.tab();
++
++    const categoryField = screen.getByLabelText(/category/i);
++    await user.clear(categoryField);
++    await user.type(categoryField, 'Utilities');
++    await user.tab();
++
++    expect(await screen.findByTestId('total')).toHaveTextContent(formatCurrency(90));
++    const totalsList = await screen.findByTestId('category-totals');
++    expect(within(totalsList).getByText(/Utilities/)).toBeInTheDocument();
 +  });
 +
-+  it('advances deterministically by milliseconds', () => {
-+    const clock = createTestClock('2025-01-01T00:00:00Z');
-+    clock.advanceBy(60_000);
-+    expect(clock.now().toISOString()).toBe('2025-01-01T00:01:00.000Z');
++  it('shows inline error for invalid month input', async () => {
++    render(<Expenses />);
++    const user = userEvent.setup();
++
++    const monthField = screen.getByLabelText(/month/i);
++    await user.clear(monthField);
++    await user.type(monthField, 'Smarch');
++    await user.tab();
++
++    expect(await screen.findByText(/unknown month/i)).toBeInTheDocument();
 +  });
 +
-+  it('sets absolute time using advanceTo', () => {
-+    const clock = createTestClock('2025-01-01T00:00:00Z');
-+    clock.advanceTo('2025-02-01T12:34:56Z');
-+    expect(clock.now().toISOString()).toBe('2025-02-01T12:34:56.000Z');
++  it('shows inline error for invalid category input', async () => {
++    render(<Expenses />);
++    const user = userEvent.setup();
++
++    const categoryField = screen.getByLabelText(/category/i);
++    await user.clear(categoryField);
++    await user.type(categoryField, 'Snacks');
++    await user.tab();
++
++    expect(await screen.findByText(/unknown category/i)).toBeInTheDocument();
 +  });
 +
-+  it('runs callbacks with temporarily fixed time', () => {
-+    const clock = createTestClock('2025-01-01T00:00:00Z');
-+    const result = clock.withFixedNow('2025-12-31T23:59:59Z', () => clock.now().toISOString());
++  it('renders helpful message when no results match filters', async () => {
++    render(<Expenses />);
++    const user = userEvent.setup();
 +
-+    expect(result).toBe('2025-12-31T23:59:59.000Z');
-+    expect(clock.now().toISOString()).toBe('2025-01-01T00:00:00.000Z');
++    const monthField = screen.getByLabelText(/month/i);
++    await user.clear(monthField);
++    await user.type(monthField, 'January');
++    await user.tab();
++
++    const categoryField = screen.getByLabelText(/category/i);
++    await user.clear(categoryField);
++    await user.type(categoryField, 'Utilities');
++    await user.tab();
++
++    expect(await screen.findByText(/no expenses found/i)).toBeInTheDocument();
 +  });
-+});
-diff --git a/apps/ui/src/tests/helpers.ts b/apps/ui/src/tests/helpers.ts
-new file mode 100644
-index 0000000000000000000000000000000000000000..4ca22f06395170b29f48505122b2952547f9241c
---- /dev/null
-+++ b/apps/ui/src/tests/helpers.ts
-@@ -0,0 +1,126 @@
-+export interface SeededRandom {
-+  next(): number;
-+  nextInt(maxExclusive: number): number;
-+  pick<T>(values: readonly T[]): T;
-+  shuffle<T>(values: readonly T[]): T[];
-+  reset(): void;
-+}
 +
-+function toSeedValue(seed: number | string): number {
-+  if (typeof seed === 'number') {
-+    return Math.abs(Math.floor(seed)) || 1;
-+  }
-+
-+  let hash = 0;
-+  for (let index = 0; index < seed.length; index += 1) {
-+    const char = seed.charCodeAt(index);
-+    hash = (hash << 5) - hash + char;
-+    hash |= 0;
-+  }
-+  return Math.abs(hash) || 1;
-+}
-+
-+function createGenerator(seedValue: number): () => number {
-+  let state = seedValue >>> 0;
-+  return () => {
-+    state += 0x6d2b79f5;
-+    let t = state;
-+    t = Math.imul(t ^ (t >>> 15), t | 1);
-+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-+  };
-+}
-+
-+export function createSeededRandom(seed: number | string): SeededRandom {
-+  const initialSeed = toSeedValue(seed);
-+  let generator = createGenerator(initialSeed);
-+
-+  return {
-+    next(): number {
-+      return generator();
-+    },
-+    nextInt(maxExclusive: number): number {
-+      if (!Number.isFinite(maxExclusive) || maxExclusive <= 0) {
-+        throw new Error('maxExclusive must be a positive finite number.');
-+      }
-+      return Math.floor(generator() * maxExclusive);
-+    },
-+    pick<T>(values: readonly T[]): T {
-+      if (values.length === 0) {
-+        throw new Error('Cannot pick from an empty collection.');
-+      }
-+      const index = this.nextInt(values.length);
-+      return values[index];
-+    },
-+    shuffle<T>(values: readonly T[]): T[] {
-+      const mutable = [...values];
-+      for (let index = mutable.length - 1; index > 0; index -= 1) {
-+        const swapIndex = this.nextInt(index + 1);
-+        [mutable[index], mutable[swapIndex]] = [mutable[swapIndex], mutable[index]];
-+      }
-+      return mutable;
-+    },
-+    reset(): void {
-+      generator = createGenerator(initialSeed);
-+    },
-+  };
-+}
-+
-+export interface TestClock {
-+  now(): Date;
-+  advanceBy(milliseconds: number): void;
-+  advanceTo(instant: Date | string | number): void;
-+  withFixedNow<T>(instant: Date | string | number, run: () => T): T;
-+}
-+
-+function toTimestamp(value: Date | string | number): number {
-+  if (value instanceof Date) {
-+    const time = value.getTime();
-+    if (Number.isNaN(time)) {
-+      throw new Error('Invalid Date provided to clock.');
-+    }
-+    return time;
-+  }
-+
-+  if (typeof value === 'number') {
-+    if (!Number.isFinite(value)) {
-+      throw new Error('Timestamp must be finite.');
-+    }
-+    return value;
-+  }
-+
-+  const parsed = new Date(value);
-+  const timestamp = parsed.getTime();
-+  if (Number.isNaN(timestamp)) {
-+    throw new Error('Invalid ISO timestamp provided to clock.');
-+  }
-+  return timestamp;
-+}
-+
-+export function createTestClock(initial: Date | string | number): TestClock {
-+  let current = toTimestamp(initial);
-+
-+  return {
-+    now(): Date {
-+      return new Date(current);
-+    },
-+    advanceBy(milliseconds: number): void {
-+      if (!Number.isFinite(milliseconds)) {
-+        throw new Error('Milliseconds must be a finite number.');
-+      }
-+      current += milliseconds;
-+    },
-+    advanceTo(instant: Date | string | number): void {
-+      current = toTimestamp(instant);
-+    },
-+    withFixedNow<T>(instant: Date | string | number, run: () => T): T {
-+      const previous = current;
-+      current = toTimestamp(instant);
-+      try {
-+        return run();
-+      } finally {
-+        current = previous;
-+      }
-+    },
-+  };
-+}
-diff --git a/apps/ui/vitest.config.ts b/apps/ui/vitest.config.ts
-new file mode 100644
-index 0000000000000000000000000000000000000000..1c7610f6dbec90e633c46f47a22aab8f79e0ce48
---- /dev/null
-+++ b/apps/ui/vitest.config.ts
-@@ -0,0 +1,30 @@
-+import { defineConfig } from 'vitest/config';
-+
-+export default defineConfig({
-+  test: {
-+    globals: true,
-+    environment: 'node',
-+    setupFiles: './src/setupTests.ts',
-+    exclude: ['**/node_modules/**', '**/playwright/**', '**/dist/**'],
-+    coverage: {
-+      provider: 'v8',
-+      reporter: ['text', 'html', 'json-summary'],
-+      reportsDirectory: './coverage/unit',
-+      exclude: [
-+        '**/node_modules/**',
-+        '**/playwright/**',
-+        '**/dist/**',
-+        '**/*.config.*',
-+        '**/.eslintrc.cjs',
-+        '**/setupTests.ts',
-+        '**/*.d.ts',
-+      ],
-+      thresholds: {
-+        statements: 50,
-+        branches: 50,
-+        functions: 50,
-+        lines: 50,
-+      },
-+    },
-+  },
++  it('surfaces malformed row warning to the viewer', async () => {
++    render(<Expenses />);
++    expect(await screen.findByText(/malformed row/i)).toBeInTheDocument();
++  });
 +});
 diff --git a/specs/001-update-specify-md/tasks.md b/specs/001-update-specify-md/tasks.md
-index ae9160667b1cd30479c72aae7cab8d319e1917c2..685757d6d0c0fcbc2dc8b4040c1be46d1c5d8c69 100644
+index ae9160667b1cd30479c72aae7cab8d319e1917c2..79bf3fb3dc786a2a0701ef3c0461ff0424408381 100644
 --- a/specs/001-update-specify-md/tasks.md
 +++ b/specs/001-update-specify-md/tasks.md
-@@ -1,52 +1,52 @@
- # Tasks: Week 3 delivery in 3 days (GitHub Projects)
- 
- Feature: Update specify.md + Week 3 UI delivery • Branch: `001-update-specify-md`
- Spec: `C:\Users\RAYMOND\Desktop\Work Projects\training-raymond\specs\001-update-specify-md\spec.md`
- Plan: `C:\Users\RAYMOND\Desktop\Work Projects\training-raymond\specs\001-update-specify-md\plan.md`
- 
- ---
- 
- ## Phase 1 — Setup (project initialization)
- 
+@@ -11,57 +11,57 @@ Plan: `C:\Users\RAYMOND\Desktop\Work Projects\training-raymond\specs\001-update-
  - [ ] T001 Create UI project folder `apps/ui/` with Vite React scaffold
  - [ ] T002 Add unit test harness (Vitest + React Testing Library) in `apps/ui/`
  - [ ] T003 Add Playwright with one blank smoke test in `apps/ui/playwright/`
@@ -528,16 +1014,11 @@ index ae9160667b1cd30479c72aae7cab8d319e1917c2..685757d6d0c0fcbc2dc8b4040c1be46d
  
  ## Phase 2 — Foundational (blocking prerequisites)
  
--- [ ] T010 Create shared pure logic structure under `src/cli/` for reuse in UI (no code yet)
--- [ ] T011 Define base UI routes/pages placeholders in `apps/ui/src/pages/`
--- [ ] T012 Define base UI components placeholders in `apps/ui/src/components/`
--- [ ] T013 Wire deterministic testing helpers (seeded RNG and injected clock) in `apps/ui/src/tests/helpers.ts`
--- [ ] T014 Ensure branch protection and required checks documented in `README_Week3.md`
-+- [x] T010 Create shared pure logic structure under `src/cli/` for reuse in UI (no code yet)
-+- [x] T011 Define base UI routes/pages placeholders in `apps/ui/src/pages/`
-+- [x] T012 Define base UI components placeholders in `apps/ui/src/components/`
-+- [x] T013 Wire deterministic testing helpers (seeded RNG and injected clock) in `apps/ui/src/tests/helpers.ts`
-+- [x] T014 Ensure branch protection and required checks documented in `README_Week3.md`
+ - [ ] T010 Create shared pure logic structure under `src/cli/` for reuse in UI (no code yet)
+ - [ ] T011 Define base UI routes/pages placeholders in `apps/ui/src/pages/`
+ - [ ] T012 Define base UI components placeholders in `apps/ui/src/components/`
+ - [ ] T013 Wire deterministic testing helpers (seeded RNG and injected clock) in `apps/ui/src/tests/helpers.ts`
+ - [ ] T014 Ensure branch protection and required checks documented in `README_Week3.md`
  
  ---
  
@@ -546,13 +1027,20 @@ index ae9160667b1cd30479c72aae7cab8d319e1917c2..685757d6d0c0fcbc2dc8b4040c1be46d
  Goal: Minimal Expenses UI mirroring CLI rules; deterministic tests; coverage ≥ 50% statements.
  Independent test: Selecting month/category shows correct totals; malformed rows handled.
  
- - [ ] T015 [US1] Implement Expenses route `apps/ui/src/pages/Expenses.tsx`
- - [ ] T016 [US1] Implement components: selectors and totals `apps/ui/src/components/expenses/`
- - [ ] T017 [US1] Implement validation for unknown month/category (inline error) `apps/ui/src/pages/Expenses.tsx`
- - [ ] T018 [US1] Import or implement core totals logic mirroring CLI `apps/ui/src/lib/expenses/totals.ts`
- - [ ] T019 [P] [US1] Unit tests (table‑driven) for months/categories/malformed rows `apps/ui/src/tests/expenses.test.tsx`
- - [ ] T020 [US1] Playwright smoke: select month/category → totals render `apps/ui/playwright/expenses.smoke.spec.ts`
- - [ ] T021 [US1] Export UI coverage HTML and add to `review-artifacts/` (CI ensures)
+-- [ ] T015 [US1] Implement Expenses route `apps/ui/src/pages/Expenses.tsx`
+-- [ ] T016 [US1] Implement components: selectors and totals `apps/ui/src/components/expenses/`
+-- [ ] T017 [US1] Implement validation for unknown month/category (inline error) `apps/ui/src/pages/Expenses.tsx`
+-- [ ] T018 [US1] Import or implement core totals logic mirroring CLI `apps/ui/src/lib/expenses/totals.ts`
+-- [ ] T019 [P] [US1] Unit tests (table‑driven) for months/categories/malformed rows `apps/ui/src/tests/expenses.test.tsx`
+-- [ ] T020 [US1] Playwright smoke: select month/category → totals render `apps/ui/playwright/expenses.smoke.spec.ts`
+-- [ ] T021 [US1] Export UI coverage HTML and add to `review-artifacts/` (CI ensures)
++- [x] T015 [US1] Implement Expenses route `apps/ui/src/pages/Expenses.tsx`
++- [x] T016 [US1] Implement components: selectors and totals `apps/ui/src/components/expenses/`
++- [x] T017 [US1] Implement validation for unknown month/category (inline error) `apps/ui/src/pages/Expenses.tsx`
++- [x] T018 [US1] Import or implement core totals logic mirroring CLI `apps/ui/src/lib/expenses/totals.ts`
++- [x] T019 [P] [US1] Unit tests (table‑driven) for months/categories/malformed rows `apps/ui/src/tests/expenses.test.tsx`
++- [x] T020 [US1] Playwright smoke: select month/category → totals render `apps/ui/playwright/expenses.smoke.spec.ts`
++- [x] T021 [US1] Export UI coverage HTML and add to `review-artifacts/` (CI ensures)
  
  ---
  
@@ -563,52 +1051,18 @@ index ae9160667b1cd30479c72aae7cab8d319e1917c2..685757d6d0c0fcbc2dc8b4040c1be46d
  
  - [ ] T022 [US2] Implement ToDo route `apps/ui/src/pages/ToDo.tsx`
  - [ ] T023 [US2] Implement components for list/add/complete `apps/ui/src/components/todo/`
-diff --git a/src/cli/shared/README.md b/src/cli/shared/README.md
-new file mode 100644
-index 0000000000000000000000000000000000000000..ca8e96401ca8924d75b8982f7b41a8e2bcddacb5
---- /dev/null
-+++ b/src/cli/shared/README.md
-@@ -0,0 +1,6 @@
-+# Shared CLI Logic
-+
-+This directory hosts pure, framework-agnostic logic that will be reused by the
-+existing CLIs and the upcoming UI project. Populate the domain folders with
-+TypeScript modules as they are implemented; keep them side-effect free so UI and
-+CLI clients can import them without additional adapters.
-diff --git a/src/cli/shared/expenses/index.ts b/src/cli/shared/expenses/index.ts
-new file mode 100644
-index 0000000000000000000000000000000000000000..ba859cc33d2cbc8a18fff53a0031134b57330288
---- /dev/null
-+++ b/src/cli/shared/expenses/index.ts
-@@ -0,0 +1,3 @@
-+// Placeholder module for shared expenses logic.
-+// Populate with pure functions that can be consumed by both the CLI and UI layers.
-+export {};
-diff --git a/src/cli/shared/index.ts b/src/cli/shared/index.ts
-new file mode 100644
-index 0000000000000000000000000000000000000000..1cd115ec704ad12f28a9eb85b6e876905e1cdff2
---- /dev/null
-+++ b/src/cli/shared/index.ts
-@@ -0,0 +1,4 @@
-+// Re-export shared domain modules for convenient imports.
-+export * from './expenses/index.js';
-+export * from './todo/index.js';
-+export * from './quote/index.js';
-diff --git a/src/cli/shared/quote/index.ts b/src/cli/shared/quote/index.ts
-new file mode 100644
-index 0000000000000000000000000000000000000000..0b1329817e8b584a40a0d38d70beb167df561c9c
---- /dev/null
-+++ b/src/cli/shared/quote/index.ts
-@@ -0,0 +1,3 @@
-+// Placeholder module for shared quote logic.
-+// Keep functions deterministic to support predictable UI tests.
-+export {};
-diff --git a/src/cli/shared/todo/index.ts b/src/cli/shared/todo/index.ts
-new file mode 100644
-index 0000000000000000000000000000000000000000..f6b1816e97cd55b9538e12b5ac9cf029887822ee
---- /dev/null
-+++ b/src/cli/shared/todo/index.ts
-@@ -0,0 +1,3 @@
-+// Placeholder module for shared todo logic.
-+// Implement pure helpers here to synchronize CLI and UI behaviors.
-+export {};
+ - [ ] T024 [US2] Duplicate guard + errors for complete nonexistent item `apps/ui/src/pages/ToDo.tsx`
+ - [ ] T025 [US2] Injected clock utility for dueToday logic `apps/ui/src/lib/time/clock.ts`
+ - [ ] T026 [P] [US2] Unit tests for yesterday/today/tomorrow, duplicate add, bad complete `apps/ui/src/tests/todo.test.tsx`
+ - [ ] T027 [US2] Playwright smoke: add → list → complete `apps/ui/playwright/todo.smoke.spec.ts`
+ - [ ] T028 [US2] Export UI coverage HTML and add to `review-artifacts/`
+ 
+ ---
+ 
+ ## Phase 5 — [US3] Quote UI (Priority P3)
+ 
+ Goal: Filter by author/tag (case‑insensitive), random pick when no filter; coverage ≥ 50% statements.
+ Independent test: filter results correct; deterministic random via seed.
+ 
+ - [ ] T029 [US3] Implement Quote route `apps/ui/src/pages/Quote.tsx`
+ - [ ] T030 [US3] Implement components for filters/result `apps/ui/src/components/quote/`

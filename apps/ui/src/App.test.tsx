@@ -2,77 +2,38 @@ import { render, screen } from '@testing-library/react';
 import App from './App';
 
 describe('App', () => {
-  it('renders the welcome headline', () => {
+  it('renders the expenses overview page', () => {
     render(<App />);
-    expect(screen.getByTestId('welcome-title')).toHaveTextContent('Training Raymond UI');
+    expect(screen.getByTestId('expenses-title')).toHaveTextContent('Expenses overview');
+    expect(screen.getByTestId('expenses-total')).toHaveTextContent(/Total:\s*\$232\.10/);
   });
 
-  it('renders the introduction text', () => {
+  it('displays data quality notices for malformed rows', () => {
     render(<App />);
-    expect(screen.getByText(/Foundations for the Expenses, ToDo, and Quote experiences/i)).toBeInTheDocument();
+    expect(screen.getByTestId('expenses-issues')).toBeInTheDocument();
+    expect(screen.getByText(/Data quality notices/i)).toBeInTheDocument();
   });
 
-  it('exposes all three page placeholders', () => {
+  it('renders filter controls', () => {
     render(<App />);
-
-    const container = screen.getByTestId('page-placeholders');
-    expect(container).toBeInTheDocument();
+    expect(screen.getByLabelText(/Filter expenses by month/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Filter expenses by category/i)).toBeInTheDocument();
   });
 
-  it('renders the Expenses page section', () => {
+  it('renders the totals summary section', () => {
     render(<App />);
-
-    const heading = screen.getByRole('heading', { level: 2, name: /Expenses/i });
-    expect(heading).toBeInTheDocument();
-    expect(heading).toHaveAttribute('id', 'expenses-heading');
-
-    expect(screen.getByTestId('expenses-components-placeholder')).toBeInTheDocument();
+    expect(screen.getByText(/By category/i)).toBeInTheDocument();
+    expect(screen.getByTestId('expenses-total')).toBeInTheDocument();
   });
 
-  it('renders the ToDo page section', () => {
+  it('renders the expenses table', () => {
     render(<App />);
+    const table = screen.getByRole('table');
+    expect(table).toBeInTheDocument();
 
-    const heading = screen.getByRole('heading', { level: 2, name: /ToDo/i });
-    expect(heading).toBeInTheDocument();
-    expect(heading).toHaveAttribute('id', 'todo-heading');
-
-    expect(screen.getByTestId('todo-components-placeholder')).toBeInTheDocument();
-  });
-
-  it('renders the Quote page section', () => {
-    render(<App />);
-
-    const heading = screen.getByRole('heading', { level: 2, name: /Quote/i });
-    expect(heading).toBeInTheDocument();
-    expect(heading).toHaveAttribute('id', 'quote-heading');
-
-    expect(screen.getByTestId('quote-components-placeholder')).toBeInTheDocument();
-  });
-
-  it('uses proper semantic HTML structure', () => {
-    render(<App />);
-
-    // Main container has role="main"
-    const main = screen.getByRole('main');
-    expect(main).toHaveClass('App');
-
-    // Each page is a section with proper aria-labelledby
-    const expensesSection = screen.getByLabelText(/Expenses/i);
-    expect(expensesSection.tagName).toBe('SECTION');
-
-    const todoSection = screen.getByLabelText(/ToDo/i);
-    expect(todoSection.tagName).toBe('SECTION');
-
-    const quoteSection = screen.getByLabelText(/Quote/i);
-    expect(quoteSection.tagName).toBe('SECTION');
-  });
-
-  it('applies correct CSS classes to page sections', () => {
-    render(<App />);
-
-    const sections = screen.getAllByRole('region');
-    sections.forEach((section) => {
-      expect(section).toHaveClass('page');
-    });
+    // Check for table headers
+    expect(screen.getByRole('columnheader', { name: /Date/i })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /Category/i })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /Amount/i })).toBeInTheDocument();
   });
 });
