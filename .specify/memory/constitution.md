@@ -54,9 +54,12 @@ Rationale: Deterministic text contracts keep tools composable and testable.
 Rationale: Simplicity improves readability, reuse, and testability.
 
 ### Branching, Commits, and CI Gates
-- Work happens on feature branches: `feature/RAY-###-short-scope`; PRs target
+- Work happens on feature branches: `feature/<ISSUE_KEY>-short-scope`; PRs target
   `development` only.
-- Use Conventional Commits (`type: description (RAY-###)`).
+- Accepted `<ISSUE_KEY>` formats:
+  - `GH-####` for GitHub Issues when using GitHub Projects
+  - `LIN-####` for Linear
+- Use Conventional Commits: `type: description (<ISSUE_KEY>)`.
 - CI checks (lint + tests + coverage) MUST pass before merge; branches MUST be
   up-to-date.
 
@@ -98,8 +101,8 @@ Rationale: Prevent accidental credential leakage and keep the repo portable.
   inputs; clear empty-state UX).
 
 ## Development Workflow & Quality Gates
-1. Create/assign Linear ticket → branch from `development` using required
-   naming.
+1. Create/assign a work item (GitHub Issue `GH-####` or Linear `LIN-####`) → branch from
+   `development` using required naming.
 2. Write tests first; ensure they fail.
 3. Implement minimal code to pass tests; refactor with tests green.
 4. Run `npm test` and `npm run lint`; meet coverage thresholds.
@@ -124,4 +127,4 @@ Rationale: Prevent accidental credential leakage and keep the repo portable.
   - MINOR for added principles/sections or substantial expansions
   - PATCH for clarifications that don’t change intent
 
-**Version**: 1.1.0 | **Ratified**: 2025-11-02 | **Last Amended**: 2025-11-02
+**Version**: 1.2.0 | **Ratified**: 2025-11-02 | **Last Amended**: 2025-11-03

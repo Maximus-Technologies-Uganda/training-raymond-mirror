@@ -1,15 +1,260 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8"/>
-  <title>Week 2 Review Packet</title>
-  <style>body{font-family:system-ui,Segoe UI,Segoe UI Variable,Arial,sans-serif;margin:2rem;max-width:900px} a{color:#0b5fff;text-decoration:none}</style>
-</head>
-<body>
-  <h1>Week 2 Review Packet</h1>
-  <p>This packet aggregates coverage artifacts for CLIs.</p>
-  <ul>
-    <li><a href="../coverage/index.html">Coverage Index (global)</a></li>
-  </ul>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Week 3 Review Artifacts</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        line-height: 1.6;
+        background: #f4f6fb;
+      }
+
+      body {
+        margin: 0;
+        padding: 3rem 1.5rem 4rem;
+        display: flex;
+        justify-content: center;
+        color: #1f2933;
+      }
+
+      main {
+        max-width: 1024px;
+        width: 100%;
+        background: #ffffff;
+        border-radius: 20px;
+        box-shadow: 0 32px 80px -28px rgba(15, 23, 42, 0.3);
+        padding: 3.5rem 3rem;
+      }
+
+      h1 {
+        font-size: 2.5rem;
+        margin: 0 0 0.75rem;
+      }
+
+      h2 {
+        font-size: 1.6rem;
+        margin-bottom: 0.25rem;
+      }
+
+      p {
+        margin-top: 0;
+        max-width: 72ch;
+      }
+
+      section + section {
+        margin-top: 3rem;
+      }
+
+      .split {
+        display: grid;
+        gap: 1.5rem;
+      }
+
+      @media (min-width: 900px) {
+        .split {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        margin-top: 1.25rem;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 20px 45px -24px rgba(30, 64, 175, 0.45);
+      }
+
+      thead {
+        background: #1e40af;
+        color: #ffffff;
+      }
+
+      th,
+      td {
+        padding: 0.75rem 1rem;
+        text-align: left;
+      }
+
+      tbody tr:nth-child(even) {
+        background: #f8fafc;
+      }
+
+      tbody tr:nth-child(odd) {
+        background: #eef2ff;
+      }
+
+      tbody tr:hover {
+        background: #dbeafe;
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+        background: #e0f2fe;
+        color: #0369a1;
+        padding: 0.4rem 0.85rem;
+        border-radius: 999px;
+        font-weight: 600;
+      }
+
+      a {
+        color: #1d4ed8;
+        text-decoration: none;
+      }
+
+      a:hover {
+        text-decoration: underline;
+      }
+
+      ul {
+        margin: 1rem 0 0;
+        padding-left: 1.25rem;
+      }
+
+      code {
+        font-family: 'Cascadia Code', 'Fira Code', 'Source Code Pro', monospace;
+        font-size: 0.95rem;
+        background: #f1f5f9;
+        padding: 0.1rem 0.4rem;
+        border-radius: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Week 3 Review Artifacts</h1>
+        <p>
+          Evidence collected from the Week 3 UI delivery. Use the quick links below to
+          deep dive into coverage, smoke tests, and the written review summary.
+        </p>
+        <div class="split">
+          <div class="chip">CLI coverage ≥ 60% &nbsp;•&nbsp; 63.71% statements</div>
+          <div class="chip">UI coverage ≥ 50% &nbsp;•&nbsp; 87.85% statements</div>
+        </div>
+      </header>
+
+      <section>
+        <h2>Coverage Snapshot</h2>
+        <p>
+          Consolidated vitest coverage by tool. Statement targets exceed the Constitution
+          gates for both CLI and UI surfaces.
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Tool</th>
+              <th scope="col">Statements</th>
+              <th scope="col">Branches</th>
+              <th scope="col">Functions</th>
+              <th scope="col">Lines</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Expenses (CLI)</td>
+              <td>86.11%</td>
+              <td>73.68%</td>
+              <td>90.91%</td>
+              <td>86.11%</td>
+            </tr>
+            <tr>
+              <td>ToDo (CLI)</td>
+              <td>72.43%</td>
+              <td>59.76%</td>
+              <td>75.86%</td>
+              <td>72.43%</td>
+            </tr>
+            <tr>
+              <td>Quote (CLI)</td>
+              <td>82.41%</td>
+              <td>68.75%</td>
+              <td>92.00%</td>
+              <td>82.41%</td>
+            </tr>
+            <tr>
+              <td>Stopwatch (CLI)</td>
+              <td>69.39%</td>
+              <td>63.79%</td>
+              <td>75.86%</td>
+              <td>69.39%</td>
+            </tr>
+            <tr>
+              <td>Temperature (CLI)</td>
+              <td>81.19%</td>
+              <td>60.87%</td>
+              <td>80.00%</td>
+              <td>81.19%</td>
+            </tr>
+            <tr>
+              <td>Expenses (UI)</td>
+              <td>89.09%</td>
+              <td>88.42%</td>
+              <td>92.59%</td>
+              <td>89.09%</td>
+            </tr>
+            <tr>
+              <td>ToDo (UI)</td>
+              <td>93.28%</td>
+              <td>90.48%</td>
+              <td>82.86%</td>
+              <td>93.28%</td>
+            </tr>
+            <tr>
+              <td>Quote (UI)</td>
+              <td>92.95%</td>
+              <td>87.80%</td>
+              <td>93.33%</td>
+              <td>92.95%</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>Artifact Links</h2>
+        <p>Open the detailed artifacts directly from the repository.</p>
+        <ul>
+          <li>
+            <a href="../coverage/index.html">CLI coverage HTML index</a> — full source
+            drill-down for all command-line tools.
+          </li>
+          <li>
+            <a href="ui/unit/index.html">UI coverage (Vitest + RTL)</a> — coverage for
+            Expenses, ToDo, and Quote React flows.
+          </li>
+          <li>
+            <a href="../apps/ui/playwright/report/index.html">Playwright smoke report</a>
+            — deterministically seeded happy paths.
+          </li>
+          <li>
+            <a href="../docs/review.md">Review narrative</a> — capstone summary with
+            test evidence, releases, and screenshots.
+          </li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>How to Reproduce</h2>
+        <p>
+          Run the commands below from the repository root to regenerate the same
+          artifacts locally or in CI.
+        </p>
+        <ul>
+          <li><code>npm run test:coverage</code> — CLI coverage (Vitest + v8)</li>
+          <li><code>npm --prefix apps/ui run test:coverage</code> — UI coverage suite</li>
+          <li>
+            <code>npm --prefix apps/ui run test:e2e -- --project=chromium --grep @smoke</code>
+            — Playwright smoke
+          </li>
+        </ul>
+      </section>
+    </main>
+  </body>
 </html>

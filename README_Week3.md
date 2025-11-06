@@ -18,6 +18,11 @@ This README is the single source of truth for **Week 3** scope, acceptance bars,
 
 Build **reviewable UIs** for your existing CLIs. Drive the work via **SpecKit** (`/specify → /plan → /tasks`) and raise your **evidence bar** (coverage, e2e smoke, Releases, Pages) so reviewers can verify everything fast.
 
+> ### How to review me (Week 3)
+> - **Release (Packet):** [v0.3.0 — Week 3: UI + Reviewability](https://github.com/Maximus-Technologies-Uganda/training-raymond/releases/tag/v0.3.0-week3)
+> - **GitHub Pages:** [Coverage index & UI demo](https://maximus-technologies-uganda.github.io/training-raymond/review-artifacts/index.html)
+> - **Capstone PR:** _Pending — draft will link here with coverage table + screenshots._
+
 ---
 
 ## Go/No‑Go Gate (All must be true by **Fri 7 Nov EOD**)

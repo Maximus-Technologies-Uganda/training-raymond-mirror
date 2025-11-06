@@ -1,0 +1,67 @@
+name: Project - Mark Done on PR merged to main
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: read
+
+jobs:
+  done:
+    if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'development'
+    runs-on: ubuntu-latest
+    env:
+      ORG: Maximus-Technologies-Uganda
+      PROJECT_NUMBER: 4
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
+    steps:
+      - name: Ensure token present
+        run: |
+          if [ -z "${GH_TOKEN}" ]; then
+            echo "GH_TOKEN is not set. Add a repo secret GH_TOKEN with org Projects (v2) write access." >&2
+            exit 1
+          fi
+
+      - name: Resolve Project and Status:Done option
+        id: proj
+        run: |
+          Q='query($org:String!,$num:Int!){organization(login:$org){projectV2(number:$num){id fields(first:50){nodes{__typename id name ... on ProjectV2SingleSelectField { options { id name } }}}}}}'
+          RESP=$(gh api graphql -f query="$Q" -F org="$ORG" -F num="$PROJECT_NUMBER")
+          echo "$RESP" > proj.json
+          echo "project_id=$(jq -r .data.organization.projectV2.id proj.json)" >> $GITHUB_OUTPUT
+          echo "status_field_id=$(jq -r '.data.organization.projectV2.fields.nodes[] | select(.name=="Status") | .id' proj.json)" >> $GITHUB_OUTPUT
+          echo "done_option_id=$(jq -r '.data.organization.projectV2.fields.nodes[] | select(.name=="Status") | .options[] | select(.name=="Done") | .id' proj.json)" >> $GITHUB_OUTPUT
+
+      - name: Find issues closed by merged PR
+        id: issues
+        run: |
+          OWNER='${{ github.repository_owner }}'
+          REPO='${{ github.event.repository.name }}'
+          NUM='${{ github.event.pull_request.number }}'
+          Q='query($owner:String!,$repo:String!,$num:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$num){closingIssuesReferences(first:50){nodes{number}}}}}'
+          RESP=$(gh api graphql -f query="$Q" -F owner="$OWNER" -F repo="$REPO" -F num="$NUM")
+          echo "$RESP" | jq -r '.data.repository.pullRequest.closingIssuesReferences.nodes[].number' > issues.txt || true
+          echo "count=$(wc -l < issues.txt)" >> $GITHUB_OUTPUT
+
+      - name: Set Status to Done on linked issue items
+        if: steps.issues.outputs.count != '0'
+        run: |
+          OWNER='${{ github.repository_owner }}'
+          REPO='${{ github.event.repository.name }}'
+          while read N; do
+            [ -z "$N" ] && continue
+            Q='query($owner:String!,$repo:String!,$num:Int!){repository(owner:$owner,name:$repo){issue(number:$num){projectItems(first:50){nodes{id project{number}}}}}}'
+            R=$(gh api graphql -f query="$Q" -F owner="$OWNER" -F repo="$REPO" -F num="$N")
+            echo "$R" | jq -r --arg pn "${PROJECT_NUMBER}" '.data.repository.issue.projectItems.nodes[] | select(.project.number == ($pn|tonumber)) | .id' | while read ITEM; do
+              [ -z "$ITEM" ] && continue
+              MID='mutation($project:ID!,$item:ID!,$field:ID!,$opt:String!){updateProjectV2ItemFieldValue(input:{projectId:$project,itemId:$item,fieldId:$field,value:{singleSelectOptionId:$opt}}){clientMutationId}}'
+              gh api graphql -f query="$MID" \
+                -F project='${{ steps.proj.outputs.project_id }}' \
+                -F item="$ITEM" \
+                -F field='${{ steps.proj.outputs.status_field_id }}' \
+                -F opt='${{ steps.proj.outputs.done_option_id }}'
+            done
+          done < issues.txt
+
+

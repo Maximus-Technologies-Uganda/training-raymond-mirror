@@ -1,0 +1,164 @@
+openapi: 3.0.3
+info:
+  title: Week 3 UI Contracts
+  version: 1.0.0
+  description: Contracts for Expenses, ToDo, and Quotes UI actions (reference design)
+servers:
+  - url: http://localhost:3000
+paths:
+  /expenses/summary:
+    get:
+      summary: Get expense totals by month/category
+      parameters:
+        - in: query
+          name: month
+          schema:
+            type: string
+        - in: query
+          name: category
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Aggregated totals
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpenseTotals'
+  /todo:
+    get:
+      summary: List todo items
+      responses:
+        '200':
+          description: Items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ToDoItem'
+    post:
+      summary: Add todo item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ToDoCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ToDoItem'
+  /todo/{id}/complete:
+    patch:
+      summary: Complete a todo item
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Updated item
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ToDoItem'
+  /quotes:
+    get:
+      summary: Query quotes
+      parameters:
+        - in: query
+          name: author
+          schema:
+            type: string
+        - in: query
+          name: tag
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Quotes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Quote'
+  /quotes/random:
+    get:
+      summary: Get a random quote (deterministic when seed provided)
+      parameters:
+        - in: query
+          name: seed
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: A quote
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Quote'
+components:
+  schemas:
+    ExpenseTotals:
+      type: object
+      properties:
+        month:
+          type: string
+        category:
+          type: string
+        totalAmount:
+          type: number
+        currency:
+          type: string
+      required: [totalAmount, currency]
+    ToDoItem:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        dueDate:
+          type: string
+          format: date
+          nullable: true
+        priority:
+          type: string
+          enum: [low, medium, high]
+        completed:
+          type: boolean
+      required: [id, title, completed]
+    ToDoCreate:
+      type: object
+      properties:
+        title:
+          type: string
+        dueDate:
+          type: string
+          format: date
+          nullable: true
+        priority:
+          type: string
+          enum: [low, medium, high]
+      required: [title]
+    Quote:
+      type: object
+      properties:
+        id:
+          type: string
+        author:
+          type: string
+        text:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+

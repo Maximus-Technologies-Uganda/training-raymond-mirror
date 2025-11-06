@@ -1,0 +1,9 @@
+node_modules/
+dist/
+build/
+coverage/
+review-artifacts/
+apps/ui/playwright/report/
+*.config.js
+*.config.cjs
+
