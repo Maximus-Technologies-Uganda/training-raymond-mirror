@@ -165,11 +165,7 @@ function TodoList({ items, onComplete }: TodoListProps): JSX.Element {
               }
             }}
             disabled={todo.completed}
-            aria-label={
-              todo.completed
-                ? `Task "${todo.title}" is already complete`
-                : `Mark task "${todo.title}" complete`
-            }
+            aria-label={todo.completed ? 'Done' : `Mark task "${todo.title}" complete`}
           >
             {todo.completed ? 'Done' : 'Mark complete'}
           </button>

@@ -74,10 +74,10 @@ Independent test: filter results correct; deterministic random via seed.
 
 ## Phase 6 — Polish & Reviewability
 
-- [ ] T035 Update README “How to review me” box with actual Release/Pages links `README_Week3.md`
-- [ ] T036 Generate Coverage Index (CLI + UI) to `review-artifacts/index.html`
-- [ ] T037 Build Review Packet ZIP and attach to Release `review-artifacts/`
-- [ ] T038 Capstone PR to `development` with Coverage Table, links, and screenshots `docs/review.md`
+- [X] T035 Update README “How to review me” box with actual Release/Pages links `README_Week3.md`
+- [X] T036 Generate Coverage Index (CLI + UI) to `review-artifacts/index.html`
+- [X] T037 Build Review Packet ZIP and attach to Release `review-artifacts/`
+- [X] T038 Capstone PR to `development` with Coverage Table, links, and screenshots `docs/review.md`
 
 ---
 

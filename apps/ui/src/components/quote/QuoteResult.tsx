@@ -15,7 +15,7 @@ function renderQuoteListItem(quote: QuoteRecord, index: number): JSX.Element {
       <figure>
         <blockquote className="quote-result__blockquote">"{quote.text}"</blockquote>
         <figcaption className="quote-result__caption">
-          <span className="quote-result__author">{quote.author}</span>
+          <span className="quote-result__author">— {quote.author}</span>
           <span className="quote-result__tags" data-testid={`quote-tags-${index}`}>
             Tags: {formatTags(quote.tags)}
           </span>
@@ -30,7 +30,7 @@ function renderFeaturedQuote(quote: QuoteRecord): JSX.Element {
     <figure className="quote-result__featured-card">
       <blockquote className="quote-result__blockquote">"{quote.text}"</blockquote>
       <figcaption className="quote-result__caption">
-        <span className="quote-result__author">{quote.author}</span>
+        <span className="quote-result__author">— {quote.author}</span>
         <span className="quote-result__tags" data-testid="quote-tags-featured">
           Tags: {formatTags(quote.tags)}
         </span>

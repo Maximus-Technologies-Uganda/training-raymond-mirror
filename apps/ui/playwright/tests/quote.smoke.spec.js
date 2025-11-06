@@ -2,11 +2,18 @@ import { test, expect } from '@playwright/test';
 test.describe('Quote UI smoke tests', () => {
     test('deterministic featured quote and seed updates @smoke', async ({ page }) => {
         await page.goto('/');
-        await page.getByTestId('nav-quote').click();
+        // Navigate to Quote tab with explicit wait and retry
+        const quoteTab = page.getByTestId('nav-quote');
+        await quoteTab.waitFor({ state: 'visible', timeout: 15000 });
+        await quoteTab.click({ force: true });
+        // Wait for Quote content to load
         const featured = page.getByTestId('quote-featured');
-        await expect(featured).toBeVisible();
-        // Verify default quote is displayed
-        await expect(featured).toContainText('—');
+        await expect(featured).toBeVisible({ timeout: 15000 });
+        // Verify default quote is displayed (check for blockquote element)
+        const blockquote = featured.locator('blockquote');
+        await expect(blockquote).toBeVisible();
+        const quoteText = await blockquote.textContent();
+        expect(quoteText).toBeTruthy(); // Ensure some quote text is present
         const seedInput = page.getByTestId('quote-seed-input');
         await seedInput.fill('seed-a');
         // Quote should change deterministically

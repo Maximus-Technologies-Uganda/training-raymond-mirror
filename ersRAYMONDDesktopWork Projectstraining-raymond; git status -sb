@@ -1,0 +1,100 @@
+warning: in the working copy of 'README_Week3.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'apps/ui/playwright/tests/expenses.smoke.spec.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'apps/ui/playwright/tests/quote.smoke.spec.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'apps/ui/playwright/tests/todo.smoke.spec.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'apps/ui/vite.config.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'review-artifacts/ui/unit/coverage-summary.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'review-artifacts/ui/unit/index.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'review-artifacts/ui/unit/src/App.tsx.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'review-artifacts/ui/unit/src/components/expenses/CategorySelector.tsx.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'review-artifacts/ui/unit/src/components/expenses/ExpensesPlaceholder.tsx.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'review-artifacts/ui/unit/src/components/expenses/MonthSelector.tsx.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'review-artifacts/ui/unit/src/components/expenses/TotalsSummary.tsx.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'review-artifacts/ui/unit/src/components/expenses/index.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'review-artifacts/ui/unit/src/components/index.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'review-artifacts/ui/unit/src/components/index.ts.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'review-artifacts/ui/unit/src/components/quote/QuoteFilters.tsx.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'review-artifacts/ui/unit/src/components/quote/QuotePlaceholder.tsx.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'review-artifacts/ui/unit/src/components/quote/QuoteResult.tsx.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'review-artifacts/ui/unit/src/components/quote/index.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'review-artifacts/ui/unit/src/components/todo/TodoAddForm.tsx.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'review-artifacts/ui/unit/src/components/todo/TodoCompleteForm.tsx.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'review-artifacts/ui/unit/src/components/todo/TodoFilters.tsx.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'review-artifacts/ui/unit/src/components/todo/TodoList.tsx.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'review-artifacts/ui/unit/src/components/todo/TodoPlaceholder.tsx.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'review-artifacts/ui/unit/src/components/todo/index.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'review-artifacts/ui/unit/src/index.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'review-artifacts/ui/unit/src/lib/expenses/index.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'review-artifacts/ui/unit/src/lib/expenses/totals.ts.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'review-artifacts/ui/unit/src/lib/quote/index.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'review-artifacts/ui/unit/src/lib/quote/sampleData.ts.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'review-artifacts/ui/unit/src/lib/quote/view.ts.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'review-artifacts/ui/unit/src/lib/random/index.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'review-artifacts/ui/unit/src/lib/random/seeded.ts.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'review-artifacts/ui/unit/src/lib/time/clock.ts.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'review-artifacts/ui/unit/src/lib/time/index.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'review-artifacts/ui/unit/src/pages/Expenses.tsx.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'review-artifacts/ui/unit/src/pages/ExpensesPage.tsx.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'review-artifacts/ui/unit/src/pages/Quote.tsx.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'review-artifacts/ui/unit/src/pages/QuotePage.tsx.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'review-artifacts/ui/unit/src/pages/ToDo.tsx.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'review-artifacts/ui/unit/src/pages/ToDoPage.tsx.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'review-artifacts/ui/unit/src/pages/index.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'review-artifacts/ui/unit/src/pages/index.ts.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'review-artifacts/ui/unit/src/testing-library-vitest.ts.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'review-artifacts/ui/unit/src/tests/helpers.ts.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'review-artifacts/ui/unit/src/tests/index.html', LF will be replaced by CRLF the next time Git touches it
+ .gitignore                                         |    1 [32m+[m
+ README_Week3.md                                    |   10 [32m+[m[31m-[m
+ apps/ui/playwright/tests/quote.smoke.spec.js       |   15 [32m+[m[31m-[m
+ apps/ui/src/App.tsx                                |  139 [32m+[m[31m-[m
+ apps/ui/src/components/quote/QuoteResult.tsx       |    4 [32m+[m[31m-[m
+ apps/ui/src/components/todo/TodoAddForm.tsx        |   11 [32m+[m[31m-[m
+ apps/ui/src/components/todo/TodoList.tsx           |    6 [32m+[m[31m-[m
+ review-artifacts/index.html                        |  241 [32m+++[m[31m-[m
+ review-artifacts/ui/unit/coverage-summary.json     |    8 [32m+[m[31m-[m
+ review-artifacts/ui/unit/index.html                |   58 [32m+[m[31m-[m
+ review-artifacts/ui/unit/src/App.tsx.html          |  301 [32m+++[m[31m-[m
+ .../components/expenses/CategorySelector.tsx.html  |    2 [32m+[m[31m-[m
+ .../expenses/ExpensesPlaceholder.tsx.html          |    2 [32m+[m[31m-[m
+ .../src/components/expenses/MonthSelector.tsx.html |    2 [32m+[m[31m-[m
+ .../src/components/expenses/TotalsSummary.tsx.html |    2 [32m+[m[31m-[m
+ .../ui/unit/src/components/expenses/index.html     |    2 [32m+[m[31m-[m
+ review-artifacts/ui/unit/src/components/index.html |    2 [32m+[m[31m-[m
+ .../ui/unit/src/components/index.ts.html           |    2 [32m+[m[31m-[m
+ .../src/components/quote/QuoteFilters.tsx.html     |    2 [32m+[m[31m-[m
+ .../src/components/quote/QuotePlaceholder.tsx.html |    2 [32m+[m[31m-[m
+ .../unit/src/components/quote/QuoteResult.tsx.html |    6 [32m+[m[31m-[m
+ .../ui/unit/src/components/quote/index.html        |    2 [32m+[m[31m-[m
+ .../unit/src/components/todo/TodoAddForm.tsx.html  |   47 [32m+[m[31m-[m
+ .../src/components/todo/TodoCompleteForm.tsx.html  |    2 [32m+[m[31m-[m
+ .../unit/src/components/todo/TodoFilters.tsx.html  |    2 [32m+[m[31m-[m
+ .../ui/unit/src/components/todo/TodoList.tsx.html  |   26 [32m+[m[31m-[m
+ .../src/components/todo/TodoPlaceholder.tsx.html   |    2 [32m+[m[31m-[m
+ .../ui/unit/src/components/todo/index.html         |   46 [32m+[m[31m-[m
+ review-artifacts/ui/unit/src/index.html            |   38 [32m+[m[31m-[m
+ .../ui/unit/src/lib/expenses/index.html            |    2 [32m+[m[31m-[m
+ .../ui/unit/src/lib/expenses/totals.ts.html        |    2 [32m+[m[31m-[m
+ review-artifacts/ui/unit/src/lib/quote/index.html  |    2 [32m+[m[31m-[m
+ .../ui/unit/src/lib/quote/sampleData.ts.html       |    2 [32m+[m[31m-[m
+ .../ui/unit/src/lib/quote/view.ts.html             |    2 [32m+[m[31m-[m
+ review-artifacts/ui/unit/src/lib/random/index.html |    2 [32m+[m[31m-[m
+ .../ui/unit/src/lib/random/seeded.ts.html          |    2 [32m+[m[31m-[m
+ .../ui/unit/src/lib/time/clock.ts.html             |    2 [32m+[m[31m-[m
+ review-artifacts/ui/unit/src/lib/time/index.html   |    2 [32m+[m[31m-[m
+ .../ui/unit/src/pages/Expenses.tsx.html            |    2 [32m+[m[31m-[m
+ .../ui/unit/src/pages/ExpensesPage.tsx.html        |    2 [32m+[m[31m-[m
+ review-artifacts/ui/unit/src/pages/Quote.tsx.html  |    2 [32m+[m[31m-[m
+ .../ui/unit/src/pages/QuotePage.tsx.html           |    2 [32m+[m[31m-[m
+ review-artifacts/ui/unit/src/pages/ToDo.tsx.html   |    2 [32m+[m[31m-[m
+ .../ui/unit/src/pages/ToDoPage.tsx.html            |    2 [32m+[m[31m-[m
+ review-artifacts/ui/unit/src/pages/index.html      |    2 [32m+[m[31m-[m
+ review-artifacts/ui/unit/src/pages/index.ts.html   |    2 [32m+[m[31m-[m
+ .../ui/unit/src/testing-library-vitest.ts.html     |    2 [32m+[m[31m-[m
+ review-artifacts/ui/unit/src/tests/helpers.ts.html |    2 [32m+[m[31m-[m
+ review-artifacts/ui/unit/src/tests/index.html      |    2 [32m+[m[31m-[m
+ specs/001-update-specify-md/V1.patch               | 1369 [31m-------------------[m
+ specs/001-update-specify-md/V2.patch               | 1440 [31m--------------------[m
+ specs/001-update-specify-md/V3.patch               | 1369 [31m-------------------[m
+ specs/001-update-specify-md/tasks.md               |    8 [32m+[m[31m-[m
+ 53 files changed, 755 insertions(+), 4454 deletions(-)

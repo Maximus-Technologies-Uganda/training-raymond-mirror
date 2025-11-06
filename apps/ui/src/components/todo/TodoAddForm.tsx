@@ -11,7 +11,7 @@
  * @module components/todo/TodoAddForm
  */
 
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, useRef, useState } from 'react';
 import type { TodoPriority } from '@cli/shared/todo';
 
 /**
@@ -58,6 +58,7 @@ function TodoAddForm({ onSubmit }: TodoAddFormProps): JSX.Element {
   const [title, setTitle] = useState('');
   const [priority, setPriority] = useState<TodoPriority>('med');
   const [dueDate, setDueDate] = useState('');
+  const submitRef = useRef<HTMLButtonElement | null>(null);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -132,6 +133,13 @@ function TodoAddForm({ onSubmit }: TodoAddFormProps): JSX.Element {
           type="date"
           value={dueDate}
           onChange={(event) => setDueDate(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Tab' && !event.shiftKey) {
+              requestAnimationFrame(() => {
+                submitRef.current?.focus();
+              });
+            }
+          }}
           aria-label="Task due date (optional)"
           data-testid="todo-due-date-input"
         />
@@ -140,6 +148,7 @@ function TodoAddForm({ onSubmit }: TodoAddFormProps): JSX.Element {
       <button
         type="submit"
         className="todo-form__submit"
+        ref={submitRef}
         data-testid="todo-submit"
         aria-label="Add task to list"
       >

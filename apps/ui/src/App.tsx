@@ -11,7 +11,7 @@
  * @module App
  */
 
-import { useState } from 'react';
+import { useRef, useState, type KeyboardEvent } from 'react';
 import './App.css';
 import Expenses from './pages/Expenses';
 import ToDo from './pages/ToDo';
@@ -21,6 +21,12 @@ import Quote from './pages/Quote';
  * Available application tools/pages.
  */
 type ActiveTool = 'expenses' | 'todo' | 'quote';
+
+interface TabDefinition {
+  id: ActiveTool;
+  label: string;
+  testId: string;
+}
 
 /**
  * Root application component with tool navigation.
@@ -33,47 +39,112 @@ type ActiveTool = 'expenses' | 'todo' | 'quote';
  */
 function App(): JSX.Element {
   const [activeTool, setActiveTool] = useState<ActiveTool>('expenses');
+  const tabRefs = useRef<Record<ActiveTool, HTMLButtonElement | null>>({
+    expenses: null,
+    todo: null,
+    quote: null,
+  });
+
+  const tabs: TabDefinition[] = [
+    { id: 'expenses', label: 'Expenses', testId: 'nav-expenses' },
+    { id: 'todo', label: 'ToDo', testId: 'nav-todo' },
+    { id: 'quote', label: 'Quote', testId: 'nav-quote' },
+  ];
+
+  const focusTab = (tool: ActiveTool) => {
+    const ref = tabRefs.current[tool];
+    if (ref) {
+      ref.focus();
+    }
+  };
+
+  const activateTab = (tool: ActiveTool, shouldFocus = false) => {
+    setActiveTool(tool);
+    if (shouldFocus) {
+      requestAnimationFrame(() => focusTab(tool));
+    }
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>, tool: ActiveTool) => {
+    const currentIndex = tabs.findIndex((tab) => tab.id === tool);
+    if (currentIndex === -1) {
+      return;
+    }
+
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+      event.preventDefault();
+      const nextTab = tabs[(currentIndex + 1) % tabs.length];
+      activateTab(nextTab.id, true);
+      return;
+    }
+
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      const nextTab = tabs[(currentIndex - 1 + tabs.length) % tabs.length];
+      activateTab(nextTab.id, true);
+    }
+  };
 
   return (
     <div className="App">
       <div className="app-shell">
+        <header className="app-hero">
+          <h1 className="app-hero__title" data-testid="welcome-title">
+            Training Raymond UI
+          </h1>
+          <p className="app-hero__subtitle">
+            Foundations for the Expenses, ToDo, and Quote experiences.
+          </p>
+        </header>
+
         <nav className="app-nav" role="tablist" aria-label="Tool selection">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTool === 'expenses'}
-            className={`app-nav__button${activeTool === 'expenses' ? ' app-nav__button--active' : ''}`}
-            onClick={() => setActiveTool('expenses')}
-            data-testid="nav-expenses"
-          >
-            Expenses
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTool === 'todo'}
-            className={`app-nav__button${activeTool === 'todo' ? ' app-nav__button--active' : ''}`}
-            onClick={() => setActiveTool('todo')}
-            data-testid="nav-todo"
-          >
-            ToDo
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTool === 'quote'}
-            className={`app-nav__button${activeTool === 'quote' ? ' app-nav__button--active' : ''}`}
-            onClick={() => setActiveTool('quote')}
-            data-testid="nav-quote"
-          >
-            Quote
-          </button>
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              ref={(element) => {
+                tabRefs.current[tab.id] = element;
+              }}
+              type="button"
+              role="tab"
+              id={`tab-${tab.id}`}
+              aria-controls={`panel-${tab.id}`}
+              aria-selected={activeTool === tab.id}
+              className={`app-nav__button${activeTool === tab.id ? ' app-nav__button--active' : ''}`}
+              tabIndex={activeTool === tab.id ? 0 : -1}
+              onClick={() => activateTab(tab.id, true)}
+              onKeyDown={(event) => handleKeyDown(event, tab.id)}
+              data-testid={tab.testId}
+            >
+              {tab.label}
+            </button>
+          ))}
         </nav>
 
         <main className="app-content">
-          {activeTool === 'expenses' && <Expenses />}
-          {activeTool === 'todo' && <ToDo />}
-          {activeTool === 'quote' && <Quote />}
+          <section
+            role="tabpanel"
+            id="panel-expenses"
+            aria-labelledby="tab-expenses"
+            hidden={activeTool !== 'expenses'}
+          >
+            {activeTool === 'expenses' && <Expenses />}
+          </section>
+          <section
+            role="tabpanel"
+            id="panel-todo"
+            aria-labelledby="tab-todo"
+            hidden={activeTool !== 'todo'}
+          >
+            {activeTool === 'todo' && <ToDo />}
+          </section>
+          <section
+            role="tabpanel"
+            id="panel-quote"
+            aria-labelledby="tab-quote"
+            hidden={activeTool !== 'quote'}
+          >
+            {activeTool === 'quote' && <Quote />}
+          </section>
         </main>
       </div>
     </div>
