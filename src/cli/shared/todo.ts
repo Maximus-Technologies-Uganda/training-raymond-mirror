@@ -21,4 +21,4 @@ export type {
   TodoItem,
   TodoPriority,
   TodoState,
-} from '../../todo/core.js';
+} from '../../todo/core.ts';

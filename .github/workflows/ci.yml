@@ -7,7 +7,7 @@ on:
     branches: [development]
 
 jobs:
-  cli-quality:
+  build-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -101,11 +101,11 @@ jobs:
       - name: Collect UI coverage for review artifacts
         run: |
           mkdir -p review-artifacts/ui
-          if [ -d "apps/ui/coverage/unit" ]; then
-            cp -R apps/ui/coverage/unit review-artifacts/ui/unit
+          if [ -d "apps/ui/coverage" ]; then
+            cp -R apps/ui/coverage review-artifacts/ui/coverage
             echo "✓ UI coverage collected successfully"
           else
-            echo "Error: UI coverage not found at apps/ui/coverage/unit"
+            echo "Error: UI coverage not found at apps/ui/coverage"
             exit 1
           fi
 
@@ -114,7 +114,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ui-coverage
-          path: apps/ui/coverage/unit
+          path: apps/ui/coverage
           if-no-files-found: ignore
 
       - name: Upload UI review artifact slice
