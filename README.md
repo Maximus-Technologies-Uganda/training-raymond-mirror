@@ -275,6 +275,77 @@ By repeating these steps, every branch, commit, and PR stays bi-directionally li
 
 ---
 
+## Week 3 - React UIs + Testing + Reviewability
+
+See the Week 3 review: [docs/review.md](docs/review.md)
+
+### What Was Built
+
+This week delivered production-ready React UIs for all CLI tools with comprehensive testing and automated review artifacts:
+
+#### React Applications
+- **Expenses UI** - Interactive expense tracker with month/category filtering
+- **ToDo UI** - Complete task management with priority levels and filtering
+- **Quote UI** - Inspirational quotes with author/tag filters and deterministic randomness
+
+#### Key Features
+- 📱 Responsive design with modern React patterns
+- 🧪 88%+ test coverage with React Testing Library
+- 🎭 31 Playwright E2E smoke tests (all passing)
+- 🔧 Deterministic testing (seeded RNG, injected clock)
+- 📊 Automated coverage reporting
+- 🚀 GitHub Pages deployment
+
+### Running the UI Apps
+
+```bash
+# Install UI dependencies
+cd apps/ui
+npm install
+
+# Development server
+npm run dev              # Opens http://localhost:5173
+
+# Testing
+npm test                 # Unit tests (watch mode)
+npm run test:coverage    # Coverage report
+npm run test:e2e         # Playwright E2E tests
+npm run test:e2e -- --project=chromium --grep @smoke  # Smoke tests only
+
+# Build for production
+npm run build
+npm run preview          # Preview production build
+```
+
+### UI Architecture
+
+```
+apps/ui/
+├── src/
+│   ├── components/      # Reusable UI components
+│   │   ├── expenses/    # Expense filtering, summaries
+│   │   ├── todo/        # Task forms, lists, filters
+│   │   └── quote/       # Quote display, filters
+│   ├── lib/             # Business logic & utilities
+│   │   ├── expenses/    # Expense calculations
+│   │   ├── quote/       # Quote selection, seeded RNG
+│   │   ├── random/      # Deterministic random generator
+│   │   └── time/        # Injectable clock for testing
+│   ├── pages/           # Page components (ToDo, Expenses, Quote)
+│   └── tests/           # Unit tests with React Testing Library
+├── playwright/          # E2E tests
+└── vitest.config.ts     # Test configuration
+```
+
+### Testing Strategy
+
+- **Unit Tests**: React Testing Library + Vitest
+- **E2E Tests**: Playwright with smoke test coverage
+- **Deterministic Tests**: Seeded RNG and injectable clocks for reproducible results
+- **Coverage**: Enforced thresholds via CI (60%+ CLI, 80%+ UI)
+
+---
+
 ## Dependencies
 
 - **vitest** - Testing framework
@@ -296,26 +367,43 @@ Get a complete, self-contained package with all work and artifacts:
 - **[Review Packet](docs/review-packet-week1.md)** - Detailed assessment and rubric
 - **[Public Mirror](https://github.com/Maximus-Technologies-Uganda/training-raymond-mirror)** - Live public repository
 
+### 📋 How to Review Me
+
+**Latest Release:** [v0.3.0 — Week 3: UI + Reviewability](https://github.com/Maximus-Technologies-Uganda/training-raymond/releases/tag/v0.3.0-week3)
+
+**GitHub Pages:** [Coverage Reports & Demo](https://maximus-technologies-uganda.github.io/training-raymond/review-artifacts/index.html) _(requires repo access)_
+
+**Review Documents:**
+- [Week 3 Review Packet](docs/review.md) - UI implementation summary
+- [Week 1 Review Packet](docs/review-packet-week1.md) - Initial CLI assessment
+
 ### Quick Review Process
-1. Download the review package from releases
-2. Extract and run installation script:
+1. Download the review package from [latest release](https://github.com/Maximus-Technologies-Uganda/training-raymond/releases/latest)
+2. Extract and review artifacts:
+   - Coverage reports (CLI + UI)
+   - Playwright test results
+   - Source code and tests
+3. Verify tests pass:
    ```bash
-   # Linux/Mac
-   ./install.sh
-   
-   # Windows
-   install.bat
+   npm test                                      # CLI tests
+   npm --prefix apps/ui run test:coverage        # UI unit tests
+   npm --prefix apps/ui run test:e2e -- --project=chromium --grep @smoke  # E2E tests
    ```
-3. Verify all tests pass: `npm test`
-4. Test the CLIs manually (see examples above)
-5. Review the review packet for detailed assessment
+4. Run the UIs locally:
+   ```bash
+   cd apps/ui
+   npm install
+   npm run dev  # Opens http://localhost:5173
+   ```
+5. Review the documentation for detailed assessment
 
 ### Package Contents
-- ✅ Complete source code (3 CLIs)
-- ✅ 14 unit tests (100% passing)
-- ✅ Installation scripts for all platforms
-- ✅ Documentation and daily journals
-- ✅ ESLint configuration and results
+- ✅ Complete source code (6 CLIs + 3 React UIs)
+- ✅ Comprehensive test suites (CLI + UI unit tests + E2E)
+- ✅ Coverage reports (CLI & UI)
+- ✅ Playwright test results
+- ✅ Documentation and review packets
+- ✅ GitHub Actions workflows
 - ✅ All configuration files
 
 ### Continuous Updates

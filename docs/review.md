@@ -1,9 +1,9 @@
 ## Week 3 Review Packet — UI + Reviewability
 
-**Branch:** `001-update-specify-md`  
-**Release:** [v0.3.0 — Week 3: UI + Reviewability](https://github.com/Maximus-Technologies-Uganda/training-raymond/releases/tag/v0.3.0-week3)  
-**GitHub Pages:** [Coverage & demo](https://maximus-technologies-uganda.github.io/training-raymond/review-artifacts/index.html)  
-**Capstone PR:** _pending_
+**Branch:** `development` (merged from `001-update-specify-md`)
+**Release:** [v0.3.0 — Week 3: UI + Reviewability](https://github.com/Maximus-Technologies-Uganda/training-raymond/releases/tag/v0.3.0-week3)
+**GitHub Pages:** [Coverage & demo](https://maximus-technologies-uganda.github.io/training-raymond/review-artifacts/index.html)
+**Capstone PR:** [#144](https://github.com/Maximus-Technologies-Uganda/training-raymond/pull/144) (merged)
 
 ---
 
