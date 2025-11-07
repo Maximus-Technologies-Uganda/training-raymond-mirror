@@ -30,17 +30,49 @@ jobs:
       - name: Resolve Project + Status field IDs
         id: proj
         run: |
+          set -eo pipefail
+
           Q='query($org:String!,$num:Int!){organization(login:$org){projectV2(number:$num){id fields(first:50){nodes{__typename id name ... on ProjectV2SingleSelectField { options { id name } }}}}}}'
-          RESP=$(gh api graphql -f query="$Q" -F org="$ORG" -F num="$PROJECT_NUMBER")
-          echo "$RESP" | jq -c . > resp.json
-          PROJECT_ID=$(jq -r '.data.organization.projectV2.id' resp.json)
+
+          if ! gh api graphql -f query="$Q" -F org="$ORG" -F num="$PROJECT_NUMBER" > resp.json; then
+            echo "Project ${PROJECT_NUMBER} in org ${ORG} is not accessible. Skipping project status update." >&2
+            echo "project_found=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          PROJECT_ID=$(jq -r '.data.organization.projectV2.id // empty' resp.json)
+
+          if [ -z "$PROJECT_ID" ]; then
+            echo "Project ${PROJECT_NUMBER} in org ${ORG} was not found. Skipping project status update." >&2
+            cat resp.json >&2
+            echo "project_found=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           STATUS_FIELD_ID=$(jq -r '.data.organization.projectV2.fields.nodes[] | select(.name=="Status") | .id' resp.json)
           DONE_OPTION_ID=$(jq -r '.data.organization.projectV2.fields.nodes[] | select(.name=="Status") | .options[] | select(.name=="Done") | .id' resp.json)
-          echo "project_id=$PROJECT_ID" >> $GITHUB_OUTPUT
-          echo "status_field_id=$STATUS_FIELD_ID" >> $GITHUB_OUTPUT
-          echo "done_option_id=$DONE_OPTION_ID" >> $GITHUB_OUTPUT
+
+          if [ -z "$STATUS_FIELD_ID" ] || [ "$STATUS_FIELD_ID" = "null" ]; then
+            echo "Failed to locate 'Status' field for project ${PROJECT_NUMBER}." >&2
+            cat resp.json >&2
+            exit 1
+          fi
+
+          if [ -z "$DONE_OPTION_ID" ] || [ "$DONE_OPTION_ID" = "null" ]; then
+            echo "Failed to locate status option 'Done' for project ${PROJECT_NUMBER}." >&2
+            cat resp.json >&2
+            exit 1
+          fi
+
+          {
+            echo "project_found=true"
+            echo "project_id=$PROJECT_ID"
+            echo "status_field_id=$STATUS_FIELD_ID"
+            echo "done_option_id=$DONE_OPTION_ID"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Find Project item for closed issue
+        if: steps.proj.outputs.project_found == 'true'
         id: item
         run: |
           OWNER=${{ github.repository_owner }}
@@ -53,7 +85,7 @@ jobs:
           echo "item_id=$ITEM_ID" >> $GITHUB_OUTPUT
 
       - name: Set Status=Done on Project item
-        if: steps.item.outputs.item_id != ''
+        if: steps.proj.outputs.project_found == 'true' && steps.item.outputs.item_id != ''
         run: |
           MID='mutation($project:ID!,$item:ID!,$field:ID!,$opt:String!){updateProjectV2ItemFieldValue(input:{projectId:$project,itemId:$item,fieldId:$field,value:{singleSelectOptionId:$opt}}){clientMutationId}}'
           gh api graphql -f query="$MID" \
