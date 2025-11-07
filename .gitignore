@@ -20,3 +20,4 @@ uv.zip
 .cursor/
 .codex/
 review-artifacts/*.zip
+review-artifacts/ui/unit/
