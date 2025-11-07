@@ -14,24 +14,62 @@ jobs:
     env:
       ORG: Maximus-Technologies-Uganda
       PROJECT_NUMBER: 4
-      GH_TOKEN: ${{ secrets.GH_TOKEN }}
     steps:
-      - name: Ensure token present
+      - name: Configure gh authentication
         run: |
-          if [ -z "${GH_TOKEN}" ]; then
-            echo "GH_TOKEN is not set. Add a repo secret GH_TOKEN with org Projects (v2) write access." >&2
-            exit 1
+          if [ -n "${{ secrets.GH_TOKEN }}" ]; then
+            echo "Using GH_TOKEN secret for gh CLI."
+            echo "GH_TOKEN=${{ secrets.GH_TOKEN }}" >> "$GITHUB_ENV"
+            echo "GITHUB_TOKEN=${{ secrets.GH_TOKEN }}" >> "$GITHUB_ENV"
+          else
+            echo "Warning: GH_TOKEN secret not set. Falling back to the default GITHUB_TOKEN which may lack Projects v2 access." >&2
+            echo "GH_TOKEN=${{ github.token }}" >> "$GITHUB_ENV"
+            echo "GITHUB_TOKEN=${{ github.token }}" >> "$GITHUB_ENV"
           fi
 
       - name: Resolve Project and Status:Done option
         id: proj
         run: |
-          Q='query($org:String!,$num:Int!){organization(login:$org){projectV2(number:$num){id fields(first:50){nodes{__typename id name ... on ProjectV2SingleSelectField { options { id name } }}}}}}'
-          RESP=$(gh api graphql -f query="$Q" -F org="$ORG" -F num="$PROJECT_NUMBER")
-          echo "$RESP" > proj.json
-          echo "project_id=$(jq -r .data.organization.projectV2.id proj.json)" >> $GITHUB_OUTPUT
-          echo "status_field_id=$(jq -r '.data.organization.projectV2.fields.nodes[] | select(.name=="Status") | .id' proj.json)" >> $GITHUB_OUTPUT
-          echo "done_option_id=$(jq -r '.data.organization.projectV2.fields.nodes[] | select(.name=="Status") | .options[] | select(.name=="Done") | .id' proj.json)" >> $GITHUB_OUTPUT
+          set -eo pipefail
+
+          STATUS_FIELD_LABEL='Status'
+          TARGET_OPTION='Done'
+          Q='query($org:String!,$num:Int!,$fieldName:String!){organization(login:$org){projectV2(number:$num){id statusField:field(name:$fieldName){... on ProjectV2SingleSelectField { id name options { id name } }}}}}'
+          if ! gh api graphql -f query="$Q" -F org="$ORG" -F num="$PROJECT_NUMBER" -F fieldName="$STATUS_FIELD_LABEL" > proj.json; then
+            echo "Project ${PROJECT_NUMBER} in org ${ORG} is not accessible. Skipping project status update." >&2
+            echo "project_found=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          PROJECT_ID=$(jq -r '.data.organization.projectV2.id // empty' proj.json)
+
+          if [ -z "$PROJECT_ID" ]; then
+            echo "Project ${PROJECT_NUMBER} in org ${ORG} was not found. Skipping project status update." >&2
+            cat proj.json >&2
+            echo "project_found=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          STATUS_FIELD_ID=$(jq -r '.data.organization.projectV2.statusField.id' proj.json)
+          DONE_OPTION_ID=$(jq -r --arg n "$TARGET_OPTION" '.data.organization.projectV2.statusField.options[] | select(.name==$n) | .id' proj.json)
+
+          if [ -z "$STATUS_FIELD_ID" ] || [ "$STATUS_FIELD_ID" = "null" ]; then
+            echo "Failed to locate '$STATUS_FIELD_LABEL' field for project ${PROJECT_NUMBER}." >&2
+            cat proj.json >&2
+            exit 1
+          fi
+
+          if [ -z "$DONE_OPTION_ID" ] || [ "$DONE_OPTION_ID" = "null" ]; then
+            echo "Failed to locate status option '$TARGET_OPTION' in '$STATUS_FIELD_LABEL' field." >&2
+            cat proj.json >&2
+            exit 1
+          fi
+
+          {
+            echo "project_found=true"
+            echo "project_id=$PROJECT_ID"
+            echo "status_field_id=$STATUS_FIELD_ID"
+            echo "done_option_id=$DONE_OPTION_ID"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Find issues closed by merged PR
         id: issues
@@ -45,7 +83,7 @@ jobs:
           echo "count=$(wc -l < issues.txt)" >> $GITHUB_OUTPUT
 
       - name: Set Status to Done on linked issue items
-        if: steps.issues.outputs.count != '0'
+        if: steps.proj.outputs.project_found == 'true' && steps.issues.outputs.count != '0'
         run: |
           OWNER='${{ github.repository_owner }}'
           REPO='${{ github.event.repository.name }}'
