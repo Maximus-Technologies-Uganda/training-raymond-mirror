@@ -14,14 +14,14 @@ jobs:
     env:
       ORG: Maximus-Technologies-Uganda
       PROJECT_NUMBER: 4
-      # Prefer a classic PAT or fine-grained PAT with org Project write access
-      GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      # Prefer a classic PAT or fine-grained PAT with org Project write access.
+      # Fall back to the workflow's GitHub token so `gh` always has credentials.
+      GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
     steps:
       - name: Validate token
         run: |
-          if [ -z "${GH_TOKEN}" ]; then
-            echo "GH_TOKEN is not set. Create a repo secret GH_TOKEN with org Project write access (Projects v2)." >&2
-            exit 0
+          if [ -z "${{ secrets.GH_TOKEN }}" ]; then
+            echo "Warning: GH_TOKEN secret not set. Falling back to the workflow GITHUB_TOKEN which may lack Projects v2 access." >&2
           fi
 
       - name: Resolve Project + Status field IDs
