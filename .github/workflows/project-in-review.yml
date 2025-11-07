@@ -30,12 +30,35 @@ jobs:
       - name: Resolve Project and Status option
         id: proj
         run: |
-          Q='query($org:String!,$num:Int!){organization(login:$org){projectV2(number:$num){id fields(first:50){nodes{__typename id name ... on ProjectV2SingleSelectField { options { id name } }}}}}}'
-          RESP=$(gh api graphql -f query="$Q" -F org="$ORG" -F num="$PROJECT_NUMBER")
+          set -eo pipefail
+
+          STATUS_FIELD_LABEL='Status'
+          Q='query($org:String!,$num:Int!,$fieldName:String!){organization(login:$org){projectV2(number:$num){id statusField:field(name:$fieldName){... on ProjectV2SingleSelectField { id name options { id name } }}}}}'
+          RESP=$(gh api graphql -f query="$Q" -F org="$ORG" -F num="$PROJECT_NUMBER" -F fieldName="$STATUS_FIELD_LABEL")
+
           echo "$RESP" > proj.json
-          echo "project_id=$(jq -r .data.organization.projectV2.id proj.json)" >> $GITHUB_OUTPUT
-          echo "status_field_id=$(jq -r '.data.organization.projectV2.fields.nodes[] | select(.name=="Status") | .id' proj.json)" >> $GITHUB_OUTPUT
-          echo "status_option_id=$(jq -r --arg n "$STATUS_NAME" '.data.organization.projectV2.fields.nodes[] | select(.name=="Status") | .options[] | select(.name==$n) | .id' proj.json)" >> $GITHUB_OUTPUT
+
+          PROJECT_ID=$(jq -r '.data.organization.projectV2.id' proj.json)
+          STATUS_FIELD_ID=$(jq -r '.data.organization.projectV2.statusField.id' proj.json)
+          STATUS_OPTION_ID=$(jq -r --arg n "$STATUS_NAME" '.data.organization.projectV2.statusField.options[] | select(.name==$n) | .id' proj.json)
+
+          if [ -z "$STATUS_FIELD_ID" ] || [ "$STATUS_FIELD_ID" = "null" ]; then
+            echo "Failed to locate '$STATUS_FIELD_LABEL' field for project ${PROJECT_NUMBER}." >&2
+            cat proj.json >&2
+            exit 1
+          fi
+
+          if [ -z "$STATUS_OPTION_ID" ] || [ "$STATUS_OPTION_ID" = "null" ]; then
+            echo "Failed to locate status option '$STATUS_NAME' in '$STATUS_FIELD_LABEL' field." >&2
+            cat proj.json >&2
+            exit 1
+          fi
+
+          {
+            echo "project_id=$PROJECT_ID"
+            echo "status_field_id=$STATUS_FIELD_ID"
+            echo "status_option_id=$STATUS_OPTION_ID"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Find issues closed by this PR
         id: issues
