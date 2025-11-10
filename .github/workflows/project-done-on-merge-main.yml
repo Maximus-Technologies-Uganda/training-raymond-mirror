@@ -1,4 +1,4 @@
-name: Project - Mark Done on PR merged to main
+name: Project - Mark Done on PR merged to development
 
 on:
   pull_request:
@@ -14,62 +14,24 @@ jobs:
     env:
       ORG: Maximus-Technologies-Uganda
       PROJECT_NUMBER: 4
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
     steps:
-      - name: Configure gh authentication
+      - name: Ensure token present
         run: |
-          if [ -n "${{ secrets.GH_TOKEN }}" ]; then
-            echo "Using GH_TOKEN secret for gh CLI."
-            echo "GH_TOKEN=${{ secrets.GH_TOKEN }}" >> "$GITHUB_ENV"
-            echo "GITHUB_TOKEN=${{ secrets.GH_TOKEN }}" >> "$GITHUB_ENV"
-          else
-            echo "Warning: GH_TOKEN secret not set. Falling back to the default GITHUB_TOKEN which may lack Projects v2 access." >&2
-            echo "GH_TOKEN=${{ github.token }}" >> "$GITHUB_ENV"
-            echo "GITHUB_TOKEN=${{ github.token }}" >> "$GITHUB_ENV"
+          if [ -z "${GH_TOKEN}" ]; then
+            echo "GH_TOKEN is not set. Add a repo secret GH_TOKEN with org Projects (v2) write access." >&2
+            exit 1
           fi
 
       - name: Resolve Project and Status:Done option
         id: proj
         run: |
-          set -eo pipefail
-
-          STATUS_FIELD_LABEL='Status'
-          TARGET_OPTION='Done'
-          Q='query($org:String!,$num:Int!,$fieldName:String!){organization(login:$org){projectV2(number:$num){id statusField:field(name:$fieldName){... on ProjectV2SingleSelectField { id name options { id name } }}}}}'
-          if ! gh api graphql -f query="$Q" -F org="$ORG" -F num="$PROJECT_NUMBER" -F fieldName="$STATUS_FIELD_LABEL" > proj.json; then
-            echo "Project ${PROJECT_NUMBER} in org ${ORG} is not accessible. Skipping project status update." >&2
-            echo "project_found=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          PROJECT_ID=$(jq -r '.data.organization.projectV2.id // empty' proj.json)
-
-          if [ -z "$PROJECT_ID" ]; then
-            echo "Project ${PROJECT_NUMBER} in org ${ORG} was not found. Skipping project status update." >&2
-            cat proj.json >&2
-            echo "project_found=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          STATUS_FIELD_ID=$(jq -r '.data.organization.projectV2.statusField.id' proj.json)
-          DONE_OPTION_ID=$(jq -r --arg n "$TARGET_OPTION" '.data.organization.projectV2.statusField.options[] | select(.name==$n) | .id' proj.json)
-
-          if [ -z "$STATUS_FIELD_ID" ] || [ "$STATUS_FIELD_ID" = "null" ]; then
-            echo "Failed to locate '$STATUS_FIELD_LABEL' field for project ${PROJECT_NUMBER}." >&2
-            cat proj.json >&2
-            exit 1
-          fi
-
-          if [ -z "$DONE_OPTION_ID" ] || [ "$DONE_OPTION_ID" = "null" ]; then
-            echo "Failed to locate status option '$TARGET_OPTION' in '$STATUS_FIELD_LABEL' field." >&2
-            cat proj.json >&2
-            exit 1
-          fi
-
-          {
-            echo "project_found=true"
-            echo "project_id=$PROJECT_ID"
-            echo "status_field_id=$STATUS_FIELD_ID"
-            echo "done_option_id=$DONE_OPTION_ID"
-          } >> "$GITHUB_OUTPUT"
+          Q='query($org:String!,$num:Int!){organization(login:$org){projectV2(number:$num){id fields(first:50){nodes{__typename id name ... on ProjectV2SingleSelectField { options { id name } }}}}}}'
+          RESP=$(gh api graphql -f query="$Q" -F org="$ORG" -F num="$PROJECT_NUMBER")
+          echo "$RESP" > proj.json
+          echo "project_id=$(jq -r .data.organization.projectV2.id proj.json)" >> $GITHUB_OUTPUT
+          echo "status_field_id=$(jq -r '.data.organization.projectV2.fields.nodes[] | select(.name=="Status") | .id' proj.json)" >> $GITHUB_OUTPUT
+          echo "done_option_id=$(jq -r '.data.organization.projectV2.fields.nodes[] | select(.name=="Status") | .options[] | select(.name=="Done") | .id' proj.json)" >> $GITHUB_OUTPUT
 
       - name: Find issues closed by merged PR
         id: issues
@@ -82,9 +44,59 @@ jobs:
           echo "$RESP" | jq -r '.data.repository.pullRequest.closingIssuesReferences.nodes[].number' > issues.txt || true
           echo "count=$(wc -l < issues.txt)" >> $GITHUB_OUTPUT
 
-      - name: Set Status to Done on linked issue items
-        if: steps.proj.outputs.project_found == 'true' && steps.issues.outputs.count != '0'
+      - name: Fallback - derive issues from branch/title/body/T-codes
+        if: steps.issues.outputs.count == '0'
         run: |
+          OWNER='${{ github.repository_owner }}'
+          REPO='${{ github.event.repository.name }}'
+          BRANCH='${{ github.event.pull_request.head.ref }}'
+          TITLE='${{ github.event.pull_request.title }}'
+          BODY='${{ github.event.pull_request.body }}'
+
+          : > issues_fallback.txt
+
+          # 1) From branch name feature/gh-123-scope
+          echo "$BRANCH" | sed -n 's/.*[gG][hH]-\([0-9][0-9]*\).*/\1/p' >> issues_fallback.txt || true
+
+          # 2) From Title/Body explicit #123 references
+          printf "%s\n%s\n" "$TITLE" "$BODY" | grep -oE '#[0-9]+' | tr -d '#' >> issues_fallback.txt || true
+
+          # 3) From T-codes in Title/Body (e.g., T001) → map by title prefix in repo issues
+          T_CODES=$(printf "%s\n%s\n" "$TITLE" "$BODY" | grep -oE 'T[0-9]{3}' | sort -u || true)
+          if [ -n "$T_CODES" ]; then
+            gh issue list -R "$OWNER/$REPO" --state all --limit 500 --json number,title > all_issues.json
+            for code in $T_CODES; do
+              jq -r --arg c "$code " '.[] | select(.title | startswith($c)) | .number' all_issues.json >> issues_fallback.txt
+            done
+          fi
+
+          # Deduplicate and keep only numbers
+          if [ -s issues_fallback.txt ]; then
+            sed -n 's/^[[:space:]]*\\([0-9][0-9]*\\)[[:space:]]*$/\\1/p' issues_fallback.txt | sort -u > issues_fallback.txt.tmp || true
+            mv issues_fallback.txt.tmp issues_fallback.txt
+          fi
+
+      - name: Prepare final issues list
+        run: |
+          { cat issues.txt 2>/dev/null; cat issues_fallback.txt 2>/dev/null; } | sed '/^$/d' | sort -u > issues_final.txt || true
+          echo "Final issues candidates:"
+          cat issues_final.txt || true
+
+      - name: No closing issues found — fallback notice
+        if: steps.issues.outputs.count == '0'
+        run: |
+          echo "No closing issues were detected for this PR. To auto-move items to Done, include closing keywords like 'Closes #123' in the PR body." >&2
+          gh pr comment '${{ github.event.pull_request.number }}' \
+            --repo '${{ github.repository }}' \
+            --body "Heads up: No closing issues were detected for this PR. To auto-move linked Project items to Done, include closing keywords like 'Closes #148' in the PR description."
+
+      - name: Set Status to Done on linked issue items
+        if: always()
+        run: |
+          if [ ! -s issues_final.txt ]; then
+            echo "No issues found to mark Done (final list empty)." >&2
+            exit 0
+          fi
           OWNER='${{ github.repository_owner }}'
           REPO='${{ github.event.repository.name }}'
           while read N; do
@@ -100,6 +112,6 @@ jobs:
                 -F field='${{ steps.proj.outputs.status_field_id }}' \
                 -F opt='${{ steps.proj.outputs.done_option_id }}'
             done
-          done < issues.txt
+          done < issues_final.txt
 
 
