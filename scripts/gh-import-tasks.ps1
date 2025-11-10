@@ -28,7 +28,9 @@ $rawLines = Get-Content -Path $TasksPath
 $taskItems = @()
 
 foreach ($line in $rawLines) {
-    if ($line -match '^\s*-\s*\[\s*\]\s*(T\d{3}[^\r\n]*)$') {
+    # Accept any unchecked checklist item. We capture the full text after the checkbox,
+    # allowing prefixes like "1. " or "T123 " or none at all.
+    if ($line -match '^\s*-\s*\[\s*\]\s*(.+)$') {
         $taskItems += $Matches[1].Trim()
     }
 }
@@ -45,7 +47,7 @@ foreach ($task in $taskItems) {
     }
 
     Write-Host "Creating issue for task: $task"
-    $issueOutput = gh issue create -R $Repo -t $task -b 'Created from SpecKit tasks.md' -l 'week3,speckit'
+    $issueOutput = gh issue create -R $Repo -t $task -b 'Created from SpecKit tasks.md' -l 'week4,speckit'
 
     $issueUrl = $issueOutput | Select-Object -Last 1
     if (-not $issueUrl) {
@@ -54,6 +56,16 @@ foreach ($task in $taskItems) {
     }
 
     Write-Host "Adding issue to project $Org/$ProjectNumber"
-    gh project item-add --owner $Org --number $ProjectNumber --url $issueUrl.Trim() | Out-Null
+    try {
+        # Prefer syntax where project number is positional argument
+        gh project item-add $ProjectNumber --owner $Org --url $issueUrl.Trim() | Out-Null
+    } catch {
+        try {
+            # Fallback legacy flag syntax
+            gh project item-add --owner $Org --number $ProjectNumber --url $issueUrl.Trim() | Out-Null
+        } catch {
+            Write-Warning ("Failed to add issue to project {0}/{1}: {2}" -f $Org, $ProjectNumber, $issueUrl)
+        }
+    }
     Write-Host "Imported: $issueUrl"
 }
