@@ -535,6 +535,15 @@ body {
   font-weight: 500;
 }
 
+.todo-filters__checkbox input {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.todo-filters__checkbox label {
+  cursor: pointer;
+}
+
 .todo-filters__select {
   display: flex;
   flex-direction: column;

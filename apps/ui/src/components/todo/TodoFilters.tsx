@@ -8,7 +8,7 @@
  * @module components/todo/TodoFilters
  */
 
-import { type ChangeEvent } from 'react';
+import { type ChangeEvent, useId } from 'react';
 import type { TodoPriority } from '@cli/shared/todo';
 
 /**
@@ -56,6 +56,8 @@ const PRIORITY_OPTIONS: Array<{ value: 'all' | TodoPriority; label: string }> = 
  * ```
  */
 function TodoFilters({ filters, onChange }: TodoFiltersProps): JSX.Element {
+  const dueTodayId = useId();
+
   const handleDueTodayChange = (event: ChangeEvent<HTMLInputElement>) => {
     onChange({ ...filters, showDueToday: event.target.checked });
   };
@@ -69,16 +71,17 @@ function TodoFilters({ filters, onChange }: TodoFiltersProps): JSX.Element {
 
   return (
     <section className="todo-filters" aria-label="Task filters">
-      <label className="todo-filters__checkbox">
+      <div className="todo-filters__checkbox">
         <input
+          id={dueTodayId}
           type="checkbox"
           checked={filters.showDueToday}
           onChange={handleDueTodayChange}
-          aria-label="Show only tasks due today"
+          aria-controls="todo-list"
           data-testid="todo-filter-due-today"
         />
-        <span>Show tasks due today</span>
-      </label>
+        <label htmlFor={dueTodayId}>Show tasks due today</label>
+      </div>
 
       <label className="todo-filters__select">
         <span className="todo-filters__label">Priority</span>

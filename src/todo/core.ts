@@ -181,7 +181,10 @@ export function completeTodo(state: TodoState, id: string, deps: TodoDependencie
 }
 
 function toDateOnly(date: Date): string {
-  return date.toISOString().slice(0, 10);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 function isDueToday(todo: TodoItem, clock?: Clock): boolean {
@@ -199,34 +202,35 @@ export interface ListFilters {
 }
 
 export function listTodos(state: TodoState, filters: ListFilters = {}, deps: TodoDependencies = {}): TodoItem[] {
-  let result = [...state.todos];
+  const itemsWithIndex = state.todos.map((todo, index) => ({ todo, index }));
+  let result = [...itemsWithIndex];
 
   if (filters.priority) {
     const priority = validatePriority(filters.priority);
-    result = result.filter((todo) => todo.priority === priority);
+    result = result.filter(({ todo }) => todo.priority === priority);
   }
 
   if (filters.dueDate) {
     const dueDate = validateDueDate(filters.dueDate);
-    result = result.filter((todo) => todo.dueDate === dueDate);
+    result = result.filter(({ todo }) => todo.dueDate === dueDate);
   }
 
   if (filters.dueToday) {
-    result = result.filter((todo) => isDueToday(todo, deps.clock));
+    result = result.filter(({ todo }) => isDueToday(todo, deps.clock));
   }
 
   result.sort((a, b) => {
-    if (a.completed !== b.completed) {
-      return a.completed ? 1 : -1;
+    if (a.todo.completed !== b.todo.completed) {
+      return a.todo.completed ? 1 : -1;
     }
-    if (a.priority === b.priority) {
-      return a.id.localeCompare(b.id);
+    if (a.todo.priority === b.todo.priority) {
+      return a.index - b.index;
     }
     const priorityOrder: Record<TodoPriority, number> = { high: 0, med: 1, low: 2 };
-    return priorityOrder[a.priority] - priorityOrder[b.priority];
+    return priorityOrder[a.todo.priority] - priorityOrder[b.todo.priority];
   });
 
-  return result;
+  return result.map(({ todo }) => todo);
 }
 
 export function formatTodo(todo: TodoItem): string {
