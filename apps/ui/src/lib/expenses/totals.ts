@@ -7,10 +7,15 @@ export interface RawExpenseRow {
   category: unknown;
   amount: unknown;
   currency?: CurrencyCode;
+  /**
+   * Original 1-indexed row number from the uploaded CSV.
+   * Used to surface validation messages that align with the user's spreadsheet.
+   */
+  sourceRowNumber?: number;
 }
 
 export interface ExpenseIssue {
-  index: number;
+  rowNumber: number;
   message: string;
 }
 
@@ -75,19 +80,53 @@ const CURRENCY_FORMATTER = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 2,
 });
 
-function parseDate(input: unknown, index: number): { isoDate: string; monthNumber: number; monthName: string } {
+/**
+ * Deterministic rounding to 2 decimal places.
+ * Uses locale formatting to ensure consistent rounding behavior across platforms.
+ * This matches the CLI's rounding policy.
+ *
+ * Examples:
+ * - roundToCents(10.005) → 10.01
+ * - roundToCents(39.845) → 39.85
+ * - roundToCents(42.504) → 42.50
+ */
+export function roundToCents(value: number): number {
+  return Number.parseFloat(
+    value.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+      useGrouping: false,
+    }),
+  );
+}
+
+/**
+ * Resolves the row number for error messages.
+ * Uses sourceRowNumber if available, otherwise falls back to 1-indexed position.
+ */
+function resolveRowNumber(row: RawExpenseRow, index: number): number {
+  if (typeof row.sourceRowNumber === 'number' && Number.isFinite(row.sourceRowNumber)) {
+    return row.sourceRowNumber;
+  }
+  return index + 1;
+}
+
+function parseDate(
+  input: unknown,
+  rowNumber: number,
+): { isoDate: string; monthNumber: number; monthName: string } {
   if (typeof input !== 'string') {
-    throw new Error(`Row ${index + 1}: date must be an ISO string.`);
+    throw new Error(`Row ${rowNumber}: date must be an ISO string.`);
   }
 
   const trimmed = input.trim();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-    throw new Error(`Row ${index + 1}: date must use YYYY-MM-DD format.`);
+    throw new Error(`Row ${rowNumber}: date must use YYYY-MM-DD format.`);
   }
 
   const parsed = new Date(trimmed);
   if (Number.isNaN(parsed.getTime())) {
-    throw new Error(`Row ${index + 1}: date is invalid.`);
+    throw new Error(`Row ${rowNumber}: date is invalid.`);
   }
 
   const monthNumber = parsed.getUTCMonth() + 1;
@@ -95,23 +134,23 @@ function parseDate(input: unknown, index: number): { isoDate: string; monthNumbe
   return { isoDate: trimmed, monthNumber, monthName };
 }
 
-function parseCategory(input: unknown, index: number): string {
+function parseCategory(input: unknown, rowNumber: number): string {
   if (typeof input !== 'string') {
-    throw new Error(`Row ${index + 1}: category must be a string.`);
+    throw new Error(`Row ${rowNumber}: category must be a string.`);
   }
 
   const trimmed = input.trim();
   if (trimmed.length === 0) {
-    throw new Error(`Row ${index + 1}: category cannot be empty.`);
+    throw new Error(`Row ${rowNumber}: category cannot be empty.`);
   }
 
   return trimmed;
 }
 
-function parseAmount(input: unknown, index: number): number {
+function parseAmount(input: unknown, rowNumber: number): number {
   if (typeof input === 'number') {
     if (!Number.isFinite(input)) {
-      throw new Error(`Row ${index + 1}: amount must be finite.`);
+      throw new Error(`Row ${rowNumber}: amount must be finite.`);
     }
     return input;
   }
@@ -119,16 +158,16 @@ function parseAmount(input: unknown, index: number): number {
   if (typeof input === 'string') {
     const trimmed = input.trim();
     if (trimmed.length === 0) {
-      throw new Error(`Row ${index + 1}: amount cannot be empty.`);
+      throw new Error(`Row ${rowNumber}: amount cannot be empty.`);
     }
     const parsed = Number.parseFloat(trimmed);
     if (!Number.isFinite(parsed)) {
-      throw new Error(`Row ${index + 1}: amount must be numeric.`);
+      throw new Error(`Row ${rowNumber}: amount must be numeric.`);
     }
     return parsed;
   }
 
-  throw new Error(`Row ${index + 1}: amount must be numeric.`);
+  throw new Error(`Row ${rowNumber}: amount must be numeric.`);
 }
 
 function parseCurrency(input: CurrencyCode | undefined): CurrencyCode {
@@ -144,23 +183,24 @@ export function buildExpenseDataset(rows: readonly RawExpenseRow[]): ExpenseData
   const records: ExpenseRecord[] = [];
 
   rows.forEach((row, index) => {
+    const rowNumber = resolveRowNumber(row, index);
     try {
-      const { isoDate, monthNumber, monthName } = parseDate(row.date, index);
-      const category = parseCategory(row.category, index);
-      const amount = parseAmount(row.amount, index);
+      const { isoDate, monthNumber, monthName } = parseDate(row.date, rowNumber);
+      const category = parseCategory(row.category, rowNumber);
+      const amount = parseAmount(row.amount, rowNumber);
       const currency = parseCurrency(row.currency);
       records.push({
-        id: `expense-${index}`,
+        id: `expense-${rowNumber}`,
         date: isoDate,
         monthNumber,
         monthName,
         category,
         amount,
         currency,
-        sourceIndex: index,
+        sourceIndex: rowNumber,
       });
     } catch (error: unknown) {
-      issues.push({ index, message: (error as Error).message });
+      issues.push({ rowNumber, message: (error as Error).message });
     }
   });
 
@@ -202,18 +242,30 @@ export function filterExpenseRecords(records: readonly ExpenseRecord[], filters:
 
 export function summarizeExpenses(records: readonly ExpenseRecord[]): ExpenseSummary {
   const currency = records[0]?.currency ?? CURRENCY_FALLBACK;
-  const totalsByCategory = records.reduce<ExpenseSummaryEntry[]>((acc, record) => {
-    const existing = acc.find((entry) => entry.category.toLowerCase() === record.category.toLowerCase());
+
+  // Use Map for efficient category lookup (case-insensitive)
+  const categoryTotals = new Map<string, ExpenseSummaryEntry>();
+
+  records.forEach((record) => {
+    const key = record.category.toLowerCase();
+    const existing = categoryTotals.get(key);
     if (existing) {
       existing.amount += record.amount;
-      return acc;
+      return;
     }
-    return [...acc, { category: record.category, amount: record.amount }];
-  }, []);
+    categoryTotals.set(key, { category: record.category, amount: record.amount });
+  });
 
-  totalsByCategory.sort((a, b) => a.category.localeCompare(b.category));
+  // Apply deterministic rounding and sort by category name
+  const totalsByCategory = Array.from(categoryTotals.values())
+    .map((entry) => ({
+      category: entry.category,
+      amount: roundToCents(entry.amount),
+    }))
+    .sort((a, b) => a.category.localeCompare(b.category));
 
-  const total = records.reduce((sum, record) => sum + record.amount, 0);
+  // Calculate total with deterministic rounding
+  const total = roundToCents(records.reduce((sum, record) => sum + record.amount, 0));
 
   return {
     total,
@@ -239,7 +291,7 @@ export function formatCurrency(amount: number, currency: CurrencyCode = CURRENCY
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       });
-  return formatter.format(amount);
+  return formatter.format(roundToCents(amount));
 }
 
 export function getAvailableMonths(records: readonly ExpenseRecord[]): string[] {

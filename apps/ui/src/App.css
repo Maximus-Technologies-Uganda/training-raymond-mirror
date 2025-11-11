@@ -48,6 +48,71 @@ body {
   color: #4c566a;
 }
 
+.expenses-upload {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  border-radius: 12px;
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.18);
+}
+
+.expenses-upload__label {
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: #1e3a8a;
+}
+
+.expenses-upload__input {
+  border: 1px dashed rgba(59, 130, 246, 0.6);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  background: #ffffff;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: border-color 0.2s ease, outline 0.2s ease;
+}
+
+.expenses-upload__input:hover {
+  border-color: rgba(37, 99, 235, 0.8);
+}
+
+.expenses-upload__input:focus {
+  outline: 3px solid rgba(37, 99, 235, 0.35);
+  border-color: rgba(37, 99, 235, 0.65);
+}
+
+.expenses-upload__help {
+  margin: 0;
+  color: #1d4ed8;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.expenses-upload__meta {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.expenses-upload__error {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: rgba(248, 113, 113, 0.12);
+  color: #b91c1c;
+  border: 1px solid rgba(248, 113, 113, 0.25);
+  font-weight: 600;
+}
+
+.expenses-upload__status {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #6b7280;
+  font-style: italic;
+}
+
 .expenses-alert {
   border: 1px solid #dbeafe;
   border-radius: 12px;
@@ -102,6 +167,14 @@ body {
 .expenses-filter__select:focus {
   outline: 3px solid rgba(29, 78, 216, 0.25);
   border-color: #1d4ed8;
+}
+
+.expenses-filter__select:disabled {
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+  color: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .expenses-controls__clear-btn {

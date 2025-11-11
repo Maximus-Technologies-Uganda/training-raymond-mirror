@@ -5,13 +5,14 @@ export interface MonthSelectorProps {
   options: readonly ExpenseSelectorOption[];
   value: string | null;
   onChange: (value: string | null) => void;
+  disabled?: boolean;
 }
 
 /**
  * Month filter selector component for expenses.
  * Provides accessible dropdown to filter expenses by month.
  */
-function MonthSelector({ options, value, onChange }: MonthSelectorProps): JSX.Element {
+function MonthSelector({ options, value, onChange, disabled = false }: MonthSelectorProps): JSX.Element {
   const handleChange = (event: ChangeEvent<HTMLSelectElement>) => {
     const nextValue = event.target.value === '' ? null : event.target.value;
     onChange(nextValue);
@@ -29,6 +30,7 @@ function MonthSelector({ options, value, onChange }: MonthSelectorProps): JSX.El
         value={value ?? ''}
         onChange={handleChange}
         aria-label="Filter expenses by month"
+        disabled={disabled}
       >
         {options.map((option) => (
           <option key={option.label} value={option.value ?? ''}>

@@ -5,13 +5,14 @@ export interface CategorySelectorProps {
   options: readonly ExpenseSelectorOption[];
   value: string | null;
   onChange: (value: string | null) => void;
+  disabled?: boolean;
 }
 
 /**
  * Category filter selector component for expenses.
  * Provides accessible dropdown to filter expenses by category.
  */
-function CategorySelector({ options, value, onChange }: CategorySelectorProps): JSX.Element {
+function CategorySelector({ options, value, onChange, disabled = false }: CategorySelectorProps): JSX.Element {
   const handleChange = (event: ChangeEvent<HTMLSelectElement>) => {
     const nextValue = event.target.value === '' ? null : event.target.value;
     onChange(nextValue);
@@ -29,6 +30,7 @@ function CategorySelector({ options, value, onChange }: CategorySelectorProps): 
         value={value ?? ''}
         onChange={handleChange}
         aria-label="Filter expenses by category"
+        disabled={disabled}
       >
         {options.map((option) => (
           <option key={option.label} value={option.value ?? ''}>

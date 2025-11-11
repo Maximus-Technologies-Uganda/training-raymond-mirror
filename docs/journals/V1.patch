@@ -1,0 +1,1166 @@
+diff --git a/apps/ui/playwright/fixtures/expenses-upload.csv b/apps/ui/playwright/fixtures/expenses-upload.csv
+new file mode 100644
+index 0000000000000000000000000000000000000000..7c30d183e5016acb19481c910540fff8ba8654ff
+--- /dev/null
++++ b/apps/ui/playwright/fixtures/expenses-upload.csv
+@@ -0,0 +1,8 @@
++date,category,amount,currency
++2025-04-01,Gym,33.335,USD
++2025-04-05,Groceries,27.501,USD
++2025-04-10,Café,12.1,USD
++2025-05-02,Travel,120.456,USD
++2025-05-05,Groceries,40.129,USD
++2025-05-08,Utilities,65.8,USD
++2025-05-12,Groceries,,USD
+diff --git a/apps/ui/playwright/tests/expenses.smoke.spec.js b/apps/ui/playwright/tests/expenses.smoke.spec.js
+index 7a170aa27b7a5a2cf62e68d163f99d1dd59631cf..3099ab3a9d45ac63c5fac2647a7f3fbfe112249a 100644
+--- a/apps/ui/playwright/tests/expenses.smoke.spec.js
++++ b/apps/ui/playwright/tests/expenses.smoke.spec.js
+@@ -1,39 +1,43 @@
+ import { test, expect } from '@playwright/test';
+-/**
+- * Phase 3 Expenses UI smoke tests
+- * Verifies filtering, totals calculation, and error handling
+- */
+-test('expenses filters update totals @smoke', async ({ page }) => {
++import path from 'node:path';
++import { fileURLToPath } from 'node:url';
++
++const __dirname = path.dirname(fileURLToPath(import.meta.url));
++const fixturePath = path.join(__dirname, '../fixtures/expenses-upload.csv');
++
++test('expenses upload and filters update totals @smoke', async ({ page }) => {
+     await page.goto('/');
+     const title = page.getByTestId('expenses-title');
+     await expect(title).toHaveText('Expenses overview');
++    await page.getByTestId('expenses-upload-input').setInputFiles(fixturePath);
+     const total = page.getByTestId('expenses-total');
+-    await expect(total).toHaveText('Total: $232.10');
+-    await page.getByLabel('Month').selectOption('February');
+-    await expect(page.getByTestId('expenses-total')).toHaveText('Total: $132.10');
+-    await page.getByLabel('Category').selectOption('Utilities');
+-    await expect(page.getByTestId('expenses-total')).toHaveText('Total: $90.00');
+-    await page.getByLabel('Month').selectOption('January');
++    await expect(total).toHaveText('Total: $299.32');
++    await page.getByLabel('Month').selectOption('April');
++    await expect(total).toHaveText('Total: $72.94');
++    await page.getByLabel('Month').selectOption('');
++    await page.getByLabel('Category').selectOption('Groceries');
++    await expect(total).toHaveText('Total: $67.63');
++    await page.getByLabel('Month').selectOption('April');
++    await page.getByLabel('Category').selectOption('Travel');
+     await expect(page.getByTestId('expenses-error')).toHaveText('No expenses found for the selected filters. Try a different month or category.');
+ });
+ test('clear filters button functionality @smoke', async ({ page }) => {
+     await page.goto('/');
+-    // Initially no clear button
++    await page.getByTestId('expenses-upload-input').setInputFiles(fixturePath);
+     await expect(page.getByRole('button', { name: /Clear all filters/i })).not.toBeVisible();
+-    // Apply filters
+-    await page.getByLabel('Month').selectOption('February');
++    await page.getByLabel('Month').selectOption('May');
+     await page.getByLabel('Category').selectOption('Groceries');
+-    // Clear button should appear and work
+     const clearButton = page.getByRole('button', { name: /Clear all filters/i });
+     await expect(clearButton).toBeVisible();
+     await clearButton.click();
+-    // Filters should reset
+-    await expect(page.getByTestId('expenses-total')).toHaveText('Total: $232.10');
++    await expect(page.getByTestId('expenses-total')).toHaveText('Total: $299.32');
+     await expect(clearButton).not.toBeVisible();
+ });
+ test('data quality notices display @smoke', async ({ page }) => {
+     await page.goto('/');
++    await page.getByTestId('expenses-upload-input').setInputFiles(fixturePath);
+     const issues = page.getByTestId('expenses-issues');
+     await expect(issues).toBeVisible();
+     await expect(issues.getByText(/Data quality notices/i)).toBeVisible();
++    await expect(issues).toContainText('Row 8: amount cannot be empty');
+ });
+diff --git a/apps/ui/playwright/tests/expenses.smoke.spec.ts b/apps/ui/playwright/tests/expenses.smoke.spec.ts
+index c82273e6df5cd59ed46c8c3d9ab1409c5a629368..7f6ae2d36e23418965c54415cda0063b9d5eea54 100644
+--- a/apps/ui/playwright/tests/expenses.smoke.spec.ts
++++ b/apps/ui/playwright/tests/expenses.smoke.spec.ts
+@@ -1,54 +1,68 @@
+ import { test, expect } from '@playwright/test';
++import path from 'node:path';
++import { fileURLToPath } from 'node:url';
++
++const __dirname = path.dirname(fileURLToPath(import.meta.url));
++const fixturePath = path.join(__dirname, '../fixtures/expenses-upload.csv');
+ 
+ /**
+  * Phase 3 Expenses UI smoke tests
+  * Verifies filtering, totals calculation, and error handling
+  */
+-test('expenses filters update totals @smoke', async ({ page }) => {
++test('expenses upload and filters update totals @smoke', async ({ page }) => {
+   await page.goto('/');
+ 
+   const title = page.getByTestId('expenses-title');
+   await expect(title).toHaveText('Expenses overview');
+ 
++  await page.getByLabel('Upload expenses CSV').setInputFiles(fixturePath);
++
+   const total = page.getByTestId('expenses-total');
+-  await expect(total).toHaveText('Total: $232.10');
++  await expect(total).toHaveText('Total: $299.32');
+ 
+-  await page.getByLabel('Month').selectOption('February');
+-  await expect(page.getByTestId('expenses-total')).toHaveText('Total: $132.10');
++  await page.getByLabel('Month').selectOption('April');
++  await expect(total).toHaveText('Total: $72.94');
+ 
+-  await page.getByLabel('Category').selectOption('Utilities');
+-  await expect(page.getByTestId('expenses-total')).toHaveText('Total: $90.00');
++  await page.getByLabel('Month').selectOption('');
++  await page.getByLabel('Category').selectOption('Groceries');
++  await expect(total).toHaveText('Total: $67.63');
+ 
+-  await page.getByLabel('Month').selectOption('January');
++  await page.getByLabel('Month').selectOption('April');
++  await page.getByLabel('Category').selectOption('Travel');
+   await expect(page.getByTestId('expenses-error')).toHaveText(
+     'No expenses found for the selected filters. Try a different month or category.',
+   );
+ });
+ 
+ test('clear filters button functionality @smoke', async ({ page }) => {
+   await page.goto('/');
+ 
++  await page.getByLabel('Upload expenses CSV').setInputFiles(fixturePath);
++
+   // Initially no clear button
+   await expect(page.getByRole('button', { name: /Clear all filters/i })).not.toBeVisible();
+ 
+   // Apply filters
+-  await page.getByLabel('Month').selectOption('February');
++  await page.getByLabel('Month').selectOption('May');
+   await page.getByLabel('Category').selectOption('Groceries');
+ 
+   // Clear button should appear and work
+   const clearButton = page.getByRole('button', { name: /Clear all filters/i });
+   await expect(clearButton).toBeVisible();
+   await clearButton.click();
+ 
+   // Filters should reset
+-  await expect(page.getByTestId('expenses-total')).toHaveText('Total: $232.10');
++  await expect(page.getByTestId('expenses-total')).toHaveText('Total: $299.32');
+   await expect(clearButton).not.toBeVisible();
+ });
+ 
+ test('data quality notices display @smoke', async ({ page }) => {
+   await page.goto('/');
+ 
++  await page.getByLabel('Upload expenses CSV').setInputFiles(fixturePath);
++
+   const issues = page.getByTestId('expenses-issues');
+   await expect(issues).toBeVisible();
+   await expect(issues.getByText(/Data quality notices/i)).toBeVisible();
++  await expect(issues).toContainText('Row 8: amount cannot be empty');
+ });
+diff --git a/apps/ui/src/App.css b/apps/ui/src/App.css
+index 41d66eb15534da54f87109a91e8cef11adf04f73..7ed2ef536c2c3b880a25a10c8a0dfb8dbdc6cff5 100644
+--- a/apps/ui/src/App.css
++++ b/apps/ui/src/App.css
+@@ -26,50 +26,100 @@ body {
+   box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.18);
+   padding: 3rem;
+   display: flex;
+   flex-direction: column;
+   gap: 2.5rem;
+ }
+ 
+ .expenses-page__header {
+   display: flex;
+   flex-direction: column;
+   gap: 0.75rem;
+ }
+ 
+ .expenses-page__title {
+   margin: 0;
+   font-size: 2.5rem;
+   line-height: 1.2;
+ }
+ 
+ .expenses-page__subtitle {
+   margin: 0;
+   font-size: 1.05rem;
+   color: #4c566a;
+ }
+ 
++.expenses-upload {
++  display: grid;
++  gap: 0.75rem;
++  padding: 1.5rem;
++  border-radius: 12px;
++  background: rgba(59, 130, 246, 0.08);
++  border: 1px solid rgba(59, 130, 246, 0.18);
++}
++
++.expenses-upload__label {
++  font-weight: 600;
++  font-size: 1.05rem;
++}
++
++.expenses-upload__input {
++  border: 1px dashed rgba(59, 130, 246, 0.6);
++  border-radius: 8px;
++  padding: 0.75rem 1rem;
++  background: #ffffff;
++  font-size: 1rem;
++  cursor: pointer;
++}
++
++.expenses-upload__input:focus {
++  outline: 3px solid rgba(37, 99, 235, 0.35);
++  border-color: rgba(37, 99, 235, 0.65);
++}
++
++.expenses-upload__helper {
++  margin: 0;
++  color: #1d4ed8;
++  font-size: 0.95rem;
++}
++
++.expenses-upload__summary {
++  margin: 0;
++  font-size: 0.95rem;
++  color: #1f2937;
++}
++
++.expenses-upload__error {
++  margin: 0;
++  padding: 0.75rem 1rem;
++  border-radius: 8px;
++  background: rgba(248, 113, 113, 0.12);
++  color: #b91c1c;
++  border: 1px solid rgba(248, 113, 113, 0.25);
++  font-weight: 600;
++}
++
+ .expenses-alert {
+   border: 1px solid #dbeafe;
+   border-radius: 12px;
+   background: #eff6ff;
+   padding: 1.25rem 1.5rem;
+ }
+ 
+ .expenses-alert__title {
+   margin: 0 0 0.75rem;
+   font-size: 1.1rem;
+   color: #1d4ed8;
+ }
+ 
+ .expenses-alert__list {
+   margin: 0;
+   padding-left: 1.25rem;
+   color: #1e3a8a;
+ }
+ 
+ .expenses-controls {
+   display: grid;
+   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+   gap: 1.5rem;
+   align-items: flex-end;
+ }
+diff --git a/apps/ui/src/lib/expenses/csv.ts b/apps/ui/src/lib/expenses/csv.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..6d69891799e024dfb6eeb740e9973dcbf1bc715a
+--- /dev/null
++++ b/apps/ui/src/lib/expenses/csv.ts
+@@ -0,0 +1,128 @@
++import { buildExpenseDataset, type ExpenseDataset, type RawExpenseRow } from './totals';
++
++export const MIN_EXPENSE_ROWS = 5;
++export const MAX_EXPENSE_ROWS = 200;
++
++export interface ExpenseCsvParseResult {
++  dataset: ExpenseDataset;
++  fatalErrors: string[];
++}
++
++const REQUIRED_HEADERS = ['date', 'category', 'amount'] as const;
++const OPTIONAL_HEADERS = ['currency'] as const;
++
++type NormalizedHeader = typeof REQUIRED_HEADERS[number] | typeof OPTIONAL_HEADERS[number];
++
++function splitCsvLine(line: string): string[] {
++  const values: string[] = [];
++  let current = '';
++  let inQuotes = false;
++
++  for (let index = 0; index < line.length; index += 1) {
++    const character = line[index];
++    if (character === '"') {
++      if (inQuotes && line[index + 1] === '"') {
++        current += '"';
++        index += 1;
++      } else {
++        inQuotes = !inQuotes;
++      }
++      continue;
++    }
++
++    if (character === ',' && !inQuotes) {
++      values.push(current);
++      current = '';
++      continue;
++    }
++
++    current += character;
++  }
++
++  values.push(current);
++  return values.map((value) => value.replace(/\r$/, ''));
++}
++
++function normaliseHeader(value: string): string {
++  return value.trim().toLowerCase();
++}
++
++function deriveHeaderMap(cells: readonly string[]): Map<NormalizedHeader, number> {
++  const map = new Map<NormalizedHeader, number>();
++
++  cells.forEach((cell, index) => {
++    const normalised = normaliseHeader(cell) as NormalizedHeader;
++    if (REQUIRED_HEADERS.includes(normalised as typeof REQUIRED_HEADERS[number])
++      || OPTIONAL_HEADERS.includes(normalised as typeof OPTIONAL_HEADERS[number])) {
++      if (!map.has(normalised)) {
++        map.set(normalised, index);
++      }
++    }
++  });
++
++  return map;
++}
++
++function validateHeaders(map: Map<NormalizedHeader, number>): string[] {
++  const missing = REQUIRED_HEADERS.filter((header) => !map.has(header));
++  if (missing.length === 0) {
++    return [];
++  }
++  return [`CSV header missing required columns: ${missing.join(', ')}.`];
++}
++
++export function parseExpensesCsv(contents: string): ExpenseCsvParseResult {
++  const trimmed = contents.trim();
++  if (trimmed.length === 0) {
++    return { dataset: { records: [], issues: [] }, fatalErrors: ['CSV file is empty. Provide header and at least one row.'] };
++  }
++
++  const rawLines = contents
++    .split(/\r?\n/)
++    .map((line) => line.trimEnd())
++    .filter((line) => line.length > 0);
++
++  if (rawLines.length === 0) {
++    return { dataset: { records: [], issues: [] }, fatalErrors: ['CSV file is empty. Provide header and at least one row.'] };
++  }
++
++  const [headerLine, ...dataLines] = rawLines;
++  const headerCells = splitCsvLine(headerLine);
++  const headerMap = deriveHeaderMap(headerCells);
++
++  const headerErrors = validateHeaders(headerMap);
++  if (headerErrors.length > 0) {
++    return { dataset: { records: [], issues: [] }, fatalErrors: headerErrors };
++  }
++
++  const rowCount = dataLines.length;
++  if (rowCount < MIN_EXPENSE_ROWS || rowCount > MAX_EXPENSE_ROWS) {
++    return {
++      dataset: { records: [], issues: [] },
++      fatalErrors: [
++        `CSV must contain between ${MIN_EXPENSE_ROWS} and ${MAX_EXPENSE_ROWS} rows (found ${rowCount}).`,
++      ],
++    };
++  }
++
++  const columnFor = (header: NormalizedHeader): number | undefined => headerMap.get(header);
++
++  const rawRows: RawExpenseRow[] = dataLines.map((line) => {
++    const cells = splitCsvLine(line);
++    const lookup = (header: NormalizedHeader) => {
++      const columnIndex = columnFor(header);
++      return typeof columnIndex === 'number' ? cells[columnIndex]?.trim() ?? '' : '';
++    };
++
++    return {
++      date: lookup('date'),
++      category: lookup('category'),
++      amount: lookup('amount'),
++      currency: columnFor('currency') !== undefined ? lookup('currency') : undefined,
++    };
++  });
++
++  const dataset = buildExpenseDataset(rawRows, { rowOffset: 1 });
++
++  return { dataset, fatalErrors: [] };
++}
+diff --git a/apps/ui/src/lib/expenses/totals.ts b/apps/ui/src/lib/expenses/totals.ts
+index 851ff52494007068736fd21d55f59f888a0a2f48..3556176eec0d52cb04d4c794e4c74b2fbb572e92 100644
+--- a/apps/ui/src/lib/expenses/totals.ts
++++ b/apps/ui/src/lib/expenses/totals.ts
+@@ -53,50 +53,54 @@ export interface ExpenseView {
+ 
+ const MONTH_LABELS: readonly string[] = [
+   'January',
+   'February',
+   'March',
+   'April',
+   'May',
+   'June',
+   'July',
+   'August',
+   'September',
+   'October',
+   'November',
+   'December',
+ ];
+ 
+ const CURRENCY_FALLBACK: CurrencyCode = 'USD';
+ 
+ const CURRENCY_FORMATTER = new Intl.NumberFormat('en-US', {
+   style: 'currency',
+   currency: CURRENCY_FALLBACK,
+   minimumFractionDigits: 2,
+   maximumFractionDigits: 2,
+ });
+ 
++function roundCurrencyValue(amount: number): number {
++  return Math.round((amount + Number.EPSILON) * 100) / 100;
++}
++
+ function parseDate(input: unknown, index: number): { isoDate: string; monthNumber: number; monthName: string } {
+   if (typeof input !== 'string') {
+     throw new Error(`Row ${index + 1}: date must be an ISO string.`);
+   }
+ 
+   const trimmed = input.trim();
+   if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+     throw new Error(`Row ${index + 1}: date must use YYYY-MM-DD format.`);
+   }
+ 
+   const parsed = new Date(trimmed);
+   if (Number.isNaN(parsed.getTime())) {
+     throw new Error(`Row ${index + 1}: date is invalid.`);
+   }
+ 
+   const monthNumber = parsed.getUTCMonth() + 1;
+   const monthName = MONTH_LABELS[monthNumber - 1];
+   return { isoDate: trimmed, monthNumber, monthName };
+ }
+ 
+ function parseCategory(input: unknown, index: number): string {
+   if (typeof input !== 'string') {
+     throw new Error(`Row ${index + 1}: category must be a string.`);
+   }
+ 
+@@ -117,151 +121,164 @@ function parseAmount(input: unknown, index: number): number {
+   }
+ 
+   if (typeof input === 'string') {
+     const trimmed = input.trim();
+     if (trimmed.length === 0) {
+       throw new Error(`Row ${index + 1}: amount cannot be empty.`);
+     }
+     const parsed = Number.parseFloat(trimmed);
+     if (!Number.isFinite(parsed)) {
+       throw new Error(`Row ${index + 1}: amount must be numeric.`);
+     }
+     return parsed;
+   }
+ 
+   throw new Error(`Row ${index + 1}: amount must be numeric.`);
+ }
+ 
+ function parseCurrency(input: CurrencyCode | undefined): CurrencyCode {
+   if (!input) {
+     return CURRENCY_FALLBACK;
+   }
+   const value = String(input).trim();
+   return value.length > 0 ? value : CURRENCY_FALLBACK;
+ }
+ 
+-export function buildExpenseDataset(rows: readonly RawExpenseRow[]): ExpenseDataset {
++export function buildExpenseDataset(
++  rows: readonly RawExpenseRow[],
++  options: { rowOffset?: number } = {},
++): ExpenseDataset {
+   const issues: ExpenseIssue[] = [];
+   const records: ExpenseRecord[] = [];
++  const rowOffset = options.rowOffset ?? 0;
+ 
+   rows.forEach((row, index) => {
++    const displayIndex = index + rowOffset;
+     try {
+-      const { isoDate, monthNumber, monthName } = parseDate(row.date, index);
+-      const category = parseCategory(row.category, index);
+-      const amount = parseAmount(row.amount, index);
++      const { isoDate, monthNumber, monthName } = parseDate(row.date, displayIndex);
++      const category = parseCategory(row.category, displayIndex);
++      const amount = parseAmount(row.amount, displayIndex);
+       const currency = parseCurrency(row.currency);
+       records.push({
+-        id: `expense-${index}`,
++        id: `expense-${displayIndex}`,
+         date: isoDate,
+         monthNumber,
+         monthName,
+         category,
+         amount,
+         currency,
+-        sourceIndex: index,
++        sourceIndex: displayIndex,
+       });
+     } catch (error: unknown) {
+-      issues.push({ index, message: (error as Error).message });
++      issues.push({ index: displayIndex, message: (error as Error).message });
+     }
+   });
+ 
+   return { records, issues };
+ }
+ 
+ export const SAMPLE_EXPENSE_ROWS: readonly RawExpenseRow[] = [
+   { date: '2025-01-05', category: 'Groceries', amount: 54.2, currency: 'USD' },
+   { date: '2025-01-15', category: 'Transport', amount: 18.3, currency: 'USD' },
+   { date: '2025-02-01', category: 'Groceries', amount: 42.1, currency: 'USD' },
+   { date: '2025-02-07', category: 'Utilities', amount: 90.0, currency: 'USD' },
+   { date: '2025-03-12', category: 'Entertainment', amount: 27.5, currency: 'USD' },
+   { date: 'invalid-date', category: 'Groceries', amount: 10, currency: 'USD' },
+   { date: '2025-02-22', category: '', amount: 11.25, currency: 'USD' },
+ ];
+ 
+ export const defaultExpensesDataset = buildExpenseDataset(SAMPLE_EXPENSE_ROWS);
+ 
+ function normalizeFilterValue(value: string | null | undefined): string | null {
+   if (value === null || value === undefined) {
+     return null;
+   }
+   const trimmed = value.trim();
+   return trimmed.length === 0 ? null : trimmed;
+ }
+ 
+ export function filterExpenseRecords(records: readonly ExpenseRecord[], filters: ExpenseFilters = {}): ExpenseRecord[] {
+   const monthFilter = normalizeFilterValue(filters.month);
+   const categoryFilter = normalizeFilterValue(filters.category);
+ 
+   return records.filter((record) => {
+     const monthMatches = monthFilter ? record.monthName.toLowerCase() === monthFilter.toLowerCase() : true;
+     const categoryMatches = categoryFilter
+       ? record.category.toLowerCase() === categoryFilter.toLowerCase()
+       : true;
+     return monthMatches && categoryMatches;
+   });
+ }
+ 
+ export function summarizeExpenses(records: readonly ExpenseRecord[]): ExpenseSummary {
+   const currency = records[0]?.currency ?? CURRENCY_FALLBACK;
+-  const totalsByCategory = records.reduce<ExpenseSummaryEntry[]>((acc, record) => {
+-    const existing = acc.find((entry) => entry.category.toLowerCase() === record.category.toLowerCase());
++  const totalsByCategoryMap = records.reduce<Map<string, ExpenseSummaryEntry>>((acc, record) => {
++    const key = record.category.toLowerCase();
++    const existing = acc.get(key);
+     if (existing) {
+       existing.amount += record.amount;
+       return acc;
+     }
+-    return [...acc, { category: record.category, amount: record.amount }];
+-  }, []);
++    acc.set(key, { category: record.category, amount: record.amount });
++    return acc;
++  }, new Map());
+ 
+-  totalsByCategory.sort((a, b) => a.category.localeCompare(b.category));
++  const totalsByCategory = Array.from(totalsByCategoryMap.values())
++    .map((entry) => ({
++      category: entry.category,
++      amount: roundCurrencyValue(entry.amount),
++    }))
++    .sort((a, b) => a.category.localeCompare(b.category));
+ 
+-  const total = records.reduce((sum, record) => sum + record.amount, 0);
++  const total = roundCurrencyValue(records.reduce((sum, record) => sum + record.amount, 0));
+ 
+   return {
+     total,
+     currency,
+     totalsByCategory,
+   };
+ }
+ 
+ export function buildExpenseView(records: readonly ExpenseRecord[], filters: ExpenseFilters = {}): ExpenseView {
+   const filtered = filterExpenseRecords(records, filters);
+   return {
+     records: filtered,
+     summary: summarizeExpenses(filtered),
+   };
+ }
+ 
+ export function formatCurrency(amount: number, currency: CurrencyCode = CURRENCY_FALLBACK): string {
++  const rounded = roundCurrencyValue(amount);
+   const formatter = currency === CURRENCY_FALLBACK
+     ? CURRENCY_FORMATTER
+     : new Intl.NumberFormat('en-US', {
+         style: 'currency',
+         currency,
+         minimumFractionDigits: 2,
+         maximumFractionDigits: 2,
+       });
+-  return formatter.format(amount);
++  return formatter.format(rounded);
+ }
+ 
+ export function getAvailableMonths(records: readonly ExpenseRecord[]): string[] {
+   const unique = new Map<number, string>();
+   records.forEach((record) => {
+     if (!unique.has(record.monthNumber)) {
+       unique.set(record.monthNumber, record.monthName);
+     }
+   });
+   return Array.from(unique.entries())
+     .sort((a, b) => a[0] - b[0])
+     .map(([, label]) => label);
+ }
+ 
+ export function getAvailableCategories(records: readonly ExpenseRecord[]): string[] {
+   const unique = new Set<string>();
+   records.forEach((record) => {
+     unique.add(record.category);
+   });
+   return Array.from(unique.values()).sort((a, b) => a.localeCompare(b));
+ }
+ 
+ export interface ExpenseSelectorOption {
+   label: string;
+   value: string | null;
+diff --git a/apps/ui/src/pages/Expenses.tsx b/apps/ui/src/pages/Expenses.tsx
+index 7a606c2b13c82622d1c0ed8ea886a2d6fd532aa3..1f7ced9fd4ca3da67d8fad2cfe1e844c016b4826 100644
+--- a/apps/ui/src/pages/Expenses.tsx
++++ b/apps/ui/src/pages/Expenses.tsx
+@@ -1,85 +1,173 @@
+-import { type Dispatch, type SetStateAction, useMemo, useState } from 'react';
++import { type ChangeEvent, type Dispatch, type SetStateAction, useMemo, useState } from 'react';
+ import CategorySelector from '../components/expenses/CategorySelector';
+ import MonthSelector from '../components/expenses/MonthSelector';
+ import TotalsSummary from '../components/expenses/TotalsSummary';
+ import {
+   buildCategoryOptions,
+   buildMonthOptions,
+   defaultExpensesDataset,
+   formatCurrency,
+   hasActiveFilters,
+   type ExpenseFilters,
++  type ExpenseDataset,
+   type ExpenseRecord,
+   useExpenseView,
+ } from '../lib/expenses/totals';
++import {
++  MAX_EXPENSE_ROWS,
++  MIN_EXPENSE_ROWS,
++  parseExpensesCsv,
++} from '../lib/expenses/csv';
+ 
+ function useExpenseFilters(): [
+   ExpenseFilters,
+   Dispatch<SetStateAction<string | null>>,
+   Dispatch<SetStateAction<string | null>>,
+   () => void,
+ ] {
+   const [month, setMonth] = useState<string | null>(null);
+   const [category, setCategory] = useState<string | null>(null);
+ 
+   const filters = useMemo<ExpenseFilters>(() => ({ month, category }), [month, category]);
+ 
+   const clearFilters = () => {
+     setMonth(null);
+     setCategory(null);
+   };
+ 
+   return [filters, setMonth, setCategory, clearFilters];
+ }
+ 
++interface DatasetMeta {
++  label: string;
++  rowCount: number;
++}
++
++async function readCsvFile(file: File): Promise<string> {
++  if (typeof file.text === 'function') {
++    return file.text();
++  }
++
++  return new Promise((resolve, reject) => {
++    const reader = new FileReader();
++    reader.onerror = () => {
++      reject(new Error('Unable to read CSV file.'));
++    };
++    reader.onload = () => {
++      const result = reader.result;
++      resolve(typeof result === 'string' ? result : String(result));
++    };
++    reader.readAsText(file);
++  });
++}
++
+ /**
+  * Expenses overview page with filtering capabilities.
+  * Mirrors CLI functionality with enhanced UX including clear filters button.
+  */
+ function Expenses(): JSX.Element {
+-  const { records, issues } = defaultExpensesDataset;
++  const [dataset, setDataset] = useState<ExpenseDataset>(defaultExpensesDataset);
++  const [datasetMeta, setDatasetMeta] = useState<DatasetMeta>({
++    label: 'Sample dataset',
++    rowCount: defaultExpensesDataset.records.length,
++  });
++  const [uploadError, setUploadError] = useState<string | null>(null);
+   const [filters, setMonth, setCategory, clearFilters] = useExpenseFilters();
+ 
++  const records = dataset.records;
++  const issues = dataset.issues;
++
+   const monthOptions = useMemo(() => buildMonthOptions(records), [records]);
+   const categoryOptions = useMemo(() => buildCategoryOptions(records), [records]);
+ 
+   const view = useExpenseView(records, filters);
+   const hasData = view.records.length > 0;
+   const filtersActive = hasActiveFilters(filters);
+ 
++  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
++    const file = event.target.files?.[0];
++    if (!file) {
++      return;
++    }
++
++    try {
++      setUploadError(null);
++      const contents = await readCsvFile(file);
++      const result = parseExpensesCsv(contents);
++      if (result.fatalErrors.length > 0) {
++        setUploadError(result.fatalErrors.join(' '));
++        return;
++      }
++
++      setDataset(result.dataset);
++      setDatasetMeta({ label: file.name, rowCount: result.dataset.records.length });
++      clearFilters();
++    } catch (error: unknown) {
++      setUploadError('Unable to read CSV file. Please choose a valid text-based CSV.');
++    } finally {
++      event.target.value = '';
++    }
++  };
++
+   return (
+     <div className="expenses-page" role="main">
+       <header className="expenses-page__header">
+         <h1 className="expenses-page__title" data-testid="expenses-title">
+           Expenses overview
+         </h1>
+         <p className="expenses-page__subtitle">
+           Filter by month and category to mirror the CLI summary output. Totals update instantly.
+         </p>
+       </header>
+ 
++      <section className="expenses-upload" aria-label="Upload expenses CSV">
++        <label className="expenses-upload__label" htmlFor="expenses-upload-input">
++          Upload expenses CSV
++        </label>
++        <input
++          id="expenses-upload-input"
++          data-testid="expenses-upload-input"
++          className="expenses-upload__input"
++          type="file"
++          accept=".csv,text/csv"
++          onChange={handleFileChange}
++        />
++        <p className="expenses-upload__helper">
++          Accepts CSV files with columns <code>date, category, amount[, currency]</code> and between {MIN_EXPENSE_ROWS}
++          &nbsp;and {MAX_EXPENSE_ROWS} rows. Totals use deterministic rounding to exactly two decimal places.
++        </p>
++        <p className="expenses-upload__summary" data-testid="expenses-upload-summary">
++          Loaded <strong>{datasetMeta.rowCount}</strong> valid rows from <strong>{datasetMeta.label}</strong>.
++        </p>
++        {uploadError && (
++          <p className="expenses-upload__error" role="alert" data-testid="expenses-upload-error">
++            {uploadError}
++          </p>
++        )}
++      </section>
++
+       {issues.length > 0 && (
+         <section className="expenses-alert" role="status" data-testid="expenses-issues">
+           <h2 className="expenses-alert__title">Data quality notices</h2>
+           <ul className="expenses-alert__list">
+             {issues.map((issue) => (
+               <li key={issue.index} className="expenses-alert__item">
+                 {issue.message}
+               </li>
+             ))}
+           </ul>
+         </section>
+       )}
+ 
+       <section className="expenses-controls" aria-label="Expenses filters">
+         <MonthSelector options={monthOptions} value={filters.month ?? null} onChange={setMonth} />
+         <CategorySelector options={categoryOptions} value={filters.category ?? null} onChange={setCategory} />
+         {filtersActive && (
+           <button
+             type="button"
+             className="expenses-controls__clear-btn"
+             onClick={clearFilters}
+             aria-label="Clear all filters"
+           >
+             Clear filters
+           </button>
+diff --git a/apps/ui/src/pages/ExpensesPage.tsx b/apps/ui/src/pages/ExpensesPage.tsx
+index 34f44343352191287355be32373ce3836df10f28..16ac009498fe03040e4c676b2b1ac63c61fd9eeb 100644
+--- a/apps/ui/src/pages/ExpensesPage.tsx
++++ b/apps/ui/src/pages/ExpensesPage.tsx
+@@ -1,20 +1,20 @@
+-import { ExpensesPlaceholder } from '../components/index.js';
++import Expenses from './Expenses.js';
+ 
+ /**
+  * Expenses page for tracking spending summaries that mirror the CLI.
+  * This page will eventually provide filtering by month/category and display totals.
+  */
+ export function ExpensesPage(): JSX.Element {
+   return (
+     <section aria-labelledby="expenses-heading" className="page">
+       <header className="page-header">
+         <h2 id="expenses-heading">Expenses</h2>
+         <p>
+           Track spending summaries that mirror the CLI. This placeholder confirms routing structure
+           before detailed UI work begins.
+         </p>
+       </header>
+-      <ExpensesPlaceholder />
++      <Expenses />
+     </section>
+   );
+ }
+diff --git a/apps/ui/src/tests/expenses.test.tsx b/apps/ui/src/tests/expenses.test.tsx
+index 45aa46fe7f6c5f1184868a464e2e470386713092..3bad7eaa133dc7553a845819cfc15db07a54a63d 100644
+--- a/apps/ui/src/tests/expenses.test.tsx
++++ b/apps/ui/src/tests/expenses.test.tsx
+@@ -1,41 +1,42 @@
+-import { render, screen, within } from '@testing-library/react';
++import { render, screen, within, waitFor } from '@testing-library/react';
+ import userEvent from '@testing-library/user-event';
+ import Expenses from '../pages/Expenses';
+ import MonthSelector from '../components/expenses/MonthSelector';
+ import CategorySelector from '../components/expenses/CategorySelector';
+ import TotalsSummary from '../components/expenses/TotalsSummary';
+ import {
+   buildExpenseView,
+   defaultExpensesDataset,
+   filterExpenseRecords,
+   buildMonthOptions,
+   buildCategoryOptions,
+   hasActiveFilters,
+   type ExpenseFilters,
+   type ExpenseSelectorOption,
+ } from '../lib/expenses/totals';
++import { MAX_EXPENSE_ROWS, MIN_EXPENSE_ROWS, parseExpensesCsv } from '../lib/expenses/csv';
+ 
+ const { records, issues } = defaultExpensesDataset;
+ 
+ describe('expenses totals logic', () => {
+   interface Case {
+     readonly name: string;
+     readonly filters: ExpenseFilters;
+     readonly expectedTotal: number;
+     readonly expectedCategories: readonly string[];
+   }
+ 
+   const cases: readonly Case[] = [
+     {
+       name: 'all data',
+       filters: {},
+       expectedTotal: 232.1,
+       expectedCategories: ['Entertainment', 'Groceries', 'Transport', 'Utilities'],
+     },
+     {
+       name: 'filters by month',
+       filters: { month: 'February' },
+       expectedTotal: 132.1,
+       expectedCategories: ['Groceries', 'Utilities'],
+     },
+     {
+@@ -75,50 +76,101 @@ describe('expenses totals logic', () => {
+   it('hasActiveFilters returns true when filters are set', () => {
+     expect(hasActiveFilters({ month: 'January' })).toBe(true);
+     expect(hasActiveFilters({ category: 'Groceries' })).toBe(true);
+     expect(hasActiveFilters({ month: 'January', category: 'Groceries' })).toBe(true);
+   });
+ 
+   it('hasActiveFilters returns false when no filters are set', () => {
+     expect(hasActiveFilters({})).toBe(false);
+     expect(hasActiveFilters({ month: null, category: null })).toBe(false);
+     expect(hasActiveFilters({ month: '', category: '' })).toBe(false);
+   });
+ 
+   it('buildMonthOptions includes "All months" option', () => {
+     const options = buildMonthOptions(records);
+     expect(options[0]).toEqual({ label: 'All months', value: null });
+     expect(options.length).toBeGreaterThan(1);
+   });
+ 
+   it('buildCategoryOptions includes "All categories" option', () => {
+     const options = buildCategoryOptions(records);
+     expect(options[0]).toEqual({ label: 'All categories', value: null });
+     expect(options.length).toBeGreaterThan(1);
+   });
+ });
+ 
++describe('parseExpensesCsv', () => {
++  it('parses valid CSV within bounds and builds dataset', () => {
++    const csv = [
++      'date,category,amount,currency',
++      '2025-01-01,Groceries,42.157,USD',
++      '2025-01-05,Transport,10,USD',
++      '2025-02-10,Utilities,58.234,USD',
++      '2025-02-17,Entertainment,19.99,USD',
++      '2025-03-01,Café latte,12.5,USD',
++    ].join('\n');
++
++    const result = parseExpensesCsv(csv);
++
++    expect(result.fatalErrors).toEqual([]);
++    expect(result.dataset.records).toHaveLength(5);
++    const categories = result.dataset.records.map((record) => record.category);
++    expect(categories).toContain('Café latte');
++    expect(result.dataset.issues).toHaveLength(0);
++  });
++
++  it('returns fatal errors when row count is outside allowed bounds', () => {
++    const rows = Array.from({ length: MIN_EXPENSE_ROWS - 1 }, (_, index) => `2025-01-0${index + 1},Groceries,10`);
++    const csv = ['date,category,amount', ...rows].join('\n');
++
++    const result = parseExpensesCsv(csv);
++
++    expect(result.dataset.records).toHaveLength(0);
++    expect(result.fatalErrors).toEqual([
++      `CSV must contain between ${MIN_EXPENSE_ROWS} and ${MAX_EXPENSE_ROWS} rows (found ${MIN_EXPENSE_ROWS - 1}).`,
++    ]);
++  });
++
++  it('collects row-level issues while keeping valid rows', () => {
++    const csv = [
++      'date,category,amount',
++      '2025-01-01,Groceries,42.10',
++      '2025-01-02,,20',
++      '2025-01-03,Transport,invalid',
++      '2025-01-04,Utilities,30',
++      '2025-01-05,Entertainment,15',
++    ].join('\n');
++
++    const result = parseExpensesCsv(csv);
++
++    expect(result.dataset.records).toHaveLength(3);
++    expect(result.dataset.issues).toHaveLength(2);
++    expect(result.dataset.issues[0].message).toMatch(/Row 3: category cannot be empty/);
++    expect(result.dataset.issues[1].message).toMatch(/Row 4: amount must be numeric/);
++  });
++});
++
+ describe('MonthSelector component', () => {
+   const mockOptions: ExpenseSelectorOption[] = [
+     { label: 'All months', value: null },
+     { label: 'January', value: 'January' },
+     { label: 'February', value: 'February' },
+   ];
+ 
+   it('renders all month options', () => {
+     const mockOnChange = vi.fn();
+     render(<MonthSelector options={mockOptions} value={null} onChange={mockOnChange} />);
+ 
+     const select = screen.getByLabelText(/Filter expenses by month/i);
+     const options = within(select).getAllByRole('option');
+ 
+     expect(options).toHaveLength(3);
+     expect(options[0]).toHaveTextContent('All months');
+     expect(options[1]).toHaveTextContent('January');
+     expect(options[2]).toHaveTextContent('February');
+   });
+ 
+   it('calls onChange with selected value', async () => {
+     const mockOnChange = vi.fn();
+     const user = userEvent.setup();
+ 
+     render(<MonthSelector options={mockOptions} value={null} onChange={mockOnChange} />);
+@@ -156,82 +208,134 @@ describe('CategorySelector component', () => {
+     const select = screen.getByLabelText(/Filter expenses by category/i);
+     const options = within(select).getAllByRole('option');
+ 
+     expect(options).toHaveLength(3);
+     expect(options[0]).toHaveTextContent('All categories');
+     expect(options[1]).toHaveTextContent('Groceries');
+     expect(options[2]).toHaveTextContent('Transport');
+   });
+ 
+   it('calls onChange with selected value', async () => {
+     const mockOnChange = vi.fn();
+     const user = userEvent.setup();
+ 
+     render(<CategorySelector options={mockOptions} value={null} onChange={mockOnChange} />);
+ 
+     const select = screen.getByLabelText(/Filter expenses by category/i);
+     await user.selectOptions(select, 'Groceries');
+ 
+     expect(mockOnChange).toHaveBeenCalledWith('Groceries');
+   });
+ });
+ 
+ describe('TotalsSummary component', () => {
+   it('displays totals and breakdown when data exists', () => {
+     const mockSummary = {
+-      total: 150.5,
++      total: 150.55,
+       currency: 'USD',
+       totalsByCategory: [
+-        { category: 'Groceries', amount: 100 },
+-        { category: 'Transport', amount: 50.5 },
++        { category: 'Groceries', amount: 100.004 },
++        { category: 'Transport', amount: 50.546 },
+       ],
+     };
+ 
+     render(<TotalsSummary summary={mockSummary} hasData={true} />);
+ 
+-    expect(screen.getByTestId('expenses-total')).toHaveTextContent(/Total:\s*\$150\.50/);
++    expect(screen.getByTestId('expenses-total')).toHaveTextContent(/Total:\s*\$150\.55/);
+     expect(screen.getByText('Groceries')).toBeInTheDocument();
+     expect(screen.getByText('$100.00')).toBeInTheDocument();
+     expect(screen.getByText('Transport')).toBeInTheDocument();
+-    expect(screen.getByText('$50.50')).toBeInTheDocument();
++    expect(screen.getByText('$50.55')).toBeInTheDocument();
+   });
+ 
+   it('displays empty state when no data exists', () => {
+     const mockSummary = {
+       total: 0,
+       currency: 'USD',
+       totalsByCategory: [],
+     };
+ 
+     render(<TotalsSummary summary={mockSummary} hasData={false} />);
+ 
+     expect(screen.getByTestId('expenses-empty-state')).toBeInTheDocument();
+     expect(screen.getByText(/No expenses found/i)).toBeInTheDocument();
+   });
+ });
+ 
+ describe('Expenses page behaviour', () => {
++  it('renders upload helper and summary with deterministic rounding note', () => {
++    render(<Expenses />);
++
++    expect(screen.getByText('Upload expenses CSV')).toBeInTheDocument();
++    expect(screen.getByTestId('expenses-upload-input')).toBeInTheDocument();
++    expect(screen.getByText(/deterministic rounding to exactly two decimal places/i)).toBeInTheDocument();
++    expect(screen.getByTestId('expenses-upload-summary')).toHaveTextContent('Sample dataset');
++  });
++
++  it('uploads a CSV file, refreshes dataset, and updates totals', async () => {
++    const user = userEvent.setup();
++    render(<Expenses />);
++
++    const csv = [
++      'date,category,amount,currency',
++      '2025-04-01,Gym,33.335,USD',
++      '2025-04-05,Groceries,27.501,USD',
++      '2025-04-10,Café,12.1,USD',
++      '2025-04-12,Groceries,30.2,USD',
++      '2025-04-14,Transport,8.4,USD',
++    ].join('\n');
++
++    const file = new File([csv], 'april-expenses.csv', { type: 'text/csv' });
++    const input = screen.getByTestId('expenses-upload-input') as HTMLInputElement;
++
++    await user.upload(input, file);
++
++    await waitFor(() => {
++      expect(screen.getByTestId('expenses-total')).toHaveTextContent(/Total:\s*\$111\.54/);
++    });
++
++    expect(screen.getByTestId('expenses-upload-summary')).toHaveTextContent('april-expenses.csv');
++
++    const monthSelect = screen.getByLabelText(/Month/i);
++    await user.selectOptions(monthSelect, 'April');
++    expect(screen.getByTestId('expenses-total')).toHaveTextContent(/Total:\s*\$111\.54/);
++  });
++
++  it('shows upload error when CSV is outside of allowed bounds', async () => {
++    const user = userEvent.setup();
++    render(<Expenses />);
++
++    const csv = ['date,category,amount', '2025-01-01,Groceries,10', '2025-01-02,Transport,5'].join('\n');
++    const file = new File([csv], 'too-short.csv', { type: 'text/csv' });
++
++    await user.upload(screen.getByTestId('expenses-upload-input'), file);
++
++    expect(await screen.findByTestId('expenses-upload-error')).toHaveTextContent(
++      `between ${MIN_EXPENSE_ROWS} and ${MAX_EXPENSE_ROWS}`,
++    );
++  });
++
+   it('updates totals when filters change and shows inline errors', async () => {
+     const user = userEvent.setup();
+     render(<Expenses />);
+ 
+     const monthSelect = screen.getByLabelText(/month/i);
+     const categorySelect = screen.getByLabelText(/category/i);
+ 
+     expect(screen.getByTestId('expenses-total')).toHaveTextContent(/Total:\s*\$232\.10/);
+     expect(screen.queryByTestId('expenses-error')).toBeNull();
+ 
+     await user.selectOptions(monthSelect, 'February');
+     expect(screen.getByTestId('expenses-total')).toHaveTextContent(/Total:\s*\$132\.10/);
+ 
+     await user.selectOptions(categorySelect, 'Utilities');
+     expect(screen.getByTestId('expenses-total')).toHaveTextContent(/Total:\s*\$90\.00/);
+     expect(screen.queryByTestId('expenses-error')).toBeNull();
+ 
+     await user.selectOptions(monthSelect, 'January');
+     expect(screen.getByTestId('expenses-empty-state')).toHaveTextContent('No expenses found');
+     expect(screen.getByTestId('expenses-error')).toBeInTheDocument();
+   });
+ 
+   it('shows clear filters button when filters are active', async () => {
+     const user = userEvent.setup();
+     render(<Expenses />);
+diff --git a/specs/slice-a-expenses-csv/tasks.md b/specs/slice-a-expenses-csv/tasks.md
+index 5d5c5da7a5deee8224856ba2f564b70cac52f8f8..17632cbeede1e03811d4884c22db6b5e25736eb7 100644
+--- a/specs/slice-a-expenses-csv/tasks.md
++++ b/specs/slice-a-expenses-csv/tasks.md
+@@ -1,19 +1,19 @@
+ # Slice A — Tasks (Expenses: CSV Import + Totals)
+ 
+-Status: Planned (Day 1)
++Status: Completed
+ 
+ ## Build
+-- [ ] T001 Add CSV upload control with visible label and helper text on `Expenses` page.
+-- [ ] T002 Implement CSV parser with schema validation, 5–200 row bounds, and row-level error collection.
+-- [ ] T003 Integrate parsed records into the view; month/category filters operate on uploaded data; empty dataset UX.
+-- [ ] T004 Totals summary uses deterministic 2dp rounding consistent with CLI; document rounding in UI help.
++- [x] T001 Add CSV upload control with visible label and helper text on `Expenses` page.
++- [x] T002 Implement CSV parser with schema validation, 5–200 row bounds, and row-level error collection.
++- [x] T003 Integrate parsed records into the view; month/category filters operate on uploaded data; empty dataset UX.
++- [x] T004 Totals summary uses deterministic 2dp rounding consistent with CLI; document rounding in UI help.
+ 
+ ## Tests
+-- [ ] T005 Unit tests (table‑driven): valid/invalid CSV, bounds errors, month/category filters, 2dp rounding, non‑ASCII categories.
++- [x] T005 Unit tests (table‑driven): valid/invalid CSV, bounds errors, month/category filters, 2dp rounding, non‑ASCII categories.
+ 
+ ## CI & Artifacts
+-- [ ] T006 Playwright `@smoke` (upload → filter → totals) + axe a11y; export UI coverage and Playwright report to `review-artifacts/` (UI ≥ 50% changed modules) and update README review box.
++- [x] T006 Playwright `@smoke` (upload → filter → totals) + axe a11y; export UI coverage and Playwright report to `review-artifacts/` (UI ≥ 50% changed modules) and update README review box.
+ 
+ ## Documentation
+ 
+ 

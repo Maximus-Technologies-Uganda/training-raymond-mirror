@@ -4,18 +4,19 @@ import { formatCurrency } from '../../lib/expenses/totals';
 export interface TotalsSummaryProps {
   summary: ExpenseSummary;
   hasData: boolean;
+  emptyMessage?: string;
 }
 
 /**
  * Displays expense totals and breakdown by category.
  * Shows empty state when no data matches the current filters.
  */
-function TotalsSummary({ summary, hasData }: TotalsSummaryProps): JSX.Element {
+function TotalsSummary({ summary, hasData, emptyMessage }: TotalsSummaryProps): JSX.Element {
   if (!hasData) {
     return (
       <section className="expenses-summary" aria-live="polite" data-testid="expenses-empty-state">
         <h2 className="expenses-summary__title">Totals</h2>
-        <p className="expenses-summary__empty">No expenses found for the selected filters.</p>
+        <p className="expenses-summary__empty">{emptyMessage ?? 'No expenses found for the selected filters.'}</p>
       </section>
     );
   }

@@ -1,0 +1,6 @@
+date,category,amount,currency
+2025-01-01,"Groceries, organic",42.50,USD
+2025-01-02,"O'Reilly Books",29.99,USD
+2025-01-03,Normal Category,10.00,USD
+2025-01-04,"Value with ""quotes""",15.00,USD
+2025-01-05,"Café & Restaurant",25.00,USD
