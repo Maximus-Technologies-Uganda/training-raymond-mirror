@@ -2,16 +2,20 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import App from './App';
 
 describe('App', () => {
-  it('renders the expenses overview page', () => {
+  it('renders the expenses overview page in empty state', () => {
     render(<App />);
     expect(screen.getByTestId('expenses-title')).toHaveTextContent('Expenses overview');
-    expect(screen.getByTestId('expenses-total')).toHaveTextContent(/Total:\s*\$232\.10/);
+    // In empty state, shows empty message instead of total
+    expect(screen.getByTestId('expenses-empty-state')).toHaveTextContent(/Upload a CSV file to see totals/);
   });
 
-  it('displays data quality notices for malformed rows', () => {
+  it('shows upload section and disabled filters before upload', () => {
     render(<App />);
-    expect(screen.getByTestId('expenses-issues')).toBeInTheDocument();
-    expect(screen.getByText(/Data quality notices/i)).toBeInTheDocument();
+    const uploadInput = screen.getByLabelText(/Upload expenses CSV/i, { selector: 'input' });
+    expect(uploadInput).toBeInTheDocument();
+    // Filters should be disabled until CSV is uploaded
+    expect(screen.getByLabelText(/Filter expenses by month/i)).toBeDisabled();
+    expect(screen.getByLabelText(/Filter expenses by category/i)).toBeDisabled();
   });
 
   it('renders filter controls', () => {
@@ -22,8 +26,10 @@ describe('App', () => {
 
   it('renders the totals summary section', () => {
     render(<App />);
-    expect(screen.getByText(/By category/i)).toBeInTheDocument();
-    expect(screen.getByTestId('expenses-total')).toBeInTheDocument();
+    const summaryHeading = screen.getByRole('heading', { name: /^Totals$/i });
+    expect(summaryHeading).toBeInTheDocument();
+    // In empty state, shows empty state message
+    expect(screen.getByTestId('expenses-empty-state')).toBeInTheDocument();
   });
 
   it('renders the expenses table', () => {
