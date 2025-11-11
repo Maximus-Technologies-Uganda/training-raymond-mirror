@@ -99,19 +99,36 @@ jobs:
           fi
           OWNER='${{ github.repository_owner }}'
           REPO='${{ github.event.repository.name }}'
+          GH_FAILURE=0
           while read N; do
             [ -z "$N" ] && continue
             Q='query($owner:String!,$repo:String!,$num:Int!){repository(owner:$owner,name:$repo){issue(number:$num){projectItems(first:50){nodes{id project{number}}}}}}'
-            R=$(gh api graphql -f query="$Q" -F owner="$OWNER" -F repo="$REPO" -F num="$N")
-            echo "$R" | jq -r --arg pn "${PROJECT_NUMBER}" '.data.repository.issue.projectItems.nodes[] | select(.project.number == ($pn|tonumber)) | .id' | while read ITEM; do
+            if ! R=$(gh api graphql -f query="$Q" -F owner="$OWNER" -F repo="$REPO" -F num="$N"); then
+              echo "Skipping issue #$N: unable to query project items (check GH_TOKEN permissions)." >&2
+              GH_FAILURE=1
+              continue
+            fi
+            echo "$R" | jq -r --arg pn "${PROJECT_NUMBER}" '.data.repository.issue.projectItems.nodes[] | select(.project.number == ($pn|tonumber)) | .id' > project_items.txt
+            if [ ! -s project_items.txt ]; then
+              continue
+            fi
+            while read ITEM; do
               [ -z "$ITEM" ] && continue
               MID='mutation($project:ID!,$item:ID!,$field:ID!,$opt:String!){updateProjectV2ItemFieldValue(input:{projectId:$project,itemId:$item,fieldId:$field,value:{singleSelectOptionId:$opt}}){clientMutationId}}'
-              gh api graphql -f query="$MID" \
+              if ! gh api graphql -f query="$MID" \
                 -F project='${{ steps.proj.outputs.project_id }}' \
                 -F item="$ITEM" \
                 -F field='${{ steps.proj.outputs.status_field_id }}' \
-                -F opt='${{ steps.proj.outputs.done_option_id }}'
-            done
+                -F opt='${{ steps.proj.outputs.done_option_id }}'; then
+                echo "Failed to update project item $ITEM for issue #$N (check GH_TOKEN permissions)." >&2
+                GH_FAILURE=1
+              fi
+            done < project_items.txt
           done < issues_final.txt
+          rm -f project_items.txt
+          if [ "$GH_FAILURE" -eq 1 ]; then
+            echo "One or more GitHub API requests failed. Project automation has been partially skipped." >&2
+          fi
+          exit 0
 
 
