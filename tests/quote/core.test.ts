@@ -50,6 +50,16 @@ describe('quote core', () => {
     expect(formatQuote(quote)).toBe('"Success is liking yourself, liking what you do, and liking how you do it." — Maya Angelou (tags: inspiration, success)');
   });
 
+  it('selects deterministic quotes for string seeds and varies across different seeds', () => {
+    const quotes = parseQuotes(SAMPLE_QUOTES_JSON, 'json');
+    const first = selectQuote(quotes, { seed: 'demo-seed' });
+    const second = selectQuote(quotes, { seed: 'demo-seed' });
+    const different = selectQuote(quotes, { seed: 'another-seed' });
+
+    expect(first).toEqual(second);
+    expect(formatQuote(different)).not.toBe(formatQuote(first));
+  });
+
   it('throws a helpful error when author is not found', () => {
     const quotes: QuoteRecord[] = parseQuotes(SAMPLE_QUOTES_JSON, 'json');
     expect(() => selectQuote(quotes, { author: 'Unknown' })).toThrow('No quotes found for author "Unknown".');

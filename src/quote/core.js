@@ -210,8 +210,35 @@ export function filterQuotes(quotes, filters = {}) {
   return filterNormalizedQuotes(normalized, filters);
 }
 
+function toSeedValue(seed) {
+  if (seed === undefined || seed === null) {
+    return 1;
+  }
+
+  if (typeof seed === 'number') {
+    if (!Number.isFinite(seed)) {
+      throw new Error('Seed must be a finite number.');
+    }
+    const normalized = Math.floor(Math.abs(seed));
+    return normalized === 0 ? 1 : normalized;
+  }
+
+  const text = String(seed).trim();
+  if (text.length === 0) {
+    return 1;
+  }
+
+  let hash = 0;
+  for (let index = 0; index < text.length; index += 1) {
+    hash = (hash * 31 + text.charCodeAt(index)) | 0;
+  }
+  const normalized = Math.abs(hash);
+  return normalized === 0 ? 1 : normalized;
+}
+
 function createSeededRandom(seed) {
-  let state = (seed >>> 0) || 1;
+  const seedValue = toSeedValue(seed);
+  let state = seedValue >>> 0;
   return () => {
     state = (state * 1664525 + 1013904223) % 0x100000000;
     return state / 0x100000000;
@@ -223,7 +250,7 @@ export function pickRandom(items, seed = null) {
     throw new Error('No items to pick from');
   }
 
-  const randomSource = seed === null || seed === undefined ? Math.random : createSeededRandom(Number(seed));
+  const randomSource = seed === null || seed === undefined ? Math.random : createSeededRandom(seed);
   const index = Math.floor(randomSource() * items.length) % items.length;
   return items[index];
 }

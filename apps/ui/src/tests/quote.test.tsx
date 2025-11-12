@@ -1,12 +1,18 @@
 import { render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { beforeEach } from 'vitest';
 import Quote from '../pages/Quote';
 import { createSeededRandom } from '../lib/random/seeded';
 import { SAMPLE_QUOTES } from '../lib/quote/sampleData';
+import { DEFAULT_QUOTE_SEED } from '../lib/quote/view';
 
 const DEFAULT_SEED = 'ui-test-seed';
 
 describe('Quote page', () => {
+  beforeEach(() => {
+    window.history.replaceState({}, '', '/');
+  });
+
   it('renders a deterministic featured quote using the provided seed', () => {
     render(<Quote initialSeed={DEFAULT_SEED} />);
 
@@ -40,11 +46,33 @@ describe('Quote page', () => {
     });
   });
 
+  it('normalizes blank seeds from the URL and user input', async () => {
+    const user = userEvent.setup();
+    window.history.pushState({}, '', '/quote?seed=%20');
+
+    render(<Quote />);
+
+    const seedInput = await screen.findByTestId('quote-seed-input');
+    // Blank seed from URL is normalized to default seed
+    expect(seedInput).toHaveValue(' ');
+
+    await user.clear(seedInput);
+
+    // After clearing, input is empty but effective seed uses default
+    await waitFor(() => {
+      expect(seedInput).toHaveValue('');
+      // URL doesn't show default seed (only non-default seeds are in URL)
+      expect(window.location.search).toBe('');
+    });
+  });
+
   it('filters quotes by author and shows clear filters control', async () => {
     const user = userEvent.setup();
     render(<Quote initialSeed={DEFAULT_SEED} />);
 
-    await user.selectOptions(screen.getByTestId('quote-filter-author'), 'Maya Angelou');
+    const authorInput = screen.getByTestId('quote-filter-author');
+    await user.clear(authorInput);
+    await user.type(authorInput, 'maya angelou');
 
     const resultsList = await screen.findByTestId('quote-filtered-list');
     const items = within(resultsList).getAllByRole('listitem');
@@ -93,7 +121,9 @@ describe('Quote page', () => {
     render(<Quote initialSeed={DEFAULT_SEED} />);
 
     // Apply filters
-    await user.selectOptions(screen.getByTestId('quote-filter-author'), 'Maya Angelou');
+    const authorInput = screen.getByTestId('quote-filter-author');
+    await user.clear(authorInput);
+    await user.type(authorInput, 'Maya Angelou');
 
     // Wait for clear button
     await waitFor(() => {
@@ -103,9 +133,11 @@ describe('Quote page', () => {
     // Clear filters
     await user.click(screen.getByTestId('quote-clear-filters'));
 
-    // Should show featured quote again
+    // Should show featured quote again and focus author input
     await waitFor(() => {
       expect(screen.getByTestId('quote-featured')).toBeInTheDocument();
+      expect(screen.getByTestId('quote-filter-author')).toHaveValue('');
+      expect(screen.getByTestId('quote-filter-author')).toHaveFocus();
     });
   });
 
@@ -114,7 +146,10 @@ describe('Quote page', () => {
     render(<Quote initialSeed={DEFAULT_SEED} />);
 
     // Select author
-    await user.selectOptions(screen.getByTestId('quote-filter-author'), 'Maya Angelou');
+    const authorInput = screen.getByTestId('quote-filter-author');
+    await user.clear(authorInput);
+    await user.type(authorInput, 'Maya Angelou');
+
     // Select incompatible tag
     await user.selectOptions(screen.getByTestId('quote-filter-tag'), 'leadership');
 
@@ -132,15 +167,15 @@ describe('Quote page', () => {
     expect(screen.getByText(/Ctrl\+\/ to focus/)).toBeInTheDocument();
   });
 
-  it('displays available authors in dropdown', () => {
+  it('surfaces author suggestions via datalist', () => {
     render(<Quote initialSeed={DEFAULT_SEED} />);
 
-    const authorSelect = screen.getByTestId('quote-filter-author');
-    const options = within(authorSelect).getAllByRole('option');
+    const datalist = screen.getByTestId('quote-author-options');
+    const optionValues = Array.from(datalist.querySelectorAll('option')).map((option) => option.getAttribute('value'));
 
-    expect(options[0]).toHaveTextContent('All authors');
-    expect(options.length).toBeGreaterThan(1);
-    expect(options.some((opt) => opt.textContent === 'Maya Angelou')).toBe(true);
+    expect(optionValues.length).toBeGreaterThan(0);
+    expect(optionValues).toContain('Maya Angelou');
+    expect(optionValues).toContain('Robert Frost');
   });
 
   it('displays available tags in dropdown', () => {
@@ -152,5 +187,60 @@ describe('Quote page', () => {
     expect(options[0]).toHaveTextContent('All tags');
     expect(options.length).toBeGreaterThan(1);
     expect(options.some((opt) => opt.textContent === 'resilience')).toBe(true);
+  });
+
+  it('syncs filters and seed with the URL query string', async () => {
+    const user = userEvent.setup();
+    render(<Quote />);
+
+    const authorInput = screen.getByTestId('quote-filter-author');
+    const tagSelect = screen.getByTestId('quote-filter-tag');
+    const seedInput = screen.getByTestId('quote-seed-input');
+
+    expect(window.location.search).toBe('');
+
+    await user.type(authorInput, 'Maya Angelou');
+    await user.selectOptions(tagSelect, 'hope');
+
+    await waitFor(() => {
+      const params = new URLSearchParams(window.location.search);
+      expect(params.get('author')).toBe('Maya Angelou');
+      expect(params.get('tag')).toBe('hope');
+    });
+
+    await user.clear(seedInput);
+    await user.type(seedInput, 'custom-seed');
+
+    await waitFor(() => {
+      const params = new URLSearchParams(window.location.search);
+      expect(params.get('seed')).toBe('custom-seed');
+    });
+
+    await user.click(screen.getByTestId('quote-clear-filters'));
+
+    await waitFor(() => {
+      const params = new URLSearchParams(window.location.search);
+      expect(params.has('author')).toBe(false);
+      expect(params.has('tag')).toBe(false);
+      expect(params.get('seed')).toBe('custom-seed');
+    });
+
+    await user.clear(seedInput);
+
+    await waitFor(() => {
+      const params = new URLSearchParams(window.location.search);
+      expect(params.has('seed')).toBe(false);
+      expect(seedInput).toHaveValue('');
+    });
+  });
+
+  it('hydrates filters and seed from the URL when present', () => {
+    window.history.replaceState({}, '', '/?author=Maya%20Angelou&tag=hope&seed=demo-seed');
+
+    render(<Quote />);
+
+    expect(screen.getByTestId('quote-filter-author')).toHaveValue('Maya Angelou');
+    expect(screen.getByTestId('quote-filter-tag')).toHaveValue('hope');
+    expect(screen.getByTestId('quote-seed-input')).toHaveValue('demo-seed');
   });
 });

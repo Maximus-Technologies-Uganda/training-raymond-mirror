@@ -182,8 +182,35 @@ export function filterQuotes(quotes: QuoteRecord[], filters: QuoteFilters = {}):
   });
 }
 
-function createSeededRandom(seed: number): () => number {
-  let state = (seed >>> 0) || 1;
+function toSeedValue(seed: number | string | undefined | null): number {
+  if (seed === undefined || seed === null) {
+    return 1;
+  }
+
+  if (typeof seed === 'number') {
+    if (!Number.isFinite(seed)) {
+      throw new Error('Seed must be a finite number.');
+    }
+    const normalized = Math.floor(Math.abs(seed));
+    return normalized === 0 ? 1 : normalized;
+  }
+
+  const text = seed.trim();
+  if (text.length === 0) {
+    return 1;
+  }
+
+  let hash = 0;
+  for (let index = 0; index < text.length; index += 1) {
+    hash = (hash * 31 + text.charCodeAt(index)) | 0;
+  }
+  const normalized = Math.abs(hash);
+  return normalized === 0 ? 1 : normalized;
+}
+
+function createSeededRandom(seed: number | string | undefined | null): () => number {
+  const seedValue = toSeedValue(seed);
+  let state = seedValue >>> 0;
   return () => {
     state = (state * 1664525 + 1013904223) % 0x100000000;
     return state / 0x100000000;
@@ -191,7 +218,7 @@ function createSeededRandom(seed: number): () => number {
 }
 
 export interface QuoteSelectionOptions extends QuoteFilters {
-  seed?: number;
+  seed?: number | string | null;
   random?: () => number;
 }
 

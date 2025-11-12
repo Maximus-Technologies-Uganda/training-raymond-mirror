@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs';
 import { extname } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { getIntegerFlag, getStringFlag, parseArgs, requireStringFlag } from '../helpers/args.js';
+import { getStringFlag, parseArgs, requireStringFlag } from '../helpers/args.js';
 import { formatQuote, parseQuotes, QuoteError, selectQuote } from '../quote/core.js';
 
 function determineFormat(path) {
@@ -66,7 +66,17 @@ export async function runQuoteCli(
     });
     author = getStringFlag(flags, 'author', { label: 'Author' });
     tag = getStringFlag(flags, 'tag', { label: 'Tag' });
-    seed = getIntegerFlag(flags, 'seed', { label: 'Seed' });
+    const seedFlag = getStringFlag(flags, 'seed', { label: 'Seed', allowEmpty: true });
+    if (seedFlag !== undefined) {
+      const trimmed = seedFlag.trim();
+      if (trimmed.length > 0) {
+        if (/^[+-]?\d+(\.\d+)?$/.test(trimmed)) {
+          seed = Number(trimmed);
+        } else {
+          seed = trimmed;
+        }
+      }
+    }
   } catch (error) {
     io.stderr?.(error.message);
     return 1;

@@ -2,12 +2,7 @@
 import { promises as fs } from 'node:fs';
 import { extname } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import {
-  getIntegerFlag,
-  getStringFlag,
-  parseArgs,
-  requireStringFlag,
-} from '../helpers/args.js';
+import { getStringFlag, parseArgs, requireStringFlag } from '../helpers/args.js';
 import {
   formatQuote,
   parseQuotes,
@@ -83,7 +78,7 @@ export async function runQuoteCli(
   let inputPath: string;
   let author: string | undefined;
   let tag: string | undefined;
-  let seed: number | undefined;
+  let seed: number | string | undefined;
 
   try {
     inputPath = requireStringFlag(
@@ -94,7 +89,17 @@ export async function runQuoteCli(
     );
     author = getStringFlag(flags, 'author', { label: 'Author' });
     tag = getStringFlag(flags, 'tag', { label: 'Tag' });
-    seed = getIntegerFlag(flags, 'seed', { label: 'Seed' });
+    const seedFlag = getStringFlag(flags, 'seed', { label: 'Seed', allowEmpty: true });
+    if (seedFlag !== undefined) {
+      const trimmed = seedFlag.trim();
+      if (trimmed.length > 0) {
+        if (/^[+-]?\d+(\.\d+)?$/.test(trimmed)) {
+          seed = Number(trimmed);
+        } else {
+          seed = trimmed;
+        }
+      }
+    }
   } catch (error: unknown) {
     io.stderr?.((error as Error).message);
     return 1;

@@ -382,6 +382,7 @@ Get a complete, self-contained package with all work and artifacts:
 2. Extract and review artifacts:
    - Coverage reports (CLI + UI)
    - Playwright test results
+   - Quote explorer slice: seeded random + author/tag filters (`@smoke`)
    - Source code and tests
 3. Verify tests pass:
    ```bash
