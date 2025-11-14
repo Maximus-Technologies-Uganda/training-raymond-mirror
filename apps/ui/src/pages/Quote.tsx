@@ -154,7 +154,7 @@ function QuoteContent({ quotes, initialSeed }: QuoteProps): JSX.Element {
   }, [focusAuthorFilter]);
 
   return (
-    <div className="quote-page" role="main" data-testid="quote-page">
+    <div className="quote-page" data-testid="quote-page">
       <header className="quote-page__header">
         <h1 className="quote-page__title">Quote explorer</h1>
         <p className="quote-page__subtitle">

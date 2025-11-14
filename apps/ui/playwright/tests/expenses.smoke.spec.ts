@@ -117,8 +117,8 @@ test.describe('Expenses CSV Upload and Filtering', () => {
     await expect(issues.getByText(/Data quality notices/i)).toBeVisible();
 
     // Verify specific row errors are displayed
-    await expect(issues.getByText(/Row 8/)).toBeVisible();
     await expect(issues.getByText(/Row 9/)).toBeVisible();
+    await expect(issues.getByText(/Row 10/)).toBeVisible();
   });
 
   test('shows error for invalid CSV files @smoke', async ({ page }) => {

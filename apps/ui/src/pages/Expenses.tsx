@@ -151,7 +151,7 @@ function Expenses(): JSX.Element {
   };
 
   return (
-    <div className="expenses-page" role="main">
+    <div className="expenses-page">
       <header className="expenses-page__header">
         <h1 className="expenses-page__title" data-testid="expenses-title">
           Expenses overview
