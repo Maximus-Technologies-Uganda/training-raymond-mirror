@@ -38,12 +38,17 @@ const QUOTED_CSV = `date,category,amount,currency
 2025-01-04,"Value with ""quotes""",15.00,USD
 2025-01-05,"Café & Restaurant",25.00,USD`;
 
-// Minimal valid CSV without header
-const MINIMAL_CSV = `2025-01-01,Groceries,10
-2025-01-02,Groceries,20
-2025-01-03,Utilities,30
-2025-01-04,Travel,40
-2025-01-05,Café,50`;
+// Minimal valid CSV without header - uses minimum row requirement for realism
+const MINIMAL_CSV = (() => {
+  const rows = Array.from({ length: MIN_EXPENSE_ROWS }, (_, index) => {
+    const day = String(index + 1).padStart(2, '0');
+    const amount = (index + 1) * 10;
+    return `2025-01-${day},Groceries,${amount}`;
+  });
+  const lastDay = String(MIN_EXPENSE_ROWS).padStart(2, '0');
+  rows[rows.length - 1] = `2025-01-${lastDay},Café,${MIN_EXPENSE_ROWS * 10}`;
+  return rows.join('\n');
+})();
 
 describe('CSV Parser with RFC 4180 compliance', () => {
   it('parses valid CSV with header and tracks row numbers correctly', () => {
@@ -99,8 +104,8 @@ describe('CSV Parser with RFC 4180 compliance', () => {
     const result = parseExpensesCsv(MINIMAL_CSV);
 
     expect(result.fatalErrors).toEqual([]);
-    expect(result.validRowCount).toBe(5);
-    expect(result.dataset.records).toHaveLength(5);
+    expect(result.validRowCount).toBe(MIN_EXPENSE_ROWS);
+    expect(result.dataset.records).toHaveLength(MIN_EXPENSE_ROWS);
     expect(result.dataset.issues).toHaveLength(0);
 
     // Verify data parsed correctly
@@ -111,25 +116,29 @@ describe('CSV Parser with RFC 4180 compliance', () => {
     });
 
     // Verify non-ASCII category
-    expect(result.dataset.records[4].category).toBe('Café');
+    expect(result.dataset.records[MIN_EXPENSE_ROWS - 1].category).toBe('Café');
   });
 
-  it('rejects CSV with fewer than 5 rows', () => {
-    const tooSmall = MINIMAL_CSV.split('\n').slice(0, 3).join('\n');
+  it('rejects CSV when below minimum row requirement', () => {
+    const tooSmall = MINIMAL_CSV.split('\n').slice(0, MIN_EXPENSE_ROWS - 2).join('\n');
     const result = parseExpensesCsv(tooSmall);
 
     expect(result.fatalErrors).toHaveLength(1);
-    expect(result.fatalErrors[0]).toMatch(/between 5 and 200 data rows/);
+    expect(result.fatalErrors[0]).toMatch(
+      new RegExp(`between ${MIN_EXPENSE_ROWS} and ${MAX_EXPENSE_ROWS} data rows`),
+    );
     expect(result.validRowCount).toBe(0);
   });
 
-  it('rejects CSV with more than 200 rows', () => {
-    const rows = Array.from({ length: 201 }, (_, index) => `2025-01-01,Item ${index + 1},1`);
+  it('rejects CSV when exceeding maximum row requirement', () => {
+    const rows = Array.from({ length: MAX_EXPENSE_ROWS + 1 }, (_, index) => `2025-01-01,Item ${index + 1},1`);
     const csv = `date,category,amount\n${rows.join('\n')}`;
     const result = parseExpensesCsv(csv);
 
     expect(result.fatalErrors).toHaveLength(1);
-    expect(result.fatalErrors[0]).toMatch(/between 5 and 200 data rows/);
+    expect(result.fatalErrors[0]).toMatch(
+      new RegExp(`between ${MIN_EXPENSE_ROWS} and ${MAX_EXPENSE_ROWS} data rows`),
+    );
     expect(result.validRowCount).toBe(0);
   });
 

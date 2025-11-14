@@ -13,6 +13,17 @@ describe('Quote page', () => {
     window.history.replaceState({}, '', '/');
   });
 
+  it('falls back to the default deterministic seed when none is provided', async () => {
+    render(<Quote />);
+
+    const rng = createSeededRandom(DEFAULT_QUOTE_SEED);
+    const expectedQuote = SAMPLE_QUOTES[rng.nextInt(SAMPLE_QUOTES.length)];
+
+    const featured = await screen.findByTestId('quote-featured');
+    expect(featured).toHaveTextContent(expectedQuote.text);
+    expect(featured).toHaveTextContent(expectedQuote.author);
+  });
+
   it('renders a deterministic featured quote using the provided seed', () => {
     render(<Quote initialSeed={DEFAULT_SEED} />);
 

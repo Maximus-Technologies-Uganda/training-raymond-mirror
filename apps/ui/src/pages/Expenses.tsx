@@ -7,7 +7,6 @@ import {
   buildMonthOptions,
   formatCurrency,
   hasActiveFilters,
-  type ExpenseDataset,
   type ExpenseFilters,
   type ExpenseRecord,
   useExpenseView,
