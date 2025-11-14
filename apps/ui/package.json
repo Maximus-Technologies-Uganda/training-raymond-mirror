@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage && npm run export:coverage",
     "export:coverage": "node ./scripts/export-coverage.mjs",
+    "pretest:e2e": "npx playwright install chromium",
     "test:e2e": "playwright test --config playwright/playwright.config.ts"
   },
   "dependencies": {
