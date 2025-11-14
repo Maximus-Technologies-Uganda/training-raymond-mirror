@@ -76,7 +76,7 @@ test.describe('Expenses CSV Upload and Filtering', () => {
 
     // Verify categories with special characters are available
     const categorySelect = page.getByLabel('Category');
-    await categorySelect.selectOption({ label: /Café/ });
+    await categorySelect.selectOption({ label: 'Café' });
     await expect(page.getByTestId('expenses-total')).toHaveText('Total: $25.00');
   });
 
