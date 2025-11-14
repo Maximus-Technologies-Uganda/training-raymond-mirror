@@ -32,6 +32,20 @@ npm run test:watch # Watch mode
 npm run lint
 ```
 
+## Week 4 — Spec-Driven Development + Figma Integration
+
+See **[Week 4 README](docs/week4-README.md)** for complete documentation including:
+- 📐 Figma design system and component inventory
+- 🎯 All 3 product slices (Expenses, ToDo, Quote) - **Fully Implemented ✅**
+- 🧪 Testing summary (26 E2E tests + comprehensive unit coverage)
+- ♿ Accessibility compliance (axe a11y integration)
+- 📂 Spec Kit documentation (/specify → /plan → /tasks)
+
+**Quick Links**:
+- [Figma Designs](https://www.figma.com/make/vHyEbwViJEEhxDf9wfqZd1/Week-4-training-Raymond?node-id=0-1&p=f&t=Uo8MjuZ0VBPzPjcS-0)
+- [Design Tokens Reference](docs/design-tokens.md)
+- [Week 4 Workbook](docs/journals/week4_workbook.readme)
+
 ## Project Structure
 
 ```
