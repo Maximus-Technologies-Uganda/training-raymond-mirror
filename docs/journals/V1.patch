@@ -1,1166 +1,721 @@
-diff --git a/apps/ui/playwright/fixtures/expenses-upload.csv b/apps/ui/playwright/fixtures/expenses-upload.csv
-new file mode 100644
-index 0000000000000000000000000000000000000000..7c30d183e5016acb19481c910540fff8ba8654ff
---- /dev/null
-+++ b/apps/ui/playwright/fixtures/expenses-upload.csv
-@@ -0,0 +1,8 @@
-+date,category,amount,currency
-+2025-04-01,Gym,33.335,USD
-+2025-04-05,Groceries,27.501,USD
-+2025-04-10,Café,12.1,USD
-+2025-05-02,Travel,120.456,USD
-+2025-05-05,Groceries,40.129,USD
-+2025-05-08,Utilities,65.8,USD
-+2025-05-12,Groceries,,USD
-diff --git a/apps/ui/playwright/tests/expenses.smoke.spec.js b/apps/ui/playwright/tests/expenses.smoke.spec.js
-index 7a170aa27b7a5a2cf62e68d163f99d1dd59631cf..3099ab3a9d45ac63c5fac2647a7f3fbfe112249a 100644
---- a/apps/ui/playwright/tests/expenses.smoke.spec.js
-+++ b/apps/ui/playwright/tests/expenses.smoke.spec.js
-@@ -1,39 +1,43 @@
- import { test, expect } from '@playwright/test';
--/**
-- * Phase 3 Expenses UI smoke tests
-- * Verifies filtering, totals calculation, and error handling
-- */
--test('expenses filters update totals @smoke', async ({ page }) => {
-+import path from 'node:path';
-+import { fileURLToPath } from 'node:url';
-+
-+const __dirname = path.dirname(fileURLToPath(import.meta.url));
-+const fixturePath = path.join(__dirname, '../fixtures/expenses-upload.csv');
-+
-+test('expenses upload and filters update totals @smoke', async ({ page }) => {
-     await page.goto('/');
-     const title = page.getByTestId('expenses-title');
-     await expect(title).toHaveText('Expenses overview');
-+    await page.getByTestId('expenses-upload-input').setInputFiles(fixturePath);
-     const total = page.getByTestId('expenses-total');
--    await expect(total).toHaveText('Total: $232.10');
--    await page.getByLabel('Month').selectOption('February');
--    await expect(page.getByTestId('expenses-total')).toHaveText('Total: $132.10');
--    await page.getByLabel('Category').selectOption('Utilities');
--    await expect(page.getByTestId('expenses-total')).toHaveText('Total: $90.00');
--    await page.getByLabel('Month').selectOption('January');
-+    await expect(total).toHaveText('Total: $299.32');
-+    await page.getByLabel('Month').selectOption('April');
-+    await expect(total).toHaveText('Total: $72.94');
-+    await page.getByLabel('Month').selectOption('');
-+    await page.getByLabel('Category').selectOption('Groceries');
-+    await expect(total).toHaveText('Total: $67.63');
-+    await page.getByLabel('Month').selectOption('April');
-+    await page.getByLabel('Category').selectOption('Travel');
-     await expect(page.getByTestId('expenses-error')).toHaveText('No expenses found for the selected filters. Try a different month or category.');
- });
- test('clear filters button functionality @smoke', async ({ page }) => {
-     await page.goto('/');
--    // Initially no clear button
-+    await page.getByTestId('expenses-upload-input').setInputFiles(fixturePath);
-     await expect(page.getByRole('button', { name: /Clear all filters/i })).not.toBeVisible();
--    // Apply filters
--    await page.getByLabel('Month').selectOption('February');
-+    await page.getByLabel('Month').selectOption('May');
-     await page.getByLabel('Category').selectOption('Groceries');
--    // Clear button should appear and work
-     const clearButton = page.getByRole('button', { name: /Clear all filters/i });
-     await expect(clearButton).toBeVisible();
-     await clearButton.click();
--    // Filters should reset
--    await expect(page.getByTestId('expenses-total')).toHaveText('Total: $232.10');
-+    await expect(page.getByTestId('expenses-total')).toHaveText('Total: $299.32');
-     await expect(clearButton).not.toBeVisible();
- });
- test('data quality notices display @smoke', async ({ page }) => {
-     await page.goto('/');
-+    await page.getByTestId('expenses-upload-input').setInputFiles(fixturePath);
-     const issues = page.getByTestId('expenses-issues');
-     await expect(issues).toBeVisible();
-     await expect(issues.getByText(/Data quality notices/i)).toBeVisible();
-+    await expect(issues).toContainText('Row 8: amount cannot be empty');
- });
-diff --git a/apps/ui/playwright/tests/expenses.smoke.spec.ts b/apps/ui/playwright/tests/expenses.smoke.spec.ts
-index c82273e6df5cd59ed46c8c3d9ab1409c5a629368..7f6ae2d36e23418965c54415cda0063b9d5eea54 100644
---- a/apps/ui/playwright/tests/expenses.smoke.spec.ts
-+++ b/apps/ui/playwright/tests/expenses.smoke.spec.ts
-@@ -1,54 +1,68 @@
- import { test, expect } from '@playwright/test';
-+import path from 'node:path';
-+import { fileURLToPath } from 'node:url';
-+
-+const __dirname = path.dirname(fileURLToPath(import.meta.url));
-+const fixturePath = path.join(__dirname, '../fixtures/expenses-upload.csv');
- 
- /**
-  * Phase 3 Expenses UI smoke tests
-  * Verifies filtering, totals calculation, and error handling
-  */
--test('expenses filters update totals @smoke', async ({ page }) => {
-+test('expenses upload and filters update totals @smoke', async ({ page }) => {
-   await page.goto('/');
- 
-   const title = page.getByTestId('expenses-title');
-   await expect(title).toHaveText('Expenses overview');
- 
-+  await page.getByLabel('Upload expenses CSV').setInputFiles(fixturePath);
-+
-   const total = page.getByTestId('expenses-total');
--  await expect(total).toHaveText('Total: $232.10');
-+  await expect(total).toHaveText('Total: $299.32');
- 
--  await page.getByLabel('Month').selectOption('February');
--  await expect(page.getByTestId('expenses-total')).toHaveText('Total: $132.10');
-+  await page.getByLabel('Month').selectOption('April');
-+  await expect(total).toHaveText('Total: $72.94');
- 
--  await page.getByLabel('Category').selectOption('Utilities');
--  await expect(page.getByTestId('expenses-total')).toHaveText('Total: $90.00');
-+  await page.getByLabel('Month').selectOption('');
-+  await page.getByLabel('Category').selectOption('Groceries');
-+  await expect(total).toHaveText('Total: $67.63');
- 
--  await page.getByLabel('Month').selectOption('January');
-+  await page.getByLabel('Month').selectOption('April');
-+  await page.getByLabel('Category').selectOption('Travel');
-   await expect(page.getByTestId('expenses-error')).toHaveText(
-     'No expenses found for the selected filters. Try a different month or category.',
-   );
- });
- 
- test('clear filters button functionality @smoke', async ({ page }) => {
-   await page.goto('/');
- 
-+  await page.getByLabel('Upload expenses CSV').setInputFiles(fixturePath);
-+
-   // Initially no clear button
-   await expect(page.getByRole('button', { name: /Clear all filters/i })).not.toBeVisible();
- 
-   // Apply filters
--  await page.getByLabel('Month').selectOption('February');
-+  await page.getByLabel('Month').selectOption('May');
-   await page.getByLabel('Category').selectOption('Groceries');
- 
-   // Clear button should appear and work
-   const clearButton = page.getByRole('button', { name: /Clear all filters/i });
-   await expect(clearButton).toBeVisible();
-   await clearButton.click();
- 
-   // Filters should reset
--  await expect(page.getByTestId('expenses-total')).toHaveText('Total: $232.10');
-+  await expect(page.getByTestId('expenses-total')).toHaveText('Total: $299.32');
-   await expect(clearButton).not.toBeVisible();
- });
- 
- test('data quality notices display @smoke', async ({ page }) => {
-   await page.goto('/');
- 
-+  await page.getByLabel('Upload expenses CSV').setInputFiles(fixturePath);
-+
-   const issues = page.getByTestId('expenses-issues');
-   await expect(issues).toBeVisible();
-   await expect(issues.getByText(/Data quality notices/i)).toBeVisible();
-+  await expect(issues).toContainText('Row 8: amount cannot be empty');
- });
-diff --git a/apps/ui/src/App.css b/apps/ui/src/App.css
-index 41d66eb15534da54f87109a91e8cef11adf04f73..7ed2ef536c2c3b880a25a10c8a0dfb8dbdc6cff5 100644
---- a/apps/ui/src/App.css
-+++ b/apps/ui/src/App.css
-@@ -26,50 +26,100 @@ body {
-   box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.18);
-   padding: 3rem;
-   display: flex;
-   flex-direction: column;
-   gap: 2.5rem;
+diff --git a/apps/ui/src/pages/Quote.tsx b/apps/ui/src/pages/Quote.tsx
+index cd3c8619eb6d1c72f57763c28c145a3960f3a8ca..d02a611d50a36248b7018c33b2980e047b25c688 100644
+--- a/apps/ui/src/pages/Quote.tsx
++++ b/apps/ui/src/pages/Quote.tsx
+@@ -19,63 +19,63 @@ export interface QuoteProps {
+   initialSeed?: string;
  }
  
- .expenses-page__header {
-   display: flex;
-   flex-direction: column;
-   gap: 0.75rem;
+ const DEFAULT_FILTERS: QuoteFiltersState = {
+   author: null,
+   tag: null,
+ };
+ 
+ function normalizeSeed(seed: string | undefined): string {
+   if (!seed) {
+     return DEFAULT_QUOTE_SEED;
+   }
+   const trimmed = seed.trim();
+   return trimmed.length === 0 ? DEFAULT_QUOTE_SEED : trimmed;
  }
  
- .expenses-page__title {
-   margin: 0;
-   font-size: 2.5rem;
-   line-height: 1.2;
- }
- 
- .expenses-page__subtitle {
-   margin: 0;
-   font-size: 1.05rem;
-   color: #4c566a;
- }
- 
-+.expenses-upload {
-+  display: grid;
-+  gap: 0.75rem;
-+  padding: 1.5rem;
-+  border-radius: 12px;
-+  background: rgba(59, 130, 246, 0.08);
-+  border: 1px solid rgba(59, 130, 246, 0.18);
-+}
-+
-+.expenses-upload__label {
-+  font-weight: 600;
-+  font-size: 1.05rem;
-+}
-+
-+.expenses-upload__input {
-+  border: 1px dashed rgba(59, 130, 246, 0.6);
-+  border-radius: 8px;
-+  padding: 0.75rem 1rem;
-+  background: #ffffff;
-+  font-size: 1rem;
-+  cursor: pointer;
-+}
-+
-+.expenses-upload__input:focus {
-+  outline: 3px solid rgba(37, 99, 235, 0.35);
-+  border-color: rgba(37, 99, 235, 0.65);
-+}
-+
-+.expenses-upload__helper {
-+  margin: 0;
-+  color: #1d4ed8;
-+  font-size: 0.95rem;
-+}
-+
-+.expenses-upload__summary {
-+  margin: 0;
-+  font-size: 0.95rem;
-+  color: #1f2937;
-+}
-+
-+.expenses-upload__error {
-+  margin: 0;
-+  padding: 0.75rem 1rem;
-+  border-radius: 8px;
-+  background: rgba(248, 113, 113, 0.12);
-+  color: #b91c1c;
-+  border: 1px solid rgba(248, 113, 113, 0.25);
-+  font-weight: 600;
-+}
-+
- .expenses-alert {
-   border: 1px solid #dbeafe;
-   border-radius: 12px;
-   background: #eff6ff;
-   padding: 1.25rem 1.5rem;
- }
- 
- .expenses-alert__title {
-   margin: 0 0 0.75rem;
-   font-size: 1.1rem;
-   color: #1d4ed8;
- }
- 
- .expenses-alert__list {
-   margin: 0;
-   padding-left: 1.25rem;
-   color: #1e3a8a;
- }
- 
- .expenses-controls {
-   display: grid;
-   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-   gap: 1.5rem;
-   align-items: flex-end;
- }
-diff --git a/apps/ui/src/lib/expenses/csv.ts b/apps/ui/src/lib/expenses/csv.ts
-new file mode 100644
-index 0000000000000000000000000000000000000000..6d69891799e024dfb6eeb740e9973dcbf1bc715a
---- /dev/null
-+++ b/apps/ui/src/lib/expenses/csv.ts
-@@ -0,0 +1,128 @@
-+import { buildExpenseDataset, type ExpenseDataset, type RawExpenseRow } from './totals';
-+
-+export const MIN_EXPENSE_ROWS = 5;
-+export const MAX_EXPENSE_ROWS = 200;
-+
-+export interface ExpenseCsvParseResult {
-+  dataset: ExpenseDataset;
-+  fatalErrors: string[];
-+}
-+
-+const REQUIRED_HEADERS = ['date', 'category', 'amount'] as const;
-+const OPTIONAL_HEADERS = ['currency'] as const;
-+
-+type NormalizedHeader = typeof REQUIRED_HEADERS[number] | typeof OPTIONAL_HEADERS[number];
-+
-+function splitCsvLine(line: string): string[] {
-+  const values: string[] = [];
-+  let current = '';
-+  let inQuotes = false;
-+
-+  for (let index = 0; index < line.length; index += 1) {
-+    const character = line[index];
-+    if (character === '"') {
-+      if (inQuotes && line[index + 1] === '"') {
-+        current += '"';
-+        index += 1;
-+      } else {
-+        inQuotes = !inQuotes;
-+      }
-+      continue;
-+    }
-+
-+    if (character === ',' && !inQuotes) {
-+      values.push(current);
-+      current = '';
-+      continue;
-+    }
-+
-+    current += character;
-+  }
-+
-+  values.push(current);
-+  return values.map((value) => value.replace(/\r$/, ''));
-+}
-+
-+function normaliseHeader(value: string): string {
-+  return value.trim().toLowerCase();
-+}
-+
-+function deriveHeaderMap(cells: readonly string[]): Map<NormalizedHeader, number> {
-+  const map = new Map<NormalizedHeader, number>();
-+
-+  cells.forEach((cell, index) => {
-+    const normalised = normaliseHeader(cell) as NormalizedHeader;
-+    if (REQUIRED_HEADERS.includes(normalised as typeof REQUIRED_HEADERS[number])
-+      || OPTIONAL_HEADERS.includes(normalised as typeof OPTIONAL_HEADERS[number])) {
-+      if (!map.has(normalised)) {
-+        map.set(normalised, index);
-+      }
-+    }
-+  });
-+
-+  return map;
-+}
-+
-+function validateHeaders(map: Map<NormalizedHeader, number>): string[] {
-+  const missing = REQUIRED_HEADERS.filter((header) => !map.has(header));
-+  if (missing.length === 0) {
-+    return [];
-+  }
-+  return [`CSV header missing required columns: ${missing.join(', ')}.`];
-+}
-+
-+export function parseExpensesCsv(contents: string): ExpenseCsvParseResult {
-+  const trimmed = contents.trim();
-+  if (trimmed.length === 0) {
-+    return { dataset: { records: [], issues: [] }, fatalErrors: ['CSV file is empty. Provide header and at least one row.'] };
-+  }
-+
-+  const rawLines = contents
-+    .split(/\r?\n/)
-+    .map((line) => line.trimEnd())
-+    .filter((line) => line.length > 0);
-+
-+  if (rawLines.length === 0) {
-+    return { dataset: { records: [], issues: [] }, fatalErrors: ['CSV file is empty. Provide header and at least one row.'] };
-+  }
-+
-+  const [headerLine, ...dataLines] = rawLines;
-+  const headerCells = splitCsvLine(headerLine);
-+  const headerMap = deriveHeaderMap(headerCells);
-+
-+  const headerErrors = validateHeaders(headerMap);
-+  if (headerErrors.length > 0) {
-+    return { dataset: { records: [], issues: [] }, fatalErrors: headerErrors };
-+  }
-+
-+  const rowCount = dataLines.length;
-+  if (rowCount < MIN_EXPENSE_ROWS || rowCount > MAX_EXPENSE_ROWS) {
-+    return {
-+      dataset: { records: [], issues: [] },
-+      fatalErrors: [
-+        `CSV must contain between ${MIN_EXPENSE_ROWS} and ${MAX_EXPENSE_ROWS} rows (found ${rowCount}).`,
-+      ],
-+    };
-+  }
-+
-+  const columnFor = (header: NormalizedHeader): number | undefined => headerMap.get(header);
-+
-+  const rawRows: RawExpenseRow[] = dataLines.map((line) => {
-+    const cells = splitCsvLine(line);
-+    const lookup = (header: NormalizedHeader) => {
-+      const columnIndex = columnFor(header);
-+      return typeof columnIndex === 'number' ? cells[columnIndex]?.trim() ?? '' : '';
-+    };
-+
-+    return {
-+      date: lookup('date'),
-+      category: lookup('category'),
-+      amount: lookup('amount'),
-+      currency: columnFor('currency') !== undefined ? lookup('currency') : undefined,
-+    };
-+  });
-+
-+  const dataset = buildExpenseDataset(rawRows, { rowOffset: 1 });
-+
-+  return { dataset, fatalErrors: [] };
-+}
-diff --git a/apps/ui/src/lib/expenses/totals.ts b/apps/ui/src/lib/expenses/totals.ts
-index 851ff52494007068736fd21d55f59f888a0a2f48..3556176eec0d52cb04d4c794e4c74b2fbb572e92 100644
---- a/apps/ui/src/lib/expenses/totals.ts
-+++ b/apps/ui/src/lib/expenses/totals.ts
-@@ -53,50 +53,54 @@ export interface ExpenseView {
- 
- const MONTH_LABELS: readonly string[] = [
-   'January',
-   'February',
-   'March',
-   'April',
-   'May',
-   'June',
-   'July',
-   'August',
-   'September',
-   'October',
-   'November',
-   'December',
- ];
- 
- const CURRENCY_FALLBACK: CurrencyCode = 'USD';
- 
- const CURRENCY_FORMATTER = new Intl.NumberFormat('en-US', {
-   style: 'currency',
-   currency: CURRENCY_FALLBACK,
-   minimumFractionDigits: 2,
-   maximumFractionDigits: 2,
- });
- 
-+function roundCurrencyValue(amount: number): number {
-+  return Math.round((amount + Number.EPSILON) * 100) / 100;
-+}
-+
- function parseDate(input: unknown, index: number): { isoDate: string; monthNumber: number; monthName: string } {
-   if (typeof input !== 'string') {
-     throw new Error(`Row ${index + 1}: date must be an ISO string.`);
+ function parseUrlParams(): { author: string | null; tag: string | null; seed: string } {
+   if (typeof window === 'undefined') {
+     return { author: null, tag: null, seed: DEFAULT_QUOTE_SEED };
    }
  
-   const trimmed = input.trim();
-   if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-     throw new Error(`Row ${index + 1}: date must use YYYY-MM-DD format.`);
-   }
- 
-   const parsed = new Date(trimmed);
-   if (Number.isNaN(parsed.getTime())) {
-     throw new Error(`Row ${index + 1}: date is invalid.`);
-   }
- 
-   const monthNumber = parsed.getUTCMonth() + 1;
-   const monthName = MONTH_LABELS[monthNumber - 1];
-   return { isoDate: trimmed, monthNumber, monthName };
- }
- 
- function parseCategory(input: unknown, index: number): string {
-   if (typeof input !== 'string') {
-     throw new Error(`Row ${index + 1}: category must be a string.`);
-   }
- 
-@@ -117,151 +121,164 @@ function parseAmount(input: unknown, index: number): number {
-   }
- 
-   if (typeof input === 'string') {
-     const trimmed = input.trim();
-     if (trimmed.length === 0) {
-       throw new Error(`Row ${index + 1}: amount cannot be empty.`);
-     }
-     const parsed = Number.parseFloat(trimmed);
-     if (!Number.isFinite(parsed)) {
-       throw new Error(`Row ${index + 1}: amount must be numeric.`);
-     }
-     return parsed;
-   }
- 
-   throw new Error(`Row ${index + 1}: amount must be numeric.`);
- }
- 
- function parseCurrency(input: CurrencyCode | undefined): CurrencyCode {
-   if (!input) {
-     return CURRENCY_FALLBACK;
-   }
-   const value = String(input).trim();
-   return value.length > 0 ? value : CURRENCY_FALLBACK;
- }
- 
--export function buildExpenseDataset(rows: readonly RawExpenseRow[]): ExpenseDataset {
-+export function buildExpenseDataset(
-+  rows: readonly RawExpenseRow[],
-+  options: { rowOffset?: number } = {},
-+): ExpenseDataset {
-   const issues: ExpenseIssue[] = [];
-   const records: ExpenseRecord[] = [];
-+  const rowOffset = options.rowOffset ?? 0;
- 
-   rows.forEach((row, index) => {
-+    const displayIndex = index + rowOffset;
-     try {
--      const { isoDate, monthNumber, monthName } = parseDate(row.date, index);
--      const category = parseCategory(row.category, index);
--      const amount = parseAmount(row.amount, index);
-+      const { isoDate, monthNumber, monthName } = parseDate(row.date, displayIndex);
-+      const category = parseCategory(row.category, displayIndex);
-+      const amount = parseAmount(row.amount, displayIndex);
-       const currency = parseCurrency(row.currency);
-       records.push({
--        id: `expense-${index}`,
-+        id: `expense-${displayIndex}`,
-         date: isoDate,
-         monthNumber,
-         monthName,
-         category,
-         amount,
-         currency,
--        sourceIndex: index,
-+        sourceIndex: displayIndex,
-       });
-     } catch (error: unknown) {
--      issues.push({ index, message: (error as Error).message });
-+      issues.push({ index: displayIndex, message: (error as Error).message });
-     }
-   });
- 
-   return { records, issues };
- }
- 
- export const SAMPLE_EXPENSE_ROWS: readonly RawExpenseRow[] = [
-   { date: '2025-01-05', category: 'Groceries', amount: 54.2, currency: 'USD' },
-   { date: '2025-01-15', category: 'Transport', amount: 18.3, currency: 'USD' },
-   { date: '2025-02-01', category: 'Groceries', amount: 42.1, currency: 'USD' },
-   { date: '2025-02-07', category: 'Utilities', amount: 90.0, currency: 'USD' },
-   { date: '2025-03-12', category: 'Entertainment', amount: 27.5, currency: 'USD' },
-   { date: 'invalid-date', category: 'Groceries', amount: 10, currency: 'USD' },
-   { date: '2025-02-22', category: '', amount: 11.25, currency: 'USD' },
- ];
- 
- export const defaultExpensesDataset = buildExpenseDataset(SAMPLE_EXPENSE_ROWS);
- 
- function normalizeFilterValue(value: string | null | undefined): string | null {
-   if (value === null || value === undefined) {
-     return null;
-   }
-   const trimmed = value.trim();
-   return trimmed.length === 0 ? null : trimmed;
- }
- 
- export function filterExpenseRecords(records: readonly ExpenseRecord[], filters: ExpenseFilters = {}): ExpenseRecord[] {
-   const monthFilter = normalizeFilterValue(filters.month);
-   const categoryFilter = normalizeFilterValue(filters.category);
- 
-   return records.filter((record) => {
-     const monthMatches = monthFilter ? record.monthName.toLowerCase() === monthFilter.toLowerCase() : true;
-     const categoryMatches = categoryFilter
-       ? record.category.toLowerCase() === categoryFilter.toLowerCase()
-       : true;
-     return monthMatches && categoryMatches;
-   });
- }
- 
- export function summarizeExpenses(records: readonly ExpenseRecord[]): ExpenseSummary {
-   const currency = records[0]?.currency ?? CURRENCY_FALLBACK;
--  const totalsByCategory = records.reduce<ExpenseSummaryEntry[]>((acc, record) => {
--    const existing = acc.find((entry) => entry.category.toLowerCase() === record.category.toLowerCase());
-+  const totalsByCategoryMap = records.reduce<Map<string, ExpenseSummaryEntry>>((acc, record) => {
-+    const key = record.category.toLowerCase();
-+    const existing = acc.get(key);
-     if (existing) {
-       existing.amount += record.amount;
-       return acc;
-     }
--    return [...acc, { category: record.category, amount: record.amount }];
--  }, []);
-+    acc.set(key, { category: record.category, amount: record.amount });
-+    return acc;
-+  }, new Map());
- 
--  totalsByCategory.sort((a, b) => a.category.localeCompare(b.category));
-+  const totalsByCategory = Array.from(totalsByCategoryMap.values())
-+    .map((entry) => ({
-+      category: entry.category,
-+      amount: roundCurrencyValue(entry.amount),
-+    }))
-+    .sort((a, b) => a.category.localeCompare(b.category));
- 
--  const total = records.reduce((sum, record) => sum + record.amount, 0);
-+  const total = roundCurrencyValue(records.reduce((sum, record) => sum + record.amount, 0));
- 
+   const params = new URLSearchParams(window.location.search);
    return {
-     total,
-     currency,
-     totalsByCategory,
+     author: params.get('author') || null,
+     tag: params.get('tag') || null,
+-    seed: params.get('seed') || DEFAULT_QUOTE_SEED,
++    seed: normalizeSeed(params.get('seed') ?? undefined),
    };
  }
  
- export function buildExpenseView(records: readonly ExpenseRecord[], filters: ExpenseFilters = {}): ExpenseView {
-   const filtered = filterExpenseRecords(records, filters);
-   return {
-     records: filtered,
-     summary: summarizeExpenses(filtered),
-   };
- }
+ function QuoteContent({ quotes, initialSeed }: QuoteProps): JSX.Element {
+   const urlParams = parseUrlParams();
+   const dataset = useMemo<readonly QuoteRecord[]>(() => (quotes ? [...quotes] : SAMPLE_QUOTES), [quotes]);
  
- export function formatCurrency(amount: number, currency: CurrencyCode = CURRENCY_FALLBACK): string {
-+  const rounded = roundCurrencyValue(amount);
-   const formatter = currency === CURRENCY_FALLBACK
-     ? CURRENCY_FORMATTER
-     : new Intl.NumberFormat('en-US', {
-         style: 'currency',
-         currency,
-         minimumFractionDigits: 2,
-         maximumFractionDigits: 2,
-       });
--  return formatter.format(amount);
-+  return formatter.format(rounded);
- }
- 
- export function getAvailableMonths(records: readonly ExpenseRecord[]): string[] {
-   const unique = new Map<number, string>();
-   records.forEach((record) => {
-     if (!unique.has(record.monthNumber)) {
-       unique.set(record.monthNumber, record.monthName);
-     }
+   const [filters, setFilters] = useState<QuoteFiltersState>({
+     author: urlParams.author,
+     tag: urlParams.tag,
    });
-   return Array.from(unique.entries())
-     .sort((a, b) => a[0] - b[0])
-     .map(([, label]) => label);
- }
+-  const [seed, setSeed] = useState<string>(initialSeed ?? urlParams.seed);
++  const [seed, setSeed] = useState<string>(() => normalizeSeed(initialSeed ?? urlParams.seed));
  
- export function getAvailableCategories(records: readonly ExpenseRecord[]): string[] {
-   const unique = new Set<string>();
-   records.forEach((record) => {
-     unique.add(record.category);
-   });
-   return Array.from(unique.values()).sort((a, b) => a.localeCompare(b));
- }
+   // Sync filters to URL for shareable links
+   useEffect(() => {
+     const params = new URLSearchParams();
+     if (filters.author) params.set('author', filters.author);
+     if (filters.tag) params.set('tag', filters.tag);
+     if (seed !== DEFAULT_QUOTE_SEED) params.set('seed', seed);
  
- export interface ExpenseSelectorOption {
-   label: string;
-   value: string | null;
-diff --git a/apps/ui/src/pages/Expenses.tsx b/apps/ui/src/pages/Expenses.tsx
-index 7a606c2b13c82622d1c0ed8ea886a2d6fd532aa3..1f7ced9fd4ca3da67d8fad2cfe1e844c016b4826 100644
---- a/apps/ui/src/pages/Expenses.tsx
-+++ b/apps/ui/src/pages/Expenses.tsx
-@@ -1,85 +1,173 @@
--import { type Dispatch, type SetStateAction, useMemo, useState } from 'react';
-+import { type ChangeEvent, type Dispatch, type SetStateAction, useMemo, useState } from 'react';
- import CategorySelector from '../components/expenses/CategorySelector';
- import MonthSelector from '../components/expenses/MonthSelector';
- import TotalsSummary from '../components/expenses/TotalsSummary';
- import {
-   buildCategoryOptions,
-   buildMonthOptions,
-   defaultExpensesDataset,
-   formatCurrency,
-   hasActiveFilters,
-   type ExpenseFilters,
-+  type ExpenseDataset,
-   type ExpenseRecord,
-   useExpenseView,
- } from '../lib/expenses/totals';
-+import {
-+  MAX_EXPENSE_ROWS,
-+  MIN_EXPENSE_ROWS,
-+  parseExpensesCsv,
-+} from '../lib/expenses/csv';
+     const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
+     window.history.replaceState({}, '', newUrl);
+   }, [filters, seed]);
  
- function useExpenseFilters(): [
-   ExpenseFilters,
-   Dispatch<SetStateAction<string | null>>,
-   Dispatch<SetStateAction<string | null>>,
-   () => void,
- ] {
-   const [month, setMonth] = useState<string | null>(null);
-   const [category, setCategory] = useState<string | null>(null);
- 
-   const filters = useMemo<ExpenseFilters>(() => ({ month, category }), [month, category]);
- 
-   const clearFilters = () => {
-     setMonth(null);
-     setCategory(null);
-   };
- 
-   return [filters, setMonth, setCategory, clearFilters];
- }
- 
-+interface DatasetMeta {
-+  label: string;
-+  rowCount: number;
-+}
-+
-+async function readCsvFile(file: File): Promise<string> {
-+  if (typeof file.text === 'function') {
-+    return file.text();
-+  }
-+
-+  return new Promise((resolve, reject) => {
-+    const reader = new FileReader();
-+    reader.onerror = () => {
-+      reject(new Error('Unable to read CSV file.'));
-+    };
-+    reader.onload = () => {
-+      const result = reader.result;
-+      resolve(typeof result === 'string' ? result : String(result));
-+    };
-+    reader.readAsText(file);
-+  });
-+}
-+
- /**
-  * Expenses overview page with filtering capabilities.
-  * Mirrors CLI functionality with enhanced UX including clear filters button.
-  */
- function Expenses(): JSX.Element {
--  const { records, issues } = defaultExpensesDataset;
-+  const [dataset, setDataset] = useState<ExpenseDataset>(defaultExpensesDataset);
-+  const [datasetMeta, setDatasetMeta] = useState<DatasetMeta>({
-+    label: 'Sample dataset',
-+    rowCount: defaultExpensesDataset.records.length,
-+  });
-+  const [uploadError, setUploadError] = useState<string | null>(null);
-   const [filters, setMonth, setCategory, clearFilters] = useExpenseFilters();
- 
-+  const records = dataset.records;
-+  const issues = dataset.issues;
-+
-   const monthOptions = useMemo(() => buildMonthOptions(records), [records]);
-   const categoryOptions = useMemo(() => buildCategoryOptions(records), [records]);
- 
-   const view = useExpenseView(records, filters);
-   const hasData = view.records.length > 0;
+   const authorOptions = useMemo(() => buildAuthorOptions(dataset), [dataset]);
+   const tagOptions = useMemo(() => buildTagOptions(dataset), [dataset]);
+   const filteredQuotes = useMemo(() => applyFilters(dataset, filters), [dataset, filters]);
    const filtersActive = hasActiveFilters(filters);
  
-+  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
-+    const file = event.target.files?.[0];
-+    if (!file) {
-+      return;
-+    }
-+
-+    try {
-+      setUploadError(null);
-+      const contents = await readCsvFile(file);
-+      const result = parseExpensesCsv(contents);
-+      if (result.fatalErrors.length > 0) {
-+        setUploadError(result.fatalErrors.join(' '));
-+        return;
-+      }
-+
-+      setDataset(result.dataset);
-+      setDatasetMeta({ label: file.name, rowCount: result.dataset.records.length });
-+      clearFilters();
-+    } catch (error: unknown) {
-+      setUploadError('Unable to read CSV file. Please choose a valid text-based CSV.');
-+    } finally {
-+      event.target.value = '';
-+    }
-+  };
-+
-   return (
-     <div className="expenses-page" role="main">
-       <header className="expenses-page__header">
-         <h1 className="expenses-page__title" data-testid="expenses-title">
-           Expenses overview
-         </h1>
-         <p className="expenses-page__subtitle">
-           Filter by month and category to mirror the CLI summary output. Totals update instantly.
-         </p>
-       </header>
- 
-+      <section className="expenses-upload" aria-label="Upload expenses CSV">
-+        <label className="expenses-upload__label" htmlFor="expenses-upload-input">
-+          Upload expenses CSV
-+        </label>
-+        <input
-+          id="expenses-upload-input"
-+          data-testid="expenses-upload-input"
-+          className="expenses-upload__input"
-+          type="file"
-+          accept=".csv,text/csv"
-+          onChange={handleFileChange}
-+        />
-+        <p className="expenses-upload__helper">
-+          Accepts CSV files with columns <code>date, category, amount[, currency]</code> and between {MIN_EXPENSE_ROWS}
-+          &nbsp;and {MAX_EXPENSE_ROWS} rows. Totals use deterministic rounding to exactly two decimal places.
-+        </p>
-+        <p className="expenses-upload__summary" data-testid="expenses-upload-summary">
-+          Loaded <strong>{datasetMeta.rowCount}</strong> valid rows from <strong>{datasetMeta.label}</strong>.
-+        </p>
-+        {uploadError && (
-+          <p className="expenses-upload__error" role="alert" data-testid="expenses-upload-error">
-+            {uploadError}
-+          </p>
-+        )}
-+      </section>
-+
-       {issues.length > 0 && (
-         <section className="expenses-alert" role="status" data-testid="expenses-issues">
-           <h2 className="expenses-alert__title">Data quality notices</h2>
-           <ul className="expenses-alert__list">
-             {issues.map((issue) => (
-               <li key={issue.index} className="expenses-alert__item">
-                 {issue.message}
-               </li>
-             ))}
-           </ul>
-         </section>
-       )}
- 
-       <section className="expenses-controls" aria-label="Expenses filters">
-         <MonthSelector options={monthOptions} value={filters.month ?? null} onChange={setMonth} />
-         <CategorySelector options={categoryOptions} value={filters.category ?? null} onChange={setCategory} />
-         {filtersActive && (
-           <button
-             type="button"
-             className="expenses-controls__clear-btn"
-             onClick={clearFilters}
-             aria-label="Clear all filters"
-           >
-             Clear filters
-           </button>
-diff --git a/apps/ui/src/pages/ExpensesPage.tsx b/apps/ui/src/pages/ExpensesPage.tsx
-index 34f44343352191287355be32373ce3836df10f28..16ac009498fe03040e4c676b2b1ac63c61fd9eeb 100644
---- a/apps/ui/src/pages/ExpensesPage.tsx
-+++ b/apps/ui/src/pages/ExpensesPage.tsx
-@@ -1,20 +1,20 @@
--import { ExpensesPlaceholder } from '../components/index.js';
-+import Expenses from './Expenses.js';
- 
- /**
-  * Expenses page for tracking spending summaries that mirror the CLI.
-  * This page will eventually provide filtering by month/category and display totals.
-  */
- export function ExpensesPage(): JSX.Element {
-   return (
-     <section aria-labelledby="expenses-heading" className="page">
-       <header className="page-header">
-         <h2 id="expenses-heading">Expenses</h2>
-         <p>
-           Track spending summaries that mirror the CLI. This placeholder confirms routing structure
-           before detailed UI work begins.
-         </p>
-       </header>
--      <ExpensesPlaceholder />
-+      <Expenses />
-     </section>
-   );
- }
-diff --git a/apps/ui/src/tests/expenses.test.tsx b/apps/ui/src/tests/expenses.test.tsx
-index 45aa46fe7f6c5f1184868a464e2e470386713092..3bad7eaa133dc7553a845819cfc15db07a54a63d 100644
---- a/apps/ui/src/tests/expenses.test.tsx
-+++ b/apps/ui/src/tests/expenses.test.tsx
-@@ -1,41 +1,42 @@
--import { render, screen, within } from '@testing-library/react';
-+import { render, screen, within, waitFor } from '@testing-library/react';
+   const selectedQuote = useMemo(() => {
+     if (filtersActive) {
+       return filteredQuotes.length > 0 ? filteredQuotes[0] : null;
+     }
+     if (filteredQuotes.length === 0) {
+       return null;
+     }
+     const rng = createSeededRandom(normalizeSeed(seed));
+diff --git a/apps/ui/src/tests/quote.test.tsx b/apps/ui/src/tests/quote.test.tsx
+index 225894f04c7cdede7750fdc2d2c97c118b3983b3..281124d8a97b011d75c59ccf033d07241f4bde3d 100644
+--- a/apps/ui/src/tests/quote.test.tsx
++++ b/apps/ui/src/tests/quote.test.tsx
+@@ -1,67 +1,90 @@
+ import { render, screen, within, waitFor } from '@testing-library/react';
  import userEvent from '@testing-library/user-event';
- import Expenses from '../pages/Expenses';
- import MonthSelector from '../components/expenses/MonthSelector';
- import CategorySelector from '../components/expenses/CategorySelector';
- import TotalsSummary from '../components/expenses/TotalsSummary';
- import {
-   buildExpenseView,
-   defaultExpensesDataset,
-   filterExpenseRecords,
-   buildMonthOptions,
-   buildCategoryOptions,
-   hasActiveFilters,
-   type ExpenseFilters,
-   type ExpenseSelectorOption,
- } from '../lib/expenses/totals';
-+import { MAX_EXPENSE_ROWS, MIN_EXPENSE_ROWS, parseExpensesCsv } from '../lib/expenses/csv';
++import { beforeEach } from 'vitest';
+ import Quote from '../pages/Quote';
+ import { createSeededRandom } from '../lib/random/seeded';
+ import { SAMPLE_QUOTES } from '../lib/quote/sampleData';
++import { DEFAULT_QUOTE_SEED } from '../lib/quote/view';
  
- const { records, issues } = defaultExpensesDataset;
+ const DEFAULT_SEED = 'ui-test-seed';
  
- describe('expenses totals logic', () => {
-   interface Case {
-     readonly name: string;
-     readonly filters: ExpenseFilters;
-     readonly expectedTotal: number;
-     readonly expectedCategories: readonly string[];
-   }
- 
-   const cases: readonly Case[] = [
-     {
-       name: 'all data',
-       filters: {},
-       expectedTotal: 232.1,
-       expectedCategories: ['Entertainment', 'Groceries', 'Transport', 'Utilities'],
-     },
-     {
-       name: 'filters by month',
-       filters: { month: 'February' },
-       expectedTotal: 132.1,
-       expectedCategories: ['Groceries', 'Utilities'],
-     },
-     {
-@@ -75,50 +76,101 @@ describe('expenses totals logic', () => {
-   it('hasActiveFilters returns true when filters are set', () => {
-     expect(hasActiveFilters({ month: 'January' })).toBe(true);
-     expect(hasActiveFilters({ category: 'Groceries' })).toBe(true);
-     expect(hasActiveFilters({ month: 'January', category: 'Groceries' })).toBe(true);
-   });
- 
-   it('hasActiveFilters returns false when no filters are set', () => {
-     expect(hasActiveFilters({})).toBe(false);
-     expect(hasActiveFilters({ month: null, category: null })).toBe(false);
-     expect(hasActiveFilters({ month: '', category: '' })).toBe(false);
-   });
- 
-   it('buildMonthOptions includes "All months" option', () => {
-     const options = buildMonthOptions(records);
-     expect(options[0]).toEqual({ label: 'All months', value: null });
-     expect(options.length).toBeGreaterThan(1);
-   });
- 
-   it('buildCategoryOptions includes "All categories" option', () => {
-     const options = buildCategoryOptions(records);
-     expect(options[0]).toEqual({ label: 'All categories', value: null });
-     expect(options.length).toBeGreaterThan(1);
-   });
- });
- 
-+describe('parseExpensesCsv', () => {
-+  it('parses valid CSV within bounds and builds dataset', () => {
-+    const csv = [
-+      'date,category,amount,currency',
-+      '2025-01-01,Groceries,42.157,USD',
-+      '2025-01-05,Transport,10,USD',
-+      '2025-02-10,Utilities,58.234,USD',
-+      '2025-02-17,Entertainment,19.99,USD',
-+      '2025-03-01,Café latte,12.5,USD',
-+    ].join('\n');
-+
-+    const result = parseExpensesCsv(csv);
-+
-+    expect(result.fatalErrors).toEqual([]);
-+    expect(result.dataset.records).toHaveLength(5);
-+    const categories = result.dataset.records.map((record) => record.category);
-+    expect(categories).toContain('Café latte');
-+    expect(result.dataset.issues).toHaveLength(0);
+ describe('Quote page', () => {
++  beforeEach(() => {
++    window.history.replaceState({}, '', '/');
 +  });
 +
-+  it('returns fatal errors when row count is outside allowed bounds', () => {
-+    const rows = Array.from({ length: MIN_EXPENSE_ROWS - 1 }, (_, index) => `2025-01-0${index + 1},Groceries,10`);
-+    const csv = ['date,category,amount', ...rows].join('\n');
-+
-+    const result = parseExpensesCsv(csv);
-+
-+    expect(result.dataset.records).toHaveLength(0);
-+    expect(result.fatalErrors).toEqual([
-+      `CSV must contain between ${MIN_EXPENSE_ROWS} and ${MAX_EXPENSE_ROWS} rows (found ${MIN_EXPENSE_ROWS - 1}).`,
-+    ]);
-+  });
-+
-+  it('collects row-level issues while keeping valid rows', () => {
-+    const csv = [
-+      'date,category,amount',
-+      '2025-01-01,Groceries,42.10',
-+      '2025-01-02,,20',
-+      '2025-01-03,Transport,invalid',
-+      '2025-01-04,Utilities,30',
-+      '2025-01-05,Entertainment,15',
-+    ].join('\n');
-+
-+    const result = parseExpensesCsv(csv);
-+
-+    expect(result.dataset.records).toHaveLength(3);
-+    expect(result.dataset.issues).toHaveLength(2);
-+    expect(result.dataset.issues[0].message).toMatch(/Row 3: category cannot be empty/);
-+    expect(result.dataset.issues[1].message).toMatch(/Row 4: amount must be numeric/);
-+  });
-+});
-+
- describe('MonthSelector component', () => {
-   const mockOptions: ExpenseSelectorOption[] = [
-     { label: 'All months', value: null },
-     { label: 'January', value: 'January' },
-     { label: 'February', value: 'February' },
-   ];
+   it('renders a deterministic featured quote using the provided seed', () => {
+     render(<Quote initialSeed={DEFAULT_SEED} />);
  
-   it('renders all month options', () => {
-     const mockOnChange = vi.fn();
-     render(<MonthSelector options={mockOptions} value={null} onChange={mockOnChange} />);
+     const rng = createSeededRandom(DEFAULT_SEED);
+     const expectedQuote = SAMPLE_QUOTES[rng.nextInt(SAMPLE_QUOTES.length)];
  
-     const select = screen.getByLabelText(/Filter expenses by month/i);
-     const options = within(select).getAllByRole('option');
- 
-     expect(options).toHaveLength(3);
-     expect(options[0]).toHaveTextContent('All months');
-     expect(options[1]).toHaveTextContent('January');
-     expect(options[2]).toHaveTextContent('February');
+     const featured = screen.getByTestId('quote-featured');
+     expect(featured).toHaveTextContent(expectedQuote.text);
+     expect(featured).toHaveTextContent(expectedQuote.author);
+     expect(screen.getByTestId('quote-tags-featured')).toHaveTextContent(`Tags: ${expectedQuote.tags.join(', ')}`);
    });
  
-   it('calls onChange with selected value', async () => {
-     const mockOnChange = vi.fn();
+   it('updates the featured quote when the seed changes', async () => {
      const user = userEvent.setup();
+     render(<Quote initialSeed={DEFAULT_SEED} />);
  
-     render(<MonthSelector options={mockOptions} value={null} onChange={mockOnChange} />);
-@@ -156,82 +208,134 @@ describe('CategorySelector component', () => {
-     const select = screen.getByLabelText(/Filter expenses by category/i);
-     const options = within(select).getAllByRole('option');
+     // Verify initial quote is displayed
+     const initialFeatured = screen.getByTestId('quote-featured');
+     expect(initialFeatured).toBeInTheDocument();
  
-     expect(options).toHaveLength(3);
-     expect(options[0]).toHaveTextContent('All categories');
-     expect(options[1]).toHaveTextContent('Groceries');
-     expect(options[2]).toHaveTextContent('Transport');
+     const seedInput = screen.getByTestId('quote-seed-input');
+     await user.clear(seedInput);
+     await user.type(seedInput, 'new-seed-42');
+ 
+     // Quote should still be displayed after seed change (verifies component doesn't crash)
+     await waitFor(() => {
+       const featured = screen.getByTestId('quote-featured');
+       expect(featured).toBeInTheDocument();
+       // Just verify it contains some author text (proves it's rendering a quote)
+       expect(featured.textContent).toBeTruthy();
+     });
    });
  
-   it('calls onChange with selected value', async () => {
-     const mockOnChange = vi.fn();
-     const user = userEvent.setup();
- 
-     render(<CategorySelector options={mockOptions} value={null} onChange={mockOnChange} />);
- 
-     const select = screen.getByLabelText(/Filter expenses by category/i);
-     await user.selectOptions(select, 'Groceries');
- 
-     expect(mockOnChange).toHaveBeenCalledWith('Groceries');
-   });
- });
- 
- describe('TotalsSummary component', () => {
-   it('displays totals and breakdown when data exists', () => {
-     const mockSummary = {
--      total: 150.5,
-+      total: 150.55,
-       currency: 'USD',
-       totalsByCategory: [
--        { category: 'Groceries', amount: 100 },
--        { category: 'Transport', amount: 50.5 },
-+        { category: 'Groceries', amount: 100.004 },
-+        { category: 'Transport', amount: 50.546 },
-       ],
-     };
- 
-     render(<TotalsSummary summary={mockSummary} hasData={true} />);
- 
--    expect(screen.getByTestId('expenses-total')).toHaveTextContent(/Total:\s*\$150\.50/);
-+    expect(screen.getByTestId('expenses-total')).toHaveTextContent(/Total:\s*\$150\.55/);
-     expect(screen.getByText('Groceries')).toBeInTheDocument();
-     expect(screen.getByText('$100.00')).toBeInTheDocument();
-     expect(screen.getByText('Transport')).toBeInTheDocument();
--    expect(screen.getByText('$50.50')).toBeInTheDocument();
-+    expect(screen.getByText('$50.55')).toBeInTheDocument();
-   });
- 
-   it('displays empty state when no data exists', () => {
-     const mockSummary = {
-       total: 0,
-       currency: 'USD',
-       totalsByCategory: [],
-     };
- 
-     render(<TotalsSummary summary={mockSummary} hasData={false} />);
- 
-     expect(screen.getByTestId('expenses-empty-state')).toBeInTheDocument();
-     expect(screen.getByText(/No expenses found/i)).toBeInTheDocument();
-   });
- });
- 
- describe('Expenses page behaviour', () => {
-+  it('renders upload helper and summary with deterministic rounding note', () => {
-+    render(<Expenses />);
-+
-+    expect(screen.getByText('Upload expenses CSV')).toBeInTheDocument();
-+    expect(screen.getByTestId('expenses-upload-input')).toBeInTheDocument();
-+    expect(screen.getByText(/deterministic rounding to exactly two decimal places/i)).toBeInTheDocument();
-+    expect(screen.getByTestId('expenses-upload-summary')).toHaveTextContent('Sample dataset');
-+  });
-+
-+  it('uploads a CSV file, refreshes dataset, and updates totals', async () => {
++  it('normalizes blank seeds from the URL and user input', async () => {
 +    const user = userEvent.setup();
-+    render(<Expenses />);
++    window.history.pushState({}, '', '/quote?seed=%20');
 +
-+    const csv = [
-+      'date,category,amount,currency',
-+      '2025-04-01,Gym,33.335,USD',
-+      '2025-04-05,Groceries,27.501,USD',
-+      '2025-04-10,Café,12.1,USD',
-+      '2025-04-12,Groceries,30.2,USD',
-+      '2025-04-14,Transport,8.4,USD',
-+    ].join('\n');
++    render(<Quote />);
 +
-+    const file = new File([csv], 'april-expenses.csv', { type: 'text/csv' });
-+    const input = screen.getByTestId('expenses-upload-input') as HTMLInputElement;
++    const seedInput = await screen.findByTestId('quote-seed-input');
++    expect(seedInput).toHaveValue(DEFAULT_QUOTE_SEED);
 +
-+    await user.upload(input, file);
++    await user.clear(seedInput);
 +
 +    await waitFor(() => {
-+      expect(screen.getByTestId('expenses-total')).toHaveTextContent(/Total:\s*\$111\.54/);
++      expect(seedInput).toHaveValue(DEFAULT_QUOTE_SEED);
++      expect(window.location.search).toBe('');
 +    });
-+
-+    expect(screen.getByTestId('expenses-upload-summary')).toHaveTextContent('april-expenses.csv');
-+
-+    const monthSelect = screen.getByLabelText(/Month/i);
-+    await user.selectOptions(monthSelect, 'April');
-+    expect(screen.getByTestId('expenses-total')).toHaveTextContent(/Total:\s*\$111\.54/);
 +  });
 +
-+  it('shows upload error when CSV is outside of allowed bounds', async () => {
-+    const user = userEvent.setup();
-+    render(<Expenses />);
-+
-+    const csv = ['date,category,amount', '2025-01-01,Groceries,10', '2025-01-02,Transport,5'].join('\n');
-+    const file = new File([csv], 'too-short.csv', { type: 'text/csv' });
-+
-+    await user.upload(screen.getByTestId('expenses-upload-input'), file);
-+
-+    expect(await screen.findByTestId('expenses-upload-error')).toHaveTextContent(
-+      `between ${MIN_EXPENSE_ROWS} and ${MAX_EXPENSE_ROWS}`,
-+    );
-+  });
-+
-   it('updates totals when filters change and shows inline errors', async () => {
+   it('filters quotes by author and shows clear filters control', async () => {
      const user = userEvent.setup();
-     render(<Expenses />);
+     render(<Quote initialSeed={DEFAULT_SEED} />);
  
-     const monthSelect = screen.getByLabelText(/month/i);
-     const categorySelect = screen.getByLabelText(/category/i);
+     await user.selectOptions(screen.getByTestId('quote-filter-author'), 'Maya Angelou');
  
-     expect(screen.getByTestId('expenses-total')).toHaveTextContent(/Total:\s*\$232\.10/);
-     expect(screen.queryByTestId('expenses-error')).toBeNull();
+     const resultsList = await screen.findByTestId('quote-filtered-list');
+     const items = within(resultsList).getAllByRole('listitem');
+     expect(items).toHaveLength(1);
+     expect(items[0]).toHaveTextContent('Still I rise.');
+     expect(items[0]).toHaveTextContent('Maya Angelou');
  
-     await user.selectOptions(monthSelect, 'February');
-     expect(screen.getByTestId('expenses-total')).toHaveTextContent(/Total:\s*\$132\.10/);
- 
-     await user.selectOptions(categorySelect, 'Utilities');
-     expect(screen.getByTestId('expenses-total')).toHaveTextContent(/Total:\s*\$90\.00/);
-     expect(screen.queryByTestId('expenses-error')).toBeNull();
- 
-     await user.selectOptions(monthSelect, 'January');
-     expect(screen.getByTestId('expenses-empty-state')).toHaveTextContent('No expenses found');
-     expect(screen.getByTestId('expenses-error')).toBeInTheDocument();
+     // Wait for clear button to be in document
+     await waitFor(() => {
+       expect(screen.getByTestId('quote-clear-filters')).toBeInTheDocument();
+     });
    });
  
-   it('shows clear filters button when filters are active', async () => {
+   it('filters quotes by tag and shows filter UI correctly', async () => {
      const user = userEvent.setup();
-     render(<Expenses />);
-diff --git a/specs/slice-a-expenses-csv/tasks.md b/specs/slice-a-expenses-csv/tasks.md
-index 5d5c5da7a5deee8224856ba2f564b70cac52f8f8..17632cbeede1e03811d4884c22db6b5e25736eb7 100644
---- a/specs/slice-a-expenses-csv/tasks.md
-+++ b/specs/slice-a-expenses-csv/tasks.md
-@@ -1,19 +1,19 @@
- # Slice A — Tasks (Expenses: CSV Import + Totals)
+     render(<Quote initialSeed={DEFAULT_SEED} />);
+ 
+     const tagSelect = screen.getByTestId('quote-filter-tag');
+ 
+     // Select a tag filter
+diff --git a/specs/slice-c-quote-search/tasks.md b/specs/slice-c-quote-search/tasks.md
+index 72785d322e68ffa1e9eca739a5f2d2b85502dc2b..681081d258ff6675567061faec8de411d626e4b5 100644
+--- a/specs/slice-c-quote-search/tasks.md
++++ b/specs/slice-c-quote-search/tasks.md
+@@ -1,20 +1,20 @@
+ # Slice C — Tasks (Quote: Filters + Seeded Random)
  
 -Status: Planned (Day 1)
-+Status: Completed
++Status: Completed (Day 5)
  
  ## Build
--- [ ] T001 Add CSV upload control with visible label and helper text on `Expenses` page.
--- [ ] T002 Implement CSV parser with schema validation, 5–200 row bounds, and row-level error collection.
--- [ ] T003 Integrate parsed records into the view; month/category filters operate on uploaded data; empty dataset UX.
--- [ ] T004 Totals summary uses deterministic 2dp rounding consistent with CLI; document rounding in UI help.
-+- [x] T001 Add CSV upload control with visible label and helper text on `Expenses` page.
-+- [x] T002 Implement CSV parser with schema validation, 5–200 row bounds, and row-level error collection.
-+- [x] T003 Integrate parsed records into the view; month/category filters operate on uploaded data; empty dataset UX.
-+- [x] T004 Totals summary uses deterministic 2dp rounding consistent with CLI; document rounding in UI help.
+-- [ ] T013 Implement case‑insensitive Author filter.
+-- [ ] T014 Implement case‑insensitive Tag filter.
+-- [ ] T015 Deterministic seeded random when no filters; normalize seed to default when empty.
+-- [ ] T016 Sync author/tag/seed with URL; add clear filters action and empty/no‑match messages.
++- [x] T013 Implement case‑insensitive Author filter.
++- [x] T014 Implement case‑insensitive Tag filter.
++- [x] T015 Deterministic seeded random when no filters; normalize seed to default when empty.
++- [x] T016 Sync author/tag/seed with URL; add clear filters action and empty/no‑match messages.
  
  ## Tests
--- [ ] T005 Unit tests (table‑driven): valid/invalid CSV, bounds errors, month/category filters, 2dp rounding, non‑ASCII categories.
-+- [x] T005 Unit tests (table‑driven): valid/invalid CSV, bounds errors, month/category filters, 2dp rounding, non‑ASCII categories.
+-- [ ] T017 Unit tests: author/tag filters, seeded random determinism, empty dataset UX.
++- [x] T017 Unit tests: author/tag filters, seeded random determinism, empty dataset UX.
  
  ## CI & Artifacts
--- [ ] T006 Playwright `@smoke` (upload → filter → totals) + axe a11y; export UI coverage and Playwright report to `review-artifacts/` (UI ≥ 50% changed modules) and update README review box.
-+- [x] T006 Playwright `@smoke` (upload → filter → totals) + axe a11y; export UI coverage and Playwright report to `review-artifacts/` (UI ≥ 50% changed modules) and update README review box.
+-- [ ] T018 Playwright `@smoke` (author search equals fixture; seeded path reproducible) + axe a11y; export coverage and Playwright report to `review-artifacts/` and update README review box.
++- [x] T018 Playwright `@smoke` (author search equals fixture; seeded path reproducible) + axe a11y; export coverage and Playwright report to `review-artifacts/` and update README review box.
  
  ## Documentation
  
  
+ 
+diff --git a/src/cli/quote.js b/src/cli/quote.js
+index 6b9a45c0e4faa49324e27806237ea74de8b51bf1..602e4bd5c62fcc94dacca97a9e10349b6c6f9c5a 100644
+--- a/src/cli/quote.js
++++ b/src/cli/quote.js
+@@ -1,29 +1,29 @@
+ import { promises as fs } from 'node:fs';
+ import { extname } from 'node:path';
+ import { pathToFileURL } from 'node:url';
+-import { getIntegerFlag, getStringFlag, parseArgs, requireStringFlag } from '../helpers/args.js';
++import { getStringFlag, parseArgs, requireStringFlag } from '../helpers/args.js';
+ import { formatQuote, parseQuotes, QuoteError, selectQuote } from '../quote/core.js';
+ 
+ function determineFormat(path) {
+   const extension = extname(path).toLowerCase();
+   if (extension === '.json') {
+     return 'json';
+   }
+   if (extension === '.csv') {
+     return 'csv';
+   }
+   return undefined;
+ }
+ 
+ async function loadQuotes(path, env) {
+   const reader = env && env.readFile ? env.readFile : fs.readFile;
+   try {
+     const raw = await reader(path, 'utf8');
+     const format = determineFormat(path);
+     return parseQuotes(raw, format);
+   } catch (error) {
+     if (error instanceof QuoteError) {
+       throw error;
+     }
+ 
+     const message =
+@@ -44,51 +44,61 @@ function mapReasonToExitCode(reason) {
+   case 'no-quotes':
+     return 2;
+   default:
+     return 2;
+   }
+ }
+ 
+ export async function runQuoteCli(
+   argv,
+   io = { stdout: (message) => console.log(message), stderr: (message) => console.error(message) },
+   env = {},
+ ) {
+   const { flags } = parseArgs(argv);
+ 
+   let inputPath;
+   let author;
+   let tag;
+   let seed;
+ 
+   try {
+     inputPath = requireStringFlag(flags, 'input', 'Provide --input <path> to specify a quotes file.', {
+       label: 'Input path',
+     });
+     author = getStringFlag(flags, 'author', { label: 'Author' });
+     tag = getStringFlag(flags, 'tag', { label: 'Tag' });
+-    seed = getIntegerFlag(flags, 'seed', { label: 'Seed' });
++    const seedFlag = getStringFlag(flags, 'seed', { label: 'Seed', allowEmpty: true });
++    if (seedFlag !== undefined) {
++      const trimmed = seedFlag.trim();
++      if (trimmed.length > 0) {
++        if (/^[+-]?\d+(\.\d+)?$/.test(trimmed)) {
++          seed = Number(trimmed);
++        } else {
++          seed = trimmed;
++        }
++      }
++    }
+   } catch (error) {
+     io.stderr?.(error.message);
+     return 1;
+   }
+ 
+   let quotes;
+   try {
+     quotes = await loadQuotes(inputPath, env);
+   } catch (error) {
+     io.stderr?.(error.message);
+     return error.exitCode ?? 2;
+   }
+ 
+   try {
+     const quote = selectQuote(quotes, { author, tag, seed });
+     io.stdout?.(formatQuote(quote));
+     return 0;
+   } catch (error) {
+     const reason = error && error.reason;
+     const exitCode = mapReasonToExitCode(reason);
+     const message = (error && error.message) || 'Failed to select quote.';
+     io.stderr?.(message);
+     return exitCode;
+   }
+ }
+diff --git a/src/cli/quote.ts b/src/cli/quote.ts
+index 105351610800d8e3f8447aacff15deb197f7b6e7..e2da1d9d1095f6e93691c044d1294bf959711936 100644
+--- a/src/cli/quote.ts
++++ b/src/cli/quote.ts
+@@ -1,35 +1,30 @@
+ /* c8 ignore start */
+ import { promises as fs } from 'node:fs';
+ import { extname } from 'node:path';
+ import { pathToFileURL } from 'node:url';
+-import {
+-  getIntegerFlag,
+-  getStringFlag,
+-  parseArgs,
+-  requireStringFlag,
+-} from '../helpers/args.js';
++import { getStringFlag, parseArgs, requireStringFlag } from '../helpers/args.js';
+ import {
+   formatQuote,
+   parseQuotes,
+   QuoteError,
+   QuoteErrorReason,
+   QuoteRecord,
+   selectQuote,
+ } from '../quote/core.js';
+ 
+ interface CliIO {
+   stdout?: (message: string) => void;
+   stderr?: (message: string) => void;
+ }
+ 
+ interface QuoteEnvironment {
+   readFile?: (path: string, encoding: BufferEncoding) => Promise<string>;
+ }
+ 
+ function determineFormat(path: string): 'json' | 'csv' | undefined {
+   const extension = extname(path).toLowerCase();
+   if (extension === '.json') {
+     return 'json';
+   }
+   if (extension === '.csv') {
+     return 'csv';
+@@ -61,62 +56,72 @@ async function loadQuotes(path: string, env: QuoteEnvironment): Promise<QuoteRec
+   }
+ }
+ 
+ function mapReasonToExitCode(reason?: QuoteErrorReason): number {
+   switch (reason) {
+     case 'author-not-found':
+     case 'tag-not-found':
+       return 1;
+     case 'no-quotes':
+       return 2;
+     default:
+       return 2;
+   }
+ }
+ 
+ export async function runQuoteCli(
+   argv: readonly string[],
+   io: CliIO = { stdout: (message) => console.log(message), stderr: (message) => console.error(message) },
+   env: QuoteEnvironment = {},
+ ): Promise<number> {
+   const { flags } = parseArgs(argv);
+ 
+   let inputPath: string;
+   let author: string | undefined;
+   let tag: string | undefined;
+-  let seed: number | undefined;
++  let seed: number | string | undefined;
+ 
+   try {
+     inputPath = requireStringFlag(
+       flags,
+       'input',
+       'Provide --input <path> to specify a quotes file.',
+       { label: 'Input path' },
+     );
+     author = getStringFlag(flags, 'author', { label: 'Author' });
+     tag = getStringFlag(flags, 'tag', { label: 'Tag' });
+-    seed = getIntegerFlag(flags, 'seed', { label: 'Seed' });
++    const seedFlag = getStringFlag(flags, 'seed', { label: 'Seed', allowEmpty: true });
++    if (seedFlag !== undefined) {
++      const trimmed = seedFlag.trim();
++      if (trimmed.length > 0) {
++        if (/^[+-]?\d+(\.\d+)?$/.test(trimmed)) {
++          seed = Number(trimmed);
++        } else {
++          seed = trimmed;
++        }
++      }
++    }
+   } catch (error: unknown) {
+     io.stderr?.((error as Error).message);
+     return 1;
+   }
+ 
+   let quotes: QuoteRecord[];
+   try {
+     quotes = await loadQuotes(inputPath, env);
+   } catch (error: unknown) {
+     io.stderr?.((error as Error).message);
+     return (error as { exitCode?: number }).exitCode ?? 2;
+   }
+ 
+   try {
+     const quote = selectQuote(quotes, { author, tag, seed });
+     io.stdout?.(formatQuote(quote));
+     return 0;
+   } catch (error: unknown) {
+     const reason = (error as QuoteError).reason;
+     const exitCode = mapReasonToExitCode(reason);
+     const message = (error as Error).message ?? 'Failed to select quote.';
+     io.stderr?.(message);
+     return exitCode;
+   }
+ }
+diff --git a/src/quote/core.js b/src/quote/core.js
+index 70d79754afb9a2442c71f8bec580b58b0e1f6f22..248204e3f1e4db523531a400793c7333ad7795fd 100644
+--- a/src/quote/core.js
++++ b/src/quote/core.js
+@@ -188,64 +188,91 @@ function normalizeTags(value) {
+ 
+   return text
+     .split(/[;|,]/)
+     .map((tag) => tag.trim())
+     .filter((tag) => tag.length > 0);
+ }
+ 
+ function filterNormalizedQuotes(quotes, filters = {}) {
+   const normalizedAuthor = filters.author ? filters.author.trim().toLowerCase() : null;
+   const normalizedTag = filters.tag ? filters.tag.trim().toLowerCase() : null;
+ 
+   return quotes.filter((quote) => {
+     const matchesAuthor =
+       !normalizedAuthor || quote.author.trim().toLowerCase() === normalizedAuthor;
+     const matchesTag =
+       !normalizedTag || quote.tags.some((tag) => tag.trim().toLowerCase() === normalizedTag);
+     return matchesAuthor && matchesTag;
+   });
+ }
+ 
+ export function filterQuotes(quotes, filters = {}) {
+   const normalized = normalizeQuotes(quotes);
+   return filterNormalizedQuotes(normalized, filters);
+ }
+ 
++function toSeedValue(seed) {
++  if (seed === undefined || seed === null) {
++    return 1;
++  }
++
++  if (typeof seed === 'number') {
++    if (!Number.isFinite(seed)) {
++      throw new Error('Seed must be a finite number.');
++    }
++    const normalized = Math.floor(Math.abs(seed));
++    return normalized === 0 ? 1 : normalized;
++  }
++
++  const text = String(seed).trim();
++  if (text.length === 0) {
++    return 1;
++  }
++
++  let hash = 0;
++  for (let index = 0; index < text.length; index += 1) {
++    hash = (hash * 31 + text.charCodeAt(index)) | 0;
++  }
++  const normalized = Math.abs(hash);
++  return normalized === 0 ? 1 : normalized;
++}
++
+ function createSeededRandom(seed) {
+-  let state = (seed >>> 0) || 1;
++  const seedValue = toSeedValue(seed);
++  let state = seedValue >>> 0;
+   return () => {
+     state = (state * 1664525 + 1013904223) % 0x100000000;
+     return state / 0x100000000;
+   };
+ }
+ 
+ export function pickRandom(items, seed = null) {
+   if (!Array.isArray(items) || items.length === 0) {
+     throw new Error('No items to pick from');
+   }
+ 
+-  const randomSource = seed === null || seed === undefined ? Math.random : createSeededRandom(Number(seed));
++  const randomSource = seed === null || seed === undefined ? Math.random : createSeededRandom(seed);
+   const index = Math.floor(randomSource() * items.length) % items.length;
+   return items[index];
+ }
+ 
+ export function selectQuote(quotes, options = {}) {
+   const normalized = normalizeQuotes(quotes);
+ 
+   if (normalized.length === 0) {
+     throw createQuoteError('No quotes available.', 'no-quotes');
+   }
+ 
+   let filtered = normalized;
+ 
+   if (options.author) {
+     filtered = filterNormalizedQuotes(filtered, { author: options.author });
+     if (filtered.length === 0) {
+       throw createQuoteError(`No quotes found for author "${options.author}".`, 'author-not-found');
+     }
+   }
+ 
+   if (options.tag) {
+     filtered = filterNormalizedQuotes(filtered, { tag: options.tag });
+     if (filtered.length === 0) {
+       throw createQuoteError(`No quotes found with tag "${options.tag}".`, 'tag-not-found');
+     }
+diff --git a/src/quote/core.ts b/src/quote/core.ts
+index 919c67b1ddfaf817873c3dc27631b044fb5b7709..92a0d44db59c267c118db7fbde02159915146d33 100644
+--- a/src/quote/core.ts
++++ b/src/quote/core.ts
+@@ -160,60 +160,87 @@ function normalizeTags(value: unknown): string[] {
+ 
+   const text = String(value);
+   if (!text.trim()) {
+     return [];
+   }
+ 
+   return text
+     .split(/[;|]/)
+     .map((tag) => tag.trim())
+     .filter((tag) => tag.length > 0);
+ }
+ 
+ export function filterQuotes(quotes: QuoteRecord[], filters: QuoteFilters = {}): QuoteRecord[] {
+   const normalizedAuthor = filters.author ? filters.author.trim().toLowerCase() : null;
+   const normalizedTag = filters.tag ? filters.tag.trim().toLowerCase() : null;
+ 
+   return quotes.filter((quote) => {
+     const matchesAuthor =
+       !normalizedAuthor || quote.author.trim().toLowerCase() === normalizedAuthor;
+     const matchesTag =
+       !normalizedTag || quote.tags.some((tag) => tag.trim().toLowerCase() === normalizedTag);
+     return matchesAuthor && matchesTag;
+   });
+ }
+ 
+-function createSeededRandom(seed: number): () => number {
+-  let state = (seed >>> 0) || 1;
++function toSeedValue(seed: number | string | undefined | null): number {
++  if (seed === undefined || seed === null) {
++    return 1;
++  }
++
++  if (typeof seed === 'number') {
++    if (!Number.isFinite(seed)) {
++      throw new Error('Seed must be a finite number.');
++    }
++    const normalized = Math.floor(Math.abs(seed));
++    return normalized === 0 ? 1 : normalized;
++  }
++
++  const text = seed.trim();
++  if (text.length === 0) {
++    return 1;
++  }
++
++  let hash = 0;
++  for (let index = 0; index < text.length; index += 1) {
++    hash = (hash * 31 + text.charCodeAt(index)) | 0;
++  }
++  const normalized = Math.abs(hash);
++  return normalized === 0 ? 1 : normalized;
++}
++
++function createSeededRandom(seed: number | string | undefined | null): () => number {
++  const seedValue = toSeedValue(seed);
++  let state = seedValue >>> 0;
+   return () => {
+     state = (state * 1664525 + 1013904223) % 0x100000000;
+     return state / 0x100000000;
+   };
+ }
+ 
+ export interface QuoteSelectionOptions extends QuoteFilters {
+-  seed?: number;
++  seed?: number | string | null;
+   random?: () => number;
+ }
+ 
+ export function selectQuote(quotes: QuoteRecord[], options: QuoteSelectionOptions = {}): QuoteRecord {
+   if (quotes.length === 0) {
+     throw createQuoteError('No quotes available.', 'no-quotes');
+   }
+ 
+   let filtered = quotes;
+ 
+   if (options.author) {
+     filtered = filterQuotes(filtered, { author: options.author });
+     if (filtered.length === 0) {
+       throw createQuoteError(`No quotes found for author "${options.author}".`, 'author-not-found');
+     }
+   }
+ 
+   if (options.tag) {
+     filtered = filterQuotes(filtered, { tag: options.tag });
+     if (filtered.length === 0) {
+       throw createQuoteError(`No quotes found with tag "${options.tag}".`, 'tag-not-found');
+     }
+   }
+ 
+   if (filtered.length === 0) {
+diff --git a/tests/quote/cli.test.ts b/tests/quote/cli.test.ts
+index eb7719b9aefac3890647f424f6af926e7380dadc..5c9c2c6e87fa64f320fbabfc36b5392e079f5379 100644
+--- a/tests/quote/cli.test.ts
++++ b/tests/quote/cli.test.ts
+@@ -58,50 +58,67 @@ describe('quote CLI', () => {
+       ['--input', 'quotes.json', '--tag', 'Perseverance'],
+       io,
+       {
+         readFile: async () => SAMPLE_DATA,
+       },
+     );
+ 
+     expect(code).toBe(0);
+     expect(io.out[0]).toBe('"It always seems impossible until it is done." — Nelson Mandela (tags: inspiration, perseverance)');
+   });
+ 
+   it('selects a deterministic quote when using a seed without filters', async () => {
+     const io = createIO();
+     const code = await runQuoteCli(
+       ['--input', 'quotes.json', '--seed', '7'],
+       io,
+       {
+         readFile: async () => SAMPLE_DATA,
+       },
+     );
+ 
+     expect(code).toBe(0);
+     expect(io.out[0]).toBe('"Success is liking yourself, liking what you do, and liking how you do it." — Maya Angelou (tags: inspiration, success)');
+   });
+ 
++  it('supports deterministic selection using string seeds', async () => {
++    const firstRun = createIO();
++    const secondRun = createIO();
++
++    const argv = ['--input', 'quotes.json', '--seed', 'quote-demo-seed'];
++    const env = { readFile: async () => SAMPLE_DATA };
++
++    const [firstCode, secondCode] = await Promise.all([
++      runQuoteCli(argv, firstRun, env),
++      runQuoteCli(argv, secondRun, env),
++    ]);
++
++    expect(firstCode).toBe(0);
++    expect(secondCode).toBe(0);
++    expect(firstRun.out[0]).toBe(secondRun.out[0]);
++  });
++
+   it('returns a non-zero exit code when author is not found', async () => {
+     const io = createIO();
+     const code = await runQuoteCli(
+       ['--input', 'quotes.json', '--author', 'Unknown'],
+       io,
+       {
+         readFile: async () => SAMPLE_DATA,
+       },
+     );
+ 
+     expect(code).toBe(1);
+     expect(io.err[0]).toBe('No quotes found for author "Unknown".');
+   });
+ 
+   it('fails when the dataset is empty', async () => {
+     const io = createIO();
+     const code = await runQuoteCli(
+       ['--input', 'quotes.json'],
+       io,
+       {
+         readFile: async () => '[]',
+       },
+     );
+ 
+     expect(code).toBe(2);
+diff --git a/tests/quote/core.test.ts b/tests/quote/core.test.ts
+index 6f0a95aac7237ee347650c1d657709b87276ba3a..26714c3c1ba19ef12f119e05e12934a50fddd8dd 100644
+--- a/tests/quote/core.test.ts
++++ b/tests/quote/core.test.ts
+@@ -28,30 +28,40 @@ describe('quote core', () => {
+     expect(quotes).toHaveLength(2);
+     expect(quotes[0].author).toBe('Maya Angelou');
+     expect(quotes[0].tags).toEqual(['inspiration', 'success']);
+   });
+ 
+   it('parses CSV quotes and trims whitespace', () => {
+     const quotes = parseQuotes(SAMPLE_QUOTES_CSV, 'csv');
+     expect(quotes).toHaveLength(2);
+     expect(quotes[0].text.startsWith('Do not wait')).toBe(true);
+     expect(quotes[0].tags).toEqual(['inspiration', 'action']);
+   });
+ 
+   it('filters quotes by author and tag case-insensitively', () => {
+     const quotes = parseQuotes(SAMPLE_QUOTES_JSON, 'json');
+     const filtered = filterQuotes(quotes, { author: 'maya angelou', tag: 'SUCCESS' });
+     expect(filtered).toHaveLength(1);
+     expect(filtered[0].author).toBe('Maya Angelou');
+   });
+ 
+   it('selects a deterministic quote using a seed when no filters are provided', () => {
+     const quotes = parseQuotes(SAMPLE_QUOTES_JSON, 'json');
+     const quote = selectQuote(quotes, { seed: 42 });
+     expect(formatQuote(quote)).toBe('"Success is liking yourself, liking what you do, and liking how you do it." — Maya Angelou (tags: inspiration, success)');
+   });
+ 
++  it('selects deterministic quotes for string seeds and varies across different seeds', () => {
++    const quotes = parseQuotes(SAMPLE_QUOTES_JSON, 'json');
++    const first = selectQuote(quotes, { seed: 'demo-seed' });
++    const second = selectQuote(quotes, { seed: 'demo-seed' });
++    const different = selectQuote(quotes, { seed: 'another-seed' });
++
++    expect(first).toEqual(second);
++    expect(formatQuote(different)).not.toBe(formatQuote(first));
++  });
++
+   it('throws a helpful error when author is not found', () => {
+     const quotes: QuoteRecord[] = parseQuotes(SAMPLE_QUOTES_JSON, 'json');
+     expect(() => selectQuote(quotes, { author: 'Unknown' })).toThrow('No quotes found for author "Unknown".');
+   });
+ });

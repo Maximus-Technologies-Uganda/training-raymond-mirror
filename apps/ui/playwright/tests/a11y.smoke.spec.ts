@@ -55,7 +55,7 @@ test.describe('Accessibility compliance @smoke @a11y', () => {
 2025-01-04,Entertainment,40
 2025-01-05,Travel,50`;
 
-    await page.getByLabel('Upload expenses CSV').setInputFiles({
+    await page.locator('#expenses-csv').setInputFiles({
       name: 'test.csv',
       mimeType: 'text/csv',
       buffer: Buffer.from(csvContent),

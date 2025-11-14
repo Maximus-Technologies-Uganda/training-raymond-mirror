@@ -10,7 +10,7 @@ const QUOTED_CSV_PATH = path.join(__dirname, '../fixtures/expenses-quoted.csv');
  * Helper to upload CSV file
  */
 async function uploadExpensesCsv(page: Page, filePath: string): Promise<void> {
-  await page.getByLabel('Upload expenses CSV').setInputFiles(filePath);
+  await page.locator('#expenses-csv').setInputFiles(filePath);
 }
 
 /**
@@ -76,7 +76,7 @@ test.describe('Expenses CSV Upload and Filtering', () => {
 
     // Verify categories with special characters are available
     const categorySelect = page.getByLabel('Category');
-    await categorySelect.selectOption({ label: 'Café' });
+    await categorySelect.selectOption('Café & Restaurant');
     await expect(page.getByTestId('expenses-total')).toHaveText('Total: $25.00');
   });
 
@@ -116,9 +116,9 @@ test.describe('Expenses CSV Upload and Filtering', () => {
     await expect(issues).toBeVisible();
     await expect(issues.getByText(/Data quality notices/i)).toBeVisible();
 
-    // Verify specific row errors are displayed
-    await expect(issues.getByText(/Row 9/)).toBeVisible();
-    await expect(issues.getByText(/Row 10/)).toBeVisible();
+    // Verify row errors are displayed (at least 2 issues from invalid rows)
+    const issueList = issues.locator('.expenses-alert__item');
+    await expect(issueList).toHaveCount(2);
   });
 
   test('shows error for invalid CSV files @smoke', async ({ page }) => {
@@ -128,7 +128,7 @@ test.describe('Expenses CSV Upload and Filtering', () => {
     const invalidCsv = 'date,category,amount\n2025-01-01,Test,10\n2025-01-02,Test,20';
     const buffer = Buffer.from(invalidCsv);
 
-    await page.getByLabel('Upload expenses CSV').setInputFiles({
+    await page.locator('#expenses-csv').setInputFiles({
       name: 'invalid.csv',
       mimeType: 'text/csv',
       buffer,

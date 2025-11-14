@@ -1,10 +1,8 @@
 diff --git a/README.md b/README.md
-index 9d518f4b05110ce53d96e1d8bf79777da90a89e4..37ecc55990504156179cb2b2c9099bd31d012e75 100644
+index 9d518f4b05110ce53d96e1d8bf79777da90a89e4..7ecd0826a57069161f5294156f91c34cc80e9bb0 100644
 --- a/README.md
 +++ b/README.md
-@@ -358,55 +358,55 @@ apps/ui/
- - **Duration:** Week 1 (5 days)
- - **Mirror:** This repo is mirrored to [training-raymond-mirror](https://github.com/Maximus-Technologies-Uganda/training-raymond-mirror)
+@@ -360,50 +360,51 @@ apps/ui/
  
  ## 👨‍🏫 For Mentors & Reviewers
  
@@ -28,17 +26,15 @@ index 9d518f4b05110ce53d96e1d8bf79777da90a89e4..37ecc55990504156179cb2b2c9099bd3
  ### Quick Review Process
  1. Download the review package from [latest release](https://github.com/Maximus-Technologies-Uganda/training-raymond/releases/latest)
  2. Extract and review artifacts:
--   - Coverage reports (CLI + UI)
--   - Playwright test results
-+   - Coverage reports (CLI + UI) — Expenses CSV slice coverage exports under `review-artifacts/ui/unit/`
-+   - Playwright test results — Expenses CSV `@smoke` report under `review-artifacts/ui/e2e/expenses-csv/`
+    - Coverage reports (CLI + UI)
+    - Playwright test results
++   - Quote explorer slice: seeded random + author/tag filters (`@smoke`)
     - Source code and tests
  3. Verify tests pass:
     ```bash
     npm test                                      # CLI tests
     npm --prefix apps/ui run test:coverage        # UI unit tests
--   npm --prefix apps/ui run test:e2e -- --project=chromium --grep @smoke  # E2E tests
-+   npm --prefix apps/ui run test:e2e -- --project=chromium --grep "@smoke"  # E2E tests (includes expenses CSV upload)
+    npm --prefix apps/ui run test:e2e -- --project=chromium --grep @smoke  # E2E tests
     ```
  4. Run the UIs locally:
     ```bash
@@ -58,1670 +54,617 @@ index 9d518f4b05110ce53d96e1d8bf79777da90a89e4..37ecc55990504156179cb2b2c9099bd3
  - ✅ All configuration files
  
  ### Continuous Updates
- The public mirror is automatically synchronized whenever changes are pushed to the `development` branch. No manual action needed!
+diff --git a/apps/ui/playwright/tests/quote.smoke.spec.ts b/apps/ui/playwright/tests/quote.smoke.spec.ts
+index 633007521b9874938bd1588ebb0f299b8e02cd83..7f506f6fb00e0a222b69d3b04ee95145fdfd809f 100644
+--- a/apps/ui/playwright/tests/quote.smoke.spec.ts
++++ b/apps/ui/playwright/tests/quote.smoke.spec.ts
+@@ -18,120 +18,122 @@ test.describe('Quote UI smoke tests', () => {
+     await expect(blockquote).toBeVisible();
+     const quoteText = await blockquote.textContent();
+     expect(quoteText).toBeTruthy(); // Ensure some quote text is present
  
- ---
-\ No newline at end of file
-diff --git a/apps/ui/playwright/fixtures/expenses-sample.csv b/apps/ui/playwright/fixtures/expenses-sample.csv
-new file mode 100644
-index 0000000000000000000000000000000000000000..4ed7492437e7f95850be9e160848342cac9bdacd
---- /dev/null
-+++ b/apps/ui/playwright/fixtures/expenses-sample.csv
-@@ -0,0 +1,10 @@
-+date,category,amount,currency
-+2025-01-05,Groceries,54.2,USD
-+2025-01-15,Transport,18.3,USD
-+2025-02-01,Groceries,42.1,USD
-+2025-02-07,Utilities,90,USD
-+2025-03-12,Entertainment,27.5,USD
-+2025-03-14,Café,12.345,USD
-+invalid-date,Groceries,10,USD
-+2025-02-22,,11.25,USD
-+2025-02-15,Travel,10.005,USD
-diff --git a/apps/ui/playwright/tests/expenses.smoke.spec.js b/apps/ui/playwright/tests/expenses.smoke.spec.js
-index 7a170aa27b7a5a2cf62e68d163f99d1dd59631cf..b178ee0d35363f3497d633b61aa2a0361a8d3ad6 100644
---- a/apps/ui/playwright/tests/expenses.smoke.spec.js
-+++ b/apps/ui/playwright/tests/expenses.smoke.spec.js
-@@ -1,39 +1,60 @@
- import { test, expect } from '@playwright/test';
-+
-+const SAMPLE_CSV_PATH = 'playwright/fixtures/expenses-sample.csv';
-+
-+async function uploadSampleCsv(page) {
-+  await page.getByLabel('Upload expenses CSV').setInputFiles(SAMPLE_CSV_PATH);
-+}
-+
- /**
-  * Phase 3 Expenses UI smoke tests
-  * Verifies filtering, totals calculation, and error handling
-  */
- test('expenses filters update totals @smoke', async ({ page }) => {
--    await page.goto('/');
--    const title = page.getByTestId('expenses-title');
--    await expect(title).toHaveText('Expenses overview');
--    const total = page.getByTestId('expenses-total');
--    await expect(total).toHaveText('Total: $232.10');
--    await page.getByLabel('Month').selectOption('February');
--    await expect(page.getByTestId('expenses-total')).toHaveText('Total: $132.10');
--    await page.getByLabel('Category').selectOption('Utilities');
--    await expect(page.getByTestId('expenses-total')).toHaveText('Total: $90.00');
--    await page.getByLabel('Month').selectOption('January');
--    await expect(page.getByTestId('expenses-error')).toHaveText('No expenses found for the selected filters. Try a different month or category.');
-+  await page.goto('/');
-+
-+  const title = page.getByTestId('expenses-title');
-+  await expect(title).toHaveText('Expenses overview');
-+
-+  await uploadSampleCsv(page);
-+  await expect(page.getByTestId('expenses-total')).toHaveText('Total: $254.45');
-+
-+  await page.getByLabel('Month').selectOption('February');
-+  await expect(page.getByTestId('expenses-total')).toHaveText('Total: $142.11');
-+
-+  await page.getByLabel('Category').selectOption('Utilities');
-+  await expect(page.getByTestId('expenses-total')).toHaveText('Total: $90.00');
-+
-+  await page.getByLabel('Month').selectOption('March');
-+  await page.getByLabel('Category').selectOption('Utilities');
-+  await expect(page.getByTestId('expenses-error')).toHaveText(
-+    'No expenses found for the selected filters. Try a different month or category.',
-+  );
- });
-+
- test('clear filters button functionality @smoke', async ({ page }) => {
--    await page.goto('/');
--    // Initially no clear button
--    await expect(page.getByRole('button', { name: /Clear all filters/i })).not.toBeVisible();
--    // Apply filters
--    await page.getByLabel('Month').selectOption('February');
--    await page.getByLabel('Category').selectOption('Groceries');
--    // Clear button should appear and work
--    const clearButton = page.getByRole('button', { name: /Clear all filters/i });
--    await expect(clearButton).toBeVisible();
--    await clearButton.click();
--    // Filters should reset
--    await expect(page.getByTestId('expenses-total')).toHaveText('Total: $232.10');
--    await expect(clearButton).not.toBeVisible();
-+  await page.goto('/');
-+  await uploadSampleCsv(page);
-+
-+  // Apply filters
-+  await page.getByLabel('Month').selectOption('February');
-+  await page.getByLabel('Category').selectOption('Groceries');
-+
-+  const clearButton = page.getByRole('button', { name: /Clear all filters/i });
-+  await expect(clearButton).toBeVisible();
-+  await clearButton.click();
-+
-+  // Filters should reset
-+  await expect(page.getByTestId('expenses-total')).toHaveText('Total: $254.45');
-+  await expect(clearButton).not.toBeVisible();
- });
-+
- test('data quality notices display @smoke', async ({ page }) => {
--    await page.goto('/');
--    const issues = page.getByTestId('expenses-issues');
--    await expect(issues).toBeVisible();
--    await expect(issues.getByText(/Data quality notices/i)).toBeVisible();
-+  await page.goto('/');
-+  await uploadSampleCsv(page);
-+
-+  const issues = page.getByTestId('expenses-issues');
-+  await expect(issues).toBeVisible();
-+  await expect(issues.getByText(/Row 8/)).toBeVisible();
-+  await expect(issues.getByText(/Row 9/)).toBeVisible();
- });
-diff --git a/apps/ui/playwright/tests/expenses.smoke.spec.ts b/apps/ui/playwright/tests/expenses.smoke.spec.ts
-index c82273e6df5cd59ed46c8c3d9ab1409c5a629368..b0cdc817bb9b41e3a7c5db6f962fc4ea9ad11c5d 100644
---- a/apps/ui/playwright/tests/expenses.smoke.spec.ts
-+++ b/apps/ui/playwright/tests/expenses.smoke.spec.ts
-@@ -1,54 +1,61 @@
--import { test, expect } from '@playwright/test';
-+import { test, expect, type Page } from '@playwright/test';
-+
-+const SAMPLE_CSV_PATH = 'playwright/fixtures/expenses-sample.csv';
-+
-+async function uploadSampleCsv(page: Page): Promise<void> {
-+  await page.getByLabel('Upload expenses CSV').setInputFiles(SAMPLE_CSV_PATH);
-+}
+     const seedInput = page.getByTestId('quote-seed-input');
+     await seedInput.fill('seed-a');
  
- /**
-- * Phase 3 Expenses UI smoke tests
-- * Verifies filtering, totals calculation, and error handling
-+ * Expenses CSV import smoke tests
-+ * Verifies upload flow, filtering, totals calculation, and inline issues.
-  */
--test('expenses filters update totals @smoke', async ({ page }) => {
-+test('expenses CSV upload filters update totals @smoke', async ({ page }) => {
-   await page.goto('/');
+     // Quote should change deterministically
+     const quoteBefore = await featured.textContent();
  
--  const title = page.getByTestId('expenses-title');
--  await expect(title).toHaveText('Expenses overview');
-+  await expect(page.getByTestId('expenses-title')).toHaveText('Expenses overview');
-+  await uploadSampleCsv(page);
+     await seedInput.fill('seed-b');
+     const quoteAfter = await featured.textContent();
  
--  const total = page.getByTestId('expenses-total');
--  await expect(total).toHaveText('Total: $232.10');
-+  await expect(page.getByTestId('expenses-total')).toHaveText('Total: $254.45');
-+  await expect(page.getByTestId('expenses-upload-meta')).toContainText('Loaded 7 valid rows');
+     expect(quoteBefore).not.toBe(quoteAfter);
  
-   await page.getByLabel('Month').selectOption('February');
--  await expect(page.getByTestId('expenses-total')).toHaveText('Total: $132.10');
-+  await expect(page.getByTestId('expenses-total')).toHaveText('Total: $142.11');
- 
--  await page.getByLabel('Category').selectOption('Utilities');
--  await expect(page.getByTestId('expenses-total')).toHaveText('Total: $90.00');
-+  await page.getByLabel('Category').selectOption('Groceries');
-+  await expect(page.getByTestId('expenses-total')).toHaveText('Total: $42.10');
- 
--  await page.getByLabel('Month').selectOption('January');
-+  await page.getByLabel('Month').selectOption('March');
-+  await page.getByLabel('Category').selectOption('Utilities');
-   await expect(page.getByTestId('expenses-error')).toHaveText(
-     'No expenses found for the selected filters. Try a different month or category.',
-   );
- });
- 
--test('clear filters button functionality @smoke', async ({ page }) => {
-+test('clear filters button resets state @smoke', async ({ page }) => {
-   await page.goto('/');
-+  await uploadSampleCsv(page);
- 
--  // Initially no clear button
--  await expect(page.getByRole('button', { name: /Clear all filters/i })).not.toBeVisible();
-+  const monthSelect = page.getByLabel('Month');
-+  const categorySelect = page.getByLabel('Category');
- 
--  // Apply filters
--  await page.getByLabel('Month').selectOption('February');
--  await page.getByLabel('Category').selectOption('Groceries');
-+  await monthSelect.selectOption('February');
-+  await categorySelect.selectOption('Travel');
- 
--  // Clear button should appear and work
-   const clearButton = page.getByRole('button', { name: /Clear all filters/i });
-   await expect(clearButton).toBeVisible();
-   await clearButton.click();
- 
--  // Filters should reset
--  await expect(page.getByTestId('expenses-total')).toHaveText('Total: $232.10');
-+  await expect(page.getByTestId('expenses-total')).toHaveText('Total: $254.45');
-   await expect(clearButton).not.toBeVisible();
- });
- 
--test('data quality notices display @smoke', async ({ page }) => {
-+test('data quality notices display after upload @smoke', async ({ page }) => {
-   await page.goto('/');
-+  await uploadSampleCsv(page);
- 
-   const issues = page.getByTestId('expenses-issues');
-   await expect(issues).toBeVisible();
--  await expect(issues.getByText(/Data quality notices/i)).toBeVisible();
-+  await expect(issues.getByText(/Row 8/)).toBeVisible();
-+  await expect(issues.getByText(/Row 9/)).toBeVisible();
- });
-diff --git a/apps/ui/src/App.test.tsx b/apps/ui/src/App.test.tsx
-index ad3ec433c547837e5359fb71e57abe27286c9b56..a2eaf9b33b6002b5e24aa3e1fbdae2dc51319b31 100644
---- a/apps/ui/src/App.test.tsx
-+++ b/apps/ui/src/App.test.tsx
-@@ -1,51 +1,66 @@
--import { fireEvent, render, screen } from '@testing-library/react';
-+import { fireEvent, render, screen, within } from '@testing-library/react';
-+import userEvent from '@testing-library/user-event';
- import App from './App';
- 
-+const SAMPLE_CSV = `date,category,amount,currency\n2025-01-05,Groceries,54.2,USD\n2025-01-15,Transport,18.3,USD\n2025-02-01,Groceries,42.1,USD\n2025-02-07,Utilities,90,USD\n2025-03-12,Entertainment,27.5,USD\n2025-03-14,Café,12.345,USD\ninvalid-date,Groceries,10,USD\n2025-02-22,,11.25,USD\n2025-02-15,Travel,10.005,USD\n`;
-+
- describe('App', () => {
-   it('renders the expenses overview page', () => {
-     render(<App />);
-     expect(screen.getByTestId('expenses-title')).toHaveTextContent('Expenses overview');
--    expect(screen.getByTestId('expenses-total')).toHaveTextContent(/Total:\s*\$232\.10/);
-+    expect(screen.getByLabelText(/Upload expenses CSV/i, { selector: 'input' })).toBeInTheDocument();
-+    expect(screen.getByTestId('expenses-empty-state')).toHaveTextContent('Upload a CSV file to see totals.');
+     // Setting seed back should restore the quote
+     await seedInput.fill('seed-a');
+     const quoteRestored = await featured.textContent();
+     expect(quoteRestored).toBe(quoteBefore);
    });
  
--  it('displays data quality notices for malformed rows', () => {
-+  it('displays data quality notices for malformed rows', async () => {
-+    const user = userEvent.setup();
-     render(<App />);
--    expect(screen.getByTestId('expenses-issues')).toBeInTheDocument();
--    expect(screen.getByText(/Data quality notices/i)).toBeInTheDocument();
+   test('filters by author and tag with clear action @smoke', async ({ page }) => {
+     await page.goto('/');
+     await page.getByTestId('nav-quote').click();
+ 
+-    // Verify dropdown options are populated
+-    const authorSelect = page.getByTestId('quote-filter-author');
+-    const authorOptions = await authorSelect.locator('option').allTextContents();
+-    expect(authorOptions).toContain('All authors');
+-    expect(authorOptions.length).toBeGreaterThan(1);
++    const authorInput = page.getByTestId('quote-filter-author');
++    await expect(authorInput).toHaveAttribute('list', 'quote-author-options');
+ 
+-    // Filter by author
+-    await authorSelect.selectOption('Maya Angelou');
++    const authorOptions = await page.locator('#quote-author-options option').allTextContents();
++    expect(authorOptions.length).toBeGreaterThan(0);
++    expect(authorOptions).toContain('Maya Angelou');
 +
-+    const fileInput = screen.getByLabelText(/Upload expenses CSV/i, { selector: 'input' });
-+    await user.upload(fileInput, new File([SAMPLE_CSV], 'sample.csv', { type: 'text/csv' }));
-+
-+    const issues = await screen.findByTestId('expenses-issues');
-+    expect(issues).toBeInTheDocument();
-+    expect(within(issues).getByText(/Data quality notices/i)).toBeInTheDocument();
++    // Filter by author (case-insensitive)
++    await authorInput.fill('maya angelou');
+ 
+     const authorResults = page.getByTestId('quote-filtered-list');
+     await expect(authorResults).toBeVisible();
+     await expect(authorResults).toContainText('Still I rise.');
+     await expect(authorResults).toContainText('Maya Angelou');
+ 
+     // Clear filters button should be visible
+     const clearButton = page.getByTestId('quote-clear-filters');
+     await expect(clearButton).toBeVisible();
+     await clearButton.click();
+ 
+     // Should return to featured quote view
+-    await expect(page.getByTestId('quote-featured')).toBeVisible();
++    const featured = page.getByTestId('quote-featured');
++    await expect(featured).toBeVisible();
++    await expect(authorInput).toHaveValue('');
+ 
+     // Filter by tag
+     const tagSelect = page.getByTestId('quote-filter-tag');
+     const tagOptions = await tagSelect.locator('option').allTextContents();
+     expect(tagOptions).toContain('All tags');
+     expect(tagOptions.length).toBeGreaterThan(1);
+ 
+     await tagSelect.selectOption('perseverance');
+     const tagResults = page.getByTestId('quote-filtered-list');
+     await expect(tagResults).toBeVisible();
+ 
+     // Should show multiple results
+     const listItems = tagResults.locator('li');
+     const count = await listItems.count();
+     expect(count).toBeGreaterThanOrEqual(2);
    });
  
-   it('renders filter controls', () => {
-     render(<App />);
-     expect(screen.getByLabelText(/Filter expenses by month/i)).toBeInTheDocument();
-     expect(screen.getByLabelText(/Filter expenses by category/i)).toBeInTheDocument();
+   test('displays all available authors in dropdown @smoke', async ({ page }) => {
+     await page.goto('/');
+     await page.getByTestId('nav-quote').click();
+ 
+-    const authorSelect = page.getByTestId('quote-filter-author');
+-    const options = await authorSelect.locator('option').allTextContents();
++    const authorOptions = await page.locator('#quote-author-options option').allTextContents();
+ 
+-    expect(options).toContain('All authors');
+-    expect(options).toContain('Maya Angelou');
+-    expect(options).toContain('Robert Frost');
+-    expect(options.length).toBeGreaterThan(3);
++    expect(authorOptions).toContain('Maya Angelou');
++    expect(authorOptions).toContain('Robert Frost');
++    expect(authorOptions.length).toBeGreaterThan(2);
    });
  
--  it('renders the totals summary section', () => {
-+  it('renders the totals summary section after upload', async () => {
-+    const user = userEvent.setup();
-     render(<App />);
--    expect(screen.getByText(/By category/i)).toBeInTheDocument();
--    expect(screen.getByTestId('expenses-total')).toBeInTheDocument();
-+
-+    const fileInput = screen.getByLabelText(/Upload expenses CSV/i, { selector: 'input' });
-+    await user.upload(fileInput, new File([SAMPLE_CSV], 'sample.csv', { type: 'text/csv' }));
-+
-+    expect(await screen.findByText(/By category/i)).toBeInTheDocument();
-+    expect(screen.getByTestId('expenses-total')).toHaveTextContent(/Total:\s*\$254\.45/);
+   test('shows helpful empty state when no matches @smoke', async ({ page }) => {
+     await page.goto('/');
+     await page.getByTestId('nav-quote').click();
+ 
+-    // Select author
+-    await page.getByTestId('quote-filter-author').selectOption('Maya Angelou');
++    const authorInput = page.getByTestId('quote-filter-author');
++    await authorInput.fill('Maya Angelou');
+ 
+     // Select incompatible tag
+     await page.getByTestId('quote-filter-tag').selectOption('leadership');
+ 
+     // Should show no results message
+     const emptyState = page.getByTestId('quote-no-results');
+     await expect(emptyState).toBeVisible();
+     await expect(emptyState).toContainText('No quotes match the current filters');
+ 
+     // Should have clear action button
+     const clearAction = emptyState.locator('button');
+     await expect(clearAction).toBeVisible();
+     await clearAction.click();
+ 
+     // Should return to featured view
+     await expect(page.getByTestId('quote-featured')).toBeVisible();
    });
  
-   it('renders the expenses table', () => {
-     render(<App />);
-     const table = screen.getByRole('table');
-     expect(table).toBeInTheDocument();
+   test('maintains accessibility attributes @smoke', async ({ page }) => {
+     await page.goto('/');
+     await page.getByTestId('nav-quote').click();
  
-     // Check for table headers
-     expect(screen.getByRole('columnheader', { name: /Date/i })).toBeInTheDocument();
-     expect(screen.getByRole('columnheader', { name: /Category/i })).toBeInTheDocument();
-     expect(screen.getByRole('columnheader', { name: /Amount/i })).toBeInTheDocument();
-   });
+     // Check ARIA labels
+-    const authorSelect = page.getByTestId('quote-filter-author');
+-    await expect(authorSelect).toHaveAttribute('aria-describedby', 'quote-author-help');
++    const authorInput = page.getByTestId('quote-filter-author');
++    await expect(authorInput).toHaveAttribute('aria-describedby', 'quote-author-help');
++    await expect(authorInput).toHaveAttribute('list', 'quote-author-options');
  
-   it('navigates to the quote explorer when requested', () => {
-     render(<App />);
-     const quoteButton = screen.getByTestId('nav-quote');
-     fireEvent.click(quoteButton);
+     const tagSelect = page.getByTestId('quote-filter-tag');
+     await expect(tagSelect).toHaveAttribute('aria-describedby', 'quote-tag-help');
  
-     expect(screen.getByRole('heading', { name: /quote explorer/i })).toBeInTheDocument();
-     expect(screen.getByTestId('quote-page')).toBeInTheDocument();
-     expect(screen.getByTestId('quote-filter-author')).toBeInTheDocument();
-     expect(screen.getByTestId('quote-filter-tag')).toBeInTheDocument();
-     expect(screen.getByTestId('quote-seed-input')).toBeInTheDocument();
+     const seedInput = page.getByTestId('quote-seed-input');
+     await expect(seedInput).toHaveAttribute('aria-describedby', 'quote-seed-help');
+ 
+     // Check help text is present
+     await expect(page.locator('#quote-author-help')).toBeVisible();
+     await expect(page.locator('#quote-tag-help')).toBeVisible();
+     await expect(page.locator('#quote-seed-help')).toBeVisible();
    });
  });
-diff --git a/apps/ui/src/components/expenses/CategorySelector.tsx b/apps/ui/src/components/expenses/CategorySelector.tsx
-index c0c59e39e4d571d0156671a3df2f4088b8b9d7d3..442908ccfee3142b73dc183bae748c6eefe95a91 100644
---- a/apps/ui/src/components/expenses/CategorySelector.tsx
-+++ b/apps/ui/src/components/expenses/CategorySelector.tsx
-@@ -1,43 +1,45 @@
- import type { ChangeEvent } from 'react';
- import type { ExpenseSelectorOption } from '../../lib/expenses/totals';
+diff --git a/apps/ui/src/components/quote/QuoteFilters.tsx b/apps/ui/src/components/quote/QuoteFilters.tsx
+index a5a257bda2d83f3eefc5835e51235bc26186972f..cae416264851101036df8b266accc3d857f732e1 100644
+--- a/apps/ui/src/components/quote/QuoteFilters.tsx
++++ b/apps/ui/src/components/quote/QuoteFilters.tsx
+@@ -1,133 +1,148 @@
+ import { type ChangeEvent, useEffect, useRef } from 'react';
+ import type { QuoteOption } from '../../lib/quote/view';
  
- export interface CategorySelectorProps {
-   options: readonly ExpenseSelectorOption[];
-   value: string | null;
-   onChange: (value: string | null) => void;
-+  disabled?: boolean;
+ export interface QuoteFiltersProps {
+   authorOptions: readonly QuoteOption[];
+   tagOptions: readonly QuoteOption[];
+   author: string | null;
+   tag: string | null;
+   seed: string;
+   hasActiveFilters: boolean;
+   onAuthorChange: (value: string | null) => void;
+   onTagChange: (value: string | null) => void;
+   onSeedChange: (value: string) => void;
+   onClearFilters: () => void;
  }
  
- /**
-  * Category filter selector component for expenses.
-  * Provides accessible dropdown to filter expenses by category.
-  */
--function CategorySelector({ options, value, onChange }: CategorySelectorProps): JSX.Element {
-+function CategorySelector({ options, value, onChange, disabled = false }: CategorySelectorProps): JSX.Element {
-   const handleChange = (event: ChangeEvent<HTMLSelectElement>) => {
-     const nextValue = event.target.value === '' ? null : event.target.value;
-     onChange(nextValue);
-   };
- 
-   return (
-     <div className="expenses-filter">
-       <label className="expenses-filter__label" htmlFor="category-filter">
-         Category
-       </label>
-       <select
-         id="category-filter"
-         name="category"
-         className="expenses-filter__select"
-         value={value ?? ''}
-         onChange={handleChange}
-         aria-label="Filter expenses by category"
-+        disabled={disabled}
-       >
-         {options.map((option) => (
-           <option key={option.label} value={option.value ?? ''}>
-             {option.label}
-           </option>
-         ))}
-       </select>
-     </div>
-   );
- }
- 
- export default CategorySelector;
-diff --git a/apps/ui/src/components/expenses/MonthSelector.tsx b/apps/ui/src/components/expenses/MonthSelector.tsx
-index 3e2391e4aa8a64ffa21710b3205bf98650dd9ea3..2471be665a82f562e440010ae9e42f42a30f361e 100644
---- a/apps/ui/src/components/expenses/MonthSelector.tsx
-+++ b/apps/ui/src/components/expenses/MonthSelector.tsx
-@@ -1,43 +1,45 @@
- import type { ChangeEvent } from 'react';
- import type { ExpenseSelectorOption } from '../../lib/expenses/totals';
- 
- export interface MonthSelectorProps {
-   options: readonly ExpenseSelectorOption[];
-   value: string | null;
-   onChange: (value: string | null) => void;
-+  disabled?: boolean;
- }
- 
- /**
-  * Month filter selector component for expenses.
-  * Provides accessible dropdown to filter expenses by month.
-  */
--function MonthSelector({ options, value, onChange }: MonthSelectorProps): JSX.Element {
-+function MonthSelector({ options, value, onChange, disabled = false }: MonthSelectorProps): JSX.Element {
-   const handleChange = (event: ChangeEvent<HTMLSelectElement>) => {
-     const nextValue = event.target.value === '' ? null : event.target.value;
-     onChange(nextValue);
-   };
- 
-   return (
-     <div className="expenses-filter">
-       <label className="expenses-filter__label" htmlFor="month-filter">
-         Month
-       </label>
-       <select
-         id="month-filter"
-         name="month"
-         className="expenses-filter__select"
-         value={value ?? ''}
-         onChange={handleChange}
-         aria-label="Filter expenses by month"
-+        disabled={disabled}
-       >
-         {options.map((option) => (
-           <option key={option.label} value={option.value ?? ''}>
-             {option.label}
-           </option>
-         ))}
-       </select>
-     </div>
-   );
- }
- 
- export default MonthSelector;
-diff --git a/apps/ui/src/components/expenses/TotalsSummary.tsx b/apps/ui/src/components/expenses/TotalsSummary.tsx
-index 09afc1c189e53e90a4ca59820057f0087f5efc78..a118f66d04cc8ab5db9c0d70b8ab7aa2702bddac 100644
---- a/apps/ui/src/components/expenses/TotalsSummary.tsx
-+++ b/apps/ui/src/components/expenses/TotalsSummary.tsx
-@@ -1,43 +1,44 @@
- import type { ExpenseSummary } from '../../lib/expenses/totals';
- import { formatCurrency } from '../../lib/expenses/totals';
- 
- export interface TotalsSummaryProps {
-   summary: ExpenseSummary;
-   hasData: boolean;
-+  emptyMessage?: string;
- }
- 
- /**
-  * Displays expense totals and breakdown by category.
-  * Shows empty state when no data matches the current filters.
-  */
--function TotalsSummary({ summary, hasData }: TotalsSummaryProps): JSX.Element {
-+function TotalsSummary({ summary, hasData, emptyMessage }: TotalsSummaryProps): JSX.Element {
-   if (!hasData) {
-     return (
-       <section className="expenses-summary" aria-live="polite" data-testid="expenses-empty-state">
-         <h2 className="expenses-summary__title">Totals</h2>
--        <p className="expenses-summary__empty">No expenses found for the selected filters.</p>
-+        <p className="expenses-summary__empty">{emptyMessage ?? 'No expenses found for the selected filters.'}</p>
-       </section>
-     );
-   }
- 
-   return (
-     <section className="expenses-summary" aria-live="polite">
-       <h2 className="expenses-summary__title">Totals</h2>
-       <p className="expenses-summary__total" data-testid="expenses-total">
-         Total:&nbsp;
-         <strong>{formatCurrency(summary.total, summary.currency)}</strong>
-       </p>
-       <div className="expenses-summary__breakdown">
-         <h3 className="expenses-summary__subtitle">By category</h3>
-         <dl className="expenses-summary__list">
-           {summary.totalsByCategory.map((entry) => (
-             <div className="expenses-summary__item" key={entry.category}>
-               <dt className="expenses-summary__item-label">{entry.category}</dt>
-               <dd className="expenses-summary__item-value">
-                 {formatCurrency(entry.amount, summary.currency)}
-               </dd>
-             </div>
-           ))}
-         </dl>
-       </div>
-     </section>
-diff --git a/apps/ui/src/lib/expenses/totals.ts b/apps/ui/src/lib/expenses/totals.ts
-index 851ff52494007068736fd21d55f59f888a0a2f48..8b9f28ede45bf863ef857de6f09f5884988ce4d4 100644
---- a/apps/ui/src/lib/expenses/totals.ts
-+++ b/apps/ui/src/lib/expenses/totals.ts
-@@ -1,38 +1,43 @@
- import { useMemo } from 'react';
- 
- type CurrencyCode = string;
- 
- export interface RawExpenseRow {
-   date: unknown;
-   category: unknown;
-   amount: unknown;
-   currency?: CurrencyCode;
-+  /**
-+   * Original 1-indexed row number from the uploaded CSV.
-+   * Used to surface validation messages that align with the user’s spreadsheet.
-+   */
-+  sourceRowNumber?: number;
- }
- 
- export interface ExpenseIssue {
--  index: number;
-+  rowNumber: number;
-   message: string;
- }
- 
- export interface ExpenseRecord {
-   id: string;
-   date: string;
-   monthNumber: number;
-   monthName: string;
-   category: string;
-   amount: number;
-   currency: CurrencyCode;
-   sourceIndex: number;
- }
- 
- export interface ExpenseFilters {
-   month?: string | null;
-   category?: string | null;
- }
- 
- export interface ExpenseSummaryEntry {
-   category: string;
-   amount: number;
- }
- 
- export interface ExpenseSummary {
-@@ -53,237 +58,362 @@ export interface ExpenseView {
- 
- const MONTH_LABELS: readonly string[] = [
-   'January',
-   'February',
-   'March',
-   'April',
-   'May',
-   'June',
-   'July',
-   'August',
-   'September',
-   'October',
-   'November',
-   'December',
- ];
- 
- const CURRENCY_FALLBACK: CurrencyCode = 'USD';
- 
- const CURRENCY_FORMATTER = new Intl.NumberFormat('en-US', {
-   style: 'currency',
-   currency: CURRENCY_FALLBACK,
-   minimumFractionDigits: 2,
-   maximumFractionDigits: 2,
- });
- 
--function parseDate(input: unknown, index: number): { isoDate: string; monthNumber: number; monthName: string } {
-+const MIN_ROWS = 5;
-+const MAX_ROWS = 200;
-+
-+function roundToCents(value: number): number {
-+  return Number.parseFloat(
-+    value.toLocaleString('en-US', {
-+      minimumFractionDigits: 2,
-+      maximumFractionDigits: 2,
-+      useGrouping: false,
-+    }),
-+  );
++function isSuggestionOption(option: QuoteOption): option is QuoteOption & { value: string } {
++  return typeof option.value === 'string' && option.value.trim().length > 0;
 +}
 +
-+function resolveRowNumber(row: RawExpenseRow, index: number): number {
-+  if (typeof row.sourceRowNumber === 'number' && Number.isFinite(row.sourceRowNumber)) {
-+    return row.sourceRowNumber;
-+  }
-+  return index + 1;
-+}
-+
-+function parseDate(
-+  input: unknown,
-+  rowNumber: number,
-+): { isoDate: string; monthNumber: number; monthName: string } {
-   if (typeof input !== 'string') {
--    throw new Error(`Row ${index + 1}: date must be an ISO string.`);
-+    throw new Error(`Row ${rowNumber}: date must be an ISO string.`);
-   }
- 
-   const trimmed = input.trim();
-   if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
--    throw new Error(`Row ${index + 1}: date must use YYYY-MM-DD format.`);
-+    throw new Error(`Row ${rowNumber}: date must use YYYY-MM-DD format.`);
-   }
- 
-   const parsed = new Date(trimmed);
-   if (Number.isNaN(parsed.getTime())) {
--    throw new Error(`Row ${index + 1}: date is invalid.`);
-+    throw new Error(`Row ${rowNumber}: date is invalid.`);
-   }
- 
-   const monthNumber = parsed.getUTCMonth() + 1;
-   const monthName = MONTH_LABELS[monthNumber - 1];
-   return { isoDate: trimmed, monthNumber, monthName };
+ function handleSelectChange(event: ChangeEvent<HTMLSelectElement>, onChange: (value: string | null) => void): void {
+   const { value } = event.target;
+-  onChange(value.length > 0 ? value : null);
++  const normalized = value.trim();
++  onChange(normalized.length > 0 ? normalized : null);
  }
  
--function parseCategory(input: unknown, index: number): string {
-+function parseCategory(input: unknown, rowNumber: number): string {
-   if (typeof input !== 'string') {
--    throw new Error(`Row ${index + 1}: category must be a string.`);
-+    throw new Error(`Row ${rowNumber}: category must be a string.`);
-   }
- 
-   const trimmed = input.trim();
-   if (trimmed.length === 0) {
--    throw new Error(`Row ${index + 1}: category cannot be empty.`);
-+    throw new Error(`Row ${rowNumber}: category cannot be empty.`);
-   }
- 
-   return trimmed;
- }
- 
--function parseAmount(input: unknown, index: number): number {
-+function parseAmount(input: unknown, rowNumber: number): number {
-   if (typeof input === 'number') {
-     if (!Number.isFinite(input)) {
--      throw new Error(`Row ${index + 1}: amount must be finite.`);
-+      throw new Error(`Row ${rowNumber}: amount must be finite.`);
-     }
-     return input;
-   }
- 
-   if (typeof input === 'string') {
-     const trimmed = input.trim();
-     if (trimmed.length === 0) {
--      throw new Error(`Row ${index + 1}: amount cannot be empty.`);
-+      throw new Error(`Row ${rowNumber}: amount cannot be empty.`);
-     }
-     const parsed = Number.parseFloat(trimmed);
-     if (!Number.isFinite(parsed)) {
--      throw new Error(`Row ${index + 1}: amount must be numeric.`);
-+      throw new Error(`Row ${rowNumber}: amount must be numeric.`);
-     }
-     return parsed;
-   }
- 
--  throw new Error(`Row ${index + 1}: amount must be numeric.`);
-+  throw new Error(`Row ${rowNumber}: amount must be numeric.`);
- }
- 
- function parseCurrency(input: CurrencyCode | undefined): CurrencyCode {
-   if (!input) {
-     return CURRENCY_FALLBACK;
-   }
-   const value = String(input).trim();
-   return value.length > 0 ? value : CURRENCY_FALLBACK;
- }
- 
- export function buildExpenseDataset(rows: readonly RawExpenseRow[]): ExpenseDataset {
-   const issues: ExpenseIssue[] = [];
-   const records: ExpenseRecord[] = [];
- 
-   rows.forEach((row, index) => {
-+    const rowNumber = resolveRowNumber(row, index);
-     try {
--      const { isoDate, monthNumber, monthName } = parseDate(row.date, index);
--      const category = parseCategory(row.category, index);
--      const amount = parseAmount(row.amount, index);
-+      const { isoDate, monthNumber, monthName } = parseDate(row.date, rowNumber);
-+      const category = parseCategory(row.category, rowNumber);
-+      const amount = parseAmount(row.amount, rowNumber);
-       const currency = parseCurrency(row.currency);
-       records.push({
-         id: `expense-${index}`,
-         date: isoDate,
-         monthNumber,
-         monthName,
-         category,
-         amount,
-         currency,
--        sourceIndex: index,
-+        sourceIndex: rowNumber,
-       });
-     } catch (error: unknown) {
--      issues.push({ index, message: (error as Error).message });
-+      issues.push({ rowNumber, message: (error as Error).message });
-     }
-   });
- 
-   return { records, issues };
- }
- 
- export const SAMPLE_EXPENSE_ROWS: readonly RawExpenseRow[] = [
-   { date: '2025-01-05', category: 'Groceries', amount: 54.2, currency: 'USD' },
-   { date: '2025-01-15', category: 'Transport', amount: 18.3, currency: 'USD' },
-   { date: '2025-02-01', category: 'Groceries', amount: 42.1, currency: 'USD' },
-   { date: '2025-02-07', category: 'Utilities', amount: 90.0, currency: 'USD' },
-   { date: '2025-03-12', category: 'Entertainment', amount: 27.5, currency: 'USD' },
-   { date: 'invalid-date', category: 'Groceries', amount: 10, currency: 'USD' },
-   { date: '2025-02-22', category: '', amount: 11.25, currency: 'USD' },
- ];
- 
- export const defaultExpensesDataset = buildExpenseDataset(SAMPLE_EXPENSE_ROWS);
- 
- function normalizeFilterValue(value: string | null | undefined): string | null {
-   if (value === null || value === undefined) {
-     return null;
-   }
-   const trimmed = value.trim();
-   return trimmed.length === 0 ? null : trimmed;
- }
- 
- export function filterExpenseRecords(records: readonly ExpenseRecord[], filters: ExpenseFilters = {}): ExpenseRecord[] {
-   const monthFilter = normalizeFilterValue(filters.month);
-   const categoryFilter = normalizeFilterValue(filters.category);
- 
-   return records.filter((record) => {
-     const monthMatches = monthFilter ? record.monthName.toLowerCase() === monthFilter.toLowerCase() : true;
-     const categoryMatches = categoryFilter
-       ? record.category.toLowerCase() === categoryFilter.toLowerCase()
-       : true;
-     return monthMatches && categoryMatches;
-   });
- }
- 
- export function summarizeExpenses(records: readonly ExpenseRecord[]): ExpenseSummary {
-   const currency = records[0]?.currency ?? CURRENCY_FALLBACK;
--  const totalsByCategory = records.reduce<ExpenseSummaryEntry[]>((acc, record) => {
--    const existing = acc.find((entry) => entry.category.toLowerCase() === record.category.toLowerCase());
-+  const categoryTotals = new Map<string, ExpenseSummaryEntry>();
-+
-+  records.forEach((record) => {
-+    const key = record.category.toLowerCase();
-+    const existing = categoryTotals.get(key);
-     if (existing) {
-       existing.amount += record.amount;
--      return acc;
-+      return;
-     }
--    return [...acc, { category: record.category, amount: record.amount }];
--  }, []);
-+    categoryTotals.set(key, { category: record.category, amount: record.amount });
-+  });
- 
--  totalsByCategory.sort((a, b) => a.category.localeCompare(b.category));
-+  const totalsByCategory = Array.from(categoryTotals.values())
-+    .map((entry) => ({ ...entry, amount: roundToCents(entry.amount) }))
-+    .sort((a, b) => a.category.localeCompare(b.category));
- 
--  const total = records.reduce((sum, record) => sum + record.amount, 0);
-+  const total = roundToCents(records.reduce((sum, record) => sum + record.amount, 0));
- 
-   return {
-     total,
-     currency,
-     totalsByCategory,
-   };
- }
- 
- export function buildExpenseView(records: readonly ExpenseRecord[], filters: ExpenseFilters = {}): ExpenseView {
-   const filtered = filterExpenseRecords(records, filters);
-   return {
-     records: filtered,
-     summary: summarizeExpenses(filtered),
-   };
- }
- 
- export function formatCurrency(amount: number, currency: CurrencyCode = CURRENCY_FALLBACK): string {
-   const formatter = currency === CURRENCY_FALLBACK
-     ? CURRENCY_FORMATTER
-     : new Intl.NumberFormat('en-US', {
-         style: 'currency',
-         currency,
-         minimumFractionDigits: 2,
-         maximumFractionDigits: 2,
-       });
--  return formatter.format(amount);
-+  return formatter.format(roundToCents(amount));
- }
- 
- export function getAvailableMonths(records: readonly ExpenseRecord[]): string[] {
-   const unique = new Map<number, string>();
-   records.forEach((record) => {
-     if (!unique.has(record.monthNumber)) {
-       unique.set(record.monthNumber, record.monthName);
-     }
-   });
-   return Array.from(unique.entries())
-     .sort((a, b) => a[0] - b[0])
-     .map(([, label]) => label);
- }
- 
- export function getAvailableCategories(records: readonly ExpenseRecord[]): string[] {
-   const unique = new Set<string>();
-   records.forEach((record) => {
-     unique.add(record.category);
-   });
-   return Array.from(unique.values()).sort((a, b) => a.localeCompare(b));
- }
- 
- export interface ExpenseSelectorOption {
-   label: string;
-   value: string | null;
- }
- 
- export function buildMonthOptions(records: readonly ExpenseRecord[]): ExpenseSelectorOption[] {
-   const months = getAvailableMonths(records);
-   return [{ label: 'All months', value: null }, ...months.map((label) => ({ label, value: label }))];
- }
- 
- export function buildCategoryOptions(records: readonly ExpenseRecord[]): ExpenseSelectorOption[] {
-   const categories = getAvailableCategories(records);
-   return [{ label: 'All categories', value: null }, ...categories.map((label) => ({ label, value: label }))];
- }
- 
- export function useExpenseView(records: readonly ExpenseRecord[], filters: ExpenseFilters): ExpenseView {
-   return useMemo(() => buildExpenseView(records, filters), [records, filters.month, filters.category]);
- }
- 
- /**
-  * Check if any filters are currently active
-  */
- export function hasActiveFilters(filters: ExpenseFilters): boolean {
-   return Boolean(normalizeFilterValue(filters.month) || normalizeFilterValue(filters.category));
- }
-+
-+interface CsvLine {
-+  lineNumber: number;
-+  raw: string;
-+  trimmed: string;
-+}
-+
-+function detectHeader(line: CsvLine | undefined): boolean {
-+  if (!line) {
-+    return false;
-+  }
-+  const normalized = line.trimmed.toLowerCase();
-+  return normalized.includes('date') && normalized.includes('category') && normalized.includes('amount');
-+}
-+
-+function splitCsvLines(content: string): CsvLine[] {
-+  return content
-+    .split(/\r?\n/)
-+    .map((raw, index) => ({ raw, trimmed: raw.trim(), lineNumber: index + 1 }))
-+    .filter((line) => line.trimmed.length > 0);
-+}
-+
-+function parseCsvRows(content: string): { rows: RawExpenseRow[]; issues: ExpenseIssue[]; dataRowCount: number } {
-+  const meaningfulLines = splitCsvLines(content);
-+  if (meaningfulLines.length === 0) {
-+    throw new Error('CSV file is empty. Provide between 5 and 200 data rows.');
-+  }
-+
-+  const [firstLine, ...rest] = meaningfulLines;
-+  const hasHeader = detectHeader(firstLine);
-+  const dataLines = hasHeader ? rest : meaningfulLines;
-+  const dataRowCount = dataLines.length;
-+
-+  if (dataRowCount < MIN_ROWS || dataRowCount > MAX_ROWS) {
-+    throw new Error(`CSV must contain between ${MIN_ROWS} and ${MAX_ROWS} data rows. Received ${dataRowCount}.`);
-+  }
-+
-+  const rows: RawExpenseRow[] = [];
-+  const issues: ExpenseIssue[] = [];
-+
-+  dataLines.forEach((line) => {
-+    const columns = line.trimmed.split(',').map((column) => column.trim());
-+
-+    if (columns.length < 3) {
-+      issues.push({
-+        rowNumber: line.lineNumber,
-+        message: `Row ${line.lineNumber}: expected at least 3 columns (date, category, amount).`,
-+      });
-+      return;
-+    }
-+
-+    if (columns.length > 4) {
-+      issues.push({
-+        rowNumber: line.lineNumber,
-+        message: `Row ${line.lineNumber}: only date, category, amount, and optional currency are supported.`,
-+      });
-+      return;
-+    }
-+
-+    const [date, category, amount, currency] = columns;
-+    rows.push({
-+      date,
-+      category,
-+      amount,
-+      currency,
-+      sourceRowNumber: line.lineNumber,
-+    });
-+  });
-+
-+  return { rows, issues, dataRowCount };
-+}
-+
-+export interface ExpenseCsvParseResult extends ExpenseDataset {
-+  dataRowCount: number;
-+  validRowCount: number;
-+}
-+
-+export function parseExpenseCsv(content: string): ExpenseCsvParseResult {
-+  const trimmed = content?.trim();
-+  if (!trimmed) {
-+    throw new Error('CSV file is empty. Provide between 5 and 200 data rows.');
-+  }
-+
-+  const { rows, issues: parseIssues, dataRowCount } = parseCsvRows(content);
-+  const dataset = buildExpenseDataset(rows);
-+  const allIssues = [...parseIssues, ...dataset.issues].sort((a, b) => a.rowNumber - b.rowNumber);
-+
-+  return {
-+    records: dataset.records,
-+    issues: allIssues,
-+    dataRowCount,
-+    validRowCount: dataset.records.length,
-+  };
-+}
-+
-+export { roundToCents };
-diff --git a/apps/ui/src/pages/Expenses.tsx b/apps/ui/src/pages/Expenses.tsx
-index 7a606c2b13c82622d1c0ed8ea886a2d6fd532aa3..6bd45c8151733913b84c89a1a41c0c6fdc5559bf 100644
---- a/apps/ui/src/pages/Expenses.tsx
-+++ b/apps/ui/src/pages/Expenses.tsx
-@@ -1,140 +1,288 @@
--import { type Dispatch, type SetStateAction, useMemo, useState } from 'react';
-+import { type ChangeEvent, type Dispatch, type SetStateAction, useMemo, useRef, useState } from 'react';
- import CategorySelector from '../components/expenses/CategorySelector';
- import MonthSelector from '../components/expenses/MonthSelector';
- import TotalsSummary from '../components/expenses/TotalsSummary';
- import {
-   buildCategoryOptions,
-   buildMonthOptions,
--  defaultExpensesDataset,
-   formatCurrency,
+ export function QuoteFilters({
+   authorOptions,
+   tagOptions,
+   author,
+   tag,
+   seed,
    hasActiveFilters,
-+  parseExpenseCsv,
-+  type ExpenseCsvParseResult,
-   type ExpenseFilters,
-   type ExpenseRecord,
-   useExpenseView,
- } from '../lib/expenses/totals';
+   onAuthorChange,
+   onTagChange,
+   onSeedChange,
+   onClearFilters,
+ }: QuoteFiltersProps): JSX.Element {
+-  const authorSelectRef = useRef<HTMLSelectElement>(null);
++  const authorInputRef = useRef<HTMLInputElement>(null);
  
-+async function readCsvFile(file: File): Promise<string> {
-+  if (typeof file.text === 'function') {
-+    return file.text();
-+  }
-+
-+  return new Promise<string>((resolve, reject) => {
-+    const reader = new FileReader();
-+    reader.onerror = () => reject(new Error('Unable to read file.'));
-+    reader.onload = () => {
-+      const result = reader.result;
-+      if (typeof result === 'string') {
-+        resolve(result);
-+        return;
-+      }
-+      resolve(String(result ?? ''));
-+    };
-+    reader.readAsText(file);
-+  });
-+}
-+
- function useExpenseFilters(): [
-   ExpenseFilters,
-   Dispatch<SetStateAction<string | null>>,
-   Dispatch<SetStateAction<string | null>>,
-   () => void,
- ] {
-   const [month, setMonth] = useState<string | null>(null);
-   const [category, setCategory] = useState<string | null>(null);
+   // Keyboard shortcut: Ctrl+/ to focus author filter
+   useEffect(() => {
+     const handleKeyPress = (e: KeyboardEvent) => {
+       if (e.key === '/' && e.ctrlKey) {
+         e.preventDefault();
+-        authorSelectRef.current?.focus();
++        authorInputRef.current?.focus();
+       }
+     };
+     window.addEventListener('keydown', handleKeyPress);
+     return () => window.removeEventListener('keydown', handleKeyPress);
+   }, []);
  
-   const filters = useMemo<ExpenseFilters>(() => ({ month, category }), [month, category]);
- 
-   const clearFilters = () => {
-     setMonth(null);
-     setCategory(null);
-   };
- 
-   return [filters, setMonth, setCategory, clearFilters];
- }
- 
-+const EMPTY_DATASET: ExpenseCsvParseResult = {
-+  records: [],
-+  issues: [],
-+  dataRowCount: 0,
-+  validRowCount: 0,
-+};
-+
- /**
-- * Expenses overview page with filtering capabilities.
-- * Mirrors CLI functionality with enhanced UX including clear filters button.
-+ * Expenses overview page with CSV import, filtering, and totals summary.
-+ * Mirrors CLI functionality with deterministic rounding and inline data quality notices.
-  */
- function Expenses(): JSX.Element {
--  const { records, issues } = defaultExpensesDataset;
-+  const fileInputRef = useRef<HTMLInputElement | null>(null);
-+  const [dataset, setDataset] = useState<ExpenseCsvParseResult>(EMPTY_DATASET);
-+  const [uploadError, setUploadError] = useState<string | null>(null);
-+  const [fileName, setFileName] = useState<string | null>(null);
-+  const [hasUploaded, setHasUploaded] = useState(false);
-+  const [isParsing, setIsParsing] = useState(false);
-   const [filters, setMonth, setCategory, clearFilters] = useExpenseFilters();
- 
--  const monthOptions = useMemo(() => buildMonthOptions(records), [records]);
--  const categoryOptions = useMemo(() => buildCategoryOptions(records), [records]);
-+  const monthOptions = useMemo(() => buildMonthOptions(dataset.records), [dataset.records]);
-+  const categoryOptions = useMemo(() => buildCategoryOptions(dataset.records), [dataset.records]);
- 
--  const view = useExpenseView(records, filters);
--  const hasData = view.records.length > 0;
-+  const view = useExpenseView(dataset.records, filters);
-+  const hasFilteredData = view.records.length > 0;
-+  const hasValidRecords = dataset.records.length > 0;
-   const filtersActive = hasActiveFilters(filters);
- 
-+  const emptySummaryMessage = !hasUploaded
-+    ? 'Upload a CSV file to see totals.'
-+    : hasValidRecords
-+      ? 'No expenses found for the selected filters.'
-+      : 'No valid expenses were imported from the CSV.';
-+
-+  const showNoMatchesMessage = hasUploaded && hasValidRecords && !hasFilteredData;
-+  const showNoValidRecordsMessage = hasUploaded && !hasValidRecords;
-+
-+  const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
-+    const input = event.currentTarget;
-+    const file = input.files?.[0];
-+    if (!file) {
-+      return;
-+    }
-+
-+    setIsParsing(true);
-+    setUploadError(null);
-+    try {
-+      const text = await readCsvFile(file);
-+      const parsed = parseExpenseCsv(text);
-+      setDataset(parsed);
-+      setFileName(file.name);
-+      clearFilters();
-+    } catch (error: unknown) {
-+      setDataset(EMPTY_DATASET);
-+      setFileName(null);
-+      setUploadError((error as Error).message);
-+    } finally {
-+      setHasUploaded(true);
-+      setIsParsing(false);
-+      input.value = '';
-+      setTimeout(() => {
-+        fileInputRef.current?.focus();
-+      }, 0);
-+    }
++  const handleClearClick = (): void => {
++    onClearFilters();
++    authorInputRef.current?.focus();
 +  };
 +
    return (
-     <div className="expenses-page" role="main">
-       <header className="expenses-page__header">
-         <h1 className="expenses-page__title" data-testid="expenses-title">
-           Expenses overview
-         </h1>
-         <p className="expenses-page__subtitle">
--          Filter by month and category to mirror the CLI summary output. Totals update instantly.
-+          Upload a CSV (5–200 rows) with <code>date, category, amount[, currency]</code>. Totals use deterministic two-decimal
-+          rounding consistent with the CLI.
-         </p>
-       </header>
- 
--      {issues.length > 0 && (
-+      <section className="expenses-upload" aria-label="Upload expenses CSV">
-+        <label htmlFor="expenses-csv" className="expenses-upload__label">
-+          Upload expenses CSV
-+        </label>
+     <section className="quote-filters" aria-label="Quote filters and controls">
+       <div className="quote-filters__group">
+-        <label className="quote-filters__label" htmlFor="quote-author-select">
++        <label className="quote-filters__label" htmlFor="quote-author-input">
+           Author
+         </label>
+-        <select
+-          ref={authorSelectRef}
+-          id="quote-author-select"
+-          className="quote-filters__select"
 +        <input
-+          ref={fileInputRef}
-+          id="expenses-csv"
-+          name="expensesCsv"
-+          type="file"
-+          accept=".csv,text/csv"
-+          className="expenses-upload__input"
-+          onChange={handleFileUpload}
-+          aria-describedby="expenses-upload-help"
++          ref={authorInputRef}
++          id="quote-author-input"
++          className="quote-filters__input"
++          type="text"
+           value={author ?? ''}
+-          onChange={(event) => handleSelectChange(event, onAuthorChange)}
++          onChange={(event) => onAuthorChange(event.target.value.length > 0 ? event.target.value : null)}
+           data-testid="quote-filter-author"
+           aria-describedby="quote-author-help"
+-        >
+-          {authorOptions.map((option) => (
+-            <option key={option.label} value={option.value ?? ''}>
++          list="quote-author-options"
++          placeholder="Type an author name"
++          autoComplete="off"
 +        />
-+        <p id="expenses-upload-help" className="expenses-upload__help">
-+          Provide between 5 and 200 rows. Invalid rows remain listed under data quality notices so you can correct the
-+          original file.
-+        </p>
-+        {fileName && hasValidRecords && (
-+          <p className="expenses-upload__meta" data-testid="expenses-upload-meta">
-+            Loaded {dataset.validRowCount} valid {dataset.validRowCount === 1 ? 'row' : 'rows'} from {fileName}.
-+          </p>
-+        )}
-+        {uploadError && (
-+          <p className="expenses-upload__error" role="alert" data-testid="expenses-upload-error">
-+            {uploadError}
-+          </p>
-+        )}
-+        {isParsing && (
-+          <p className="expenses-upload__status" role="status">
-+            Parsing upload…
-+          </p>
-+        )}
-+      </section>
-+
-+      {dataset.issues.length > 0 && (
-         <section className="expenses-alert" role="status" data-testid="expenses-issues">
-           <h2 className="expenses-alert__title">Data quality notices</h2>
-           <ul className="expenses-alert__list">
--            {issues.map((issue) => (
--              <li key={issue.index} className="expenses-alert__item">
-+            {dataset.issues.map((issue) => (
-+              <li key={`${issue.rowNumber}-${issue.message}`} className="expenses-alert__item">
-                 {issue.message}
-               </li>
-             ))}
-           </ul>
-         </section>
-       )}
++        <datalist id="quote-author-options" data-testid="quote-author-options">
++          {authorOptions.filter(isSuggestionOption).map((option) => (
++            <option key={option.label} value={option.value}>
+               {option.label}
+             </option>
+           ))}
+-        </select>
++        </datalist>
+         <p id="quote-author-help" className="quote-filters__help">
+-          Filter quotes by author. Press Ctrl+/ to focus.
++          Filter quotes by author (case-insensitive). Press Ctrl+/ to focus.
+         </p>
+       </div>
  
-       <section className="expenses-controls" aria-label="Expenses filters">
--        <MonthSelector options={monthOptions} value={filters.month ?? null} onChange={setMonth} />
--        <CategorySelector options={categoryOptions} value={filters.category ?? null} onChange={setCategory} />
--        {filtersActive && (
-+        <MonthSelector
-+          options={monthOptions}
-+          value={filters.month ?? null}
-+          onChange={setMonth}
-+          disabled={!hasValidRecords}
-+        />
-+        <CategorySelector
-+          options={categoryOptions}
-+          value={filters.category ?? null}
-+          onChange={setCategory}
-+          disabled={!hasValidRecords}
-+        />
-+        {filtersActive && hasValidRecords && (
+       <div className="quote-filters__group">
+         <label className="quote-filters__label" htmlFor="quote-tag-select">
+           Tag
+         </label>
+         <select
+           id="quote-tag-select"
+           className="quote-filters__select"
+           value={tag ?? ''}
+           onChange={(event) => handleSelectChange(event, onTagChange)}
+           data-testid="quote-filter-tag"
+           aria-describedby="quote-tag-help"
+         >
+           {tagOptions.map((option) => (
+             <option key={option.label} value={option.value ?? ''}>
+               {option.label}
+             </option>
+           ))}
+         </select>
+         <p id="quote-tag-help" className="quote-filters__help">
+           Filter quotes by tag category.
+         </p>
+       </div>
+ 
+       <div className="quote-filters__group">
+         <label className="quote-filters__label" htmlFor="quote-seed-input">
+           Random seed
+         </label>
+         <input
+           id="quote-seed-input"
+           className="quote-filters__input"
+           type="text"
+           value={seed}
+           onChange={(event) => onSeedChange(event.target.value)}
+           data-testid="quote-seed-input"
+           placeholder="Enter seed (e.g. 42)"
+           aria-describedby="quote-seed-help"
+         />
+         <p id="quote-seed-help" className="quote-filters__help">
+           Using the same seed will always surface the same random quote.
+         </p>
+       </div>
+ 
+       <div className="quote-filters__actions">
+         {hasActiveFilters && (
            <button
              type="button"
-             className="expenses-controls__clear-btn"
-             onClick={clearFilters}
-             aria-label="Clear all filters"
+             className="quote-filters__clear"
+-            onClick={onClearFilters}
++            onClick={handleClearClick}
+             data-testid="quote-clear-filters"
+             aria-label="Clear all active filters"
            >
              Clear filters
            </button>
          )}
-       </section>
- 
--      {!hasData && (
-+      {showNoMatchesMessage && (
-         <div className="expenses-error" role="alert" data-testid="expenses-error">
-           No expenses found for the selected filters. Try a different month or category.
-         </div>
-       )}
- 
--      <TotalsSummary summary={view.summary} hasData={hasData} />
-+      {showNoValidRecordsMessage && (
-+        <div className="expenses-error" role="alert" data-testid="expenses-error">
-+          No valid expenses were imported from the CSV. Fix the issues above and upload again.
-+        </div>
-+      )}
-+
-+      <TotalsSummary summary={view.summary} hasData={hasFilteredData} emptyMessage={emptySummaryMessage} />
- 
-       <section className="expenses-table" aria-label="Filtered expenses">
-         <h2 className="expenses-table__title">Filtered entries</h2>
-         <table className="expenses-table__table">
-           <thead>
-             <tr>
-               <th scope="col">Date</th>
-               <th scope="col">Category</th>
-               <th scope="col">Amount</th>
-             </tr>
-           </thead>
-           <tbody>
--            {renderExpenseRows(view.records)}
-+            {renderExpenseRows(view.records, hasUploaded, hasValidRecords)}
-           </tbody>
-         </table>
-       </section>
-     </div>
-   );
- }
- 
--function renderExpenseRows(records: readonly ExpenseRecord[]): JSX.Element {
-+function renderExpenseRows(
-+  records: readonly ExpenseRecord[],
-+  hasUploaded: boolean,
-+  hasValidRecords: boolean,
-+): JSX.Element {
-+  if (!hasUploaded) {
-+    return (
-+      <tr>
-+        <td colSpan={3} className="expenses-table__empty" data-testid="expenses-empty-row">
-+          Upload a CSV to view expenses.
-+        </td>
-+      </tr>
-+    );
-+  }
-+
-+  if (!hasValidRecords) {
-+    return (
-+      <tr>
-+        <td colSpan={3} className="expenses-table__empty" data-testid="expenses-empty-row">
-+          No valid expenses were imported. Check the notices above and re-upload.
-+        </td>
-+      </tr>
-+    );
-+  }
-+
-   if (records.length === 0) {
-     return (
-       <tr>
-         <td colSpan={3} className="expenses-table__empty" data-testid="expenses-empty-row">
-           No expenses match the current filters.
-         </td>
-       </tr>
-     );
-   }
- 
-   return (
-     <>
-       {records.map((record) => (
-         <tr key={record.id}>
-           <td>{record.date}</td>
-           <td>{record.category}</td>
-           <td>{formatCurrency(record.amount, record.currency)}</td>
-         </tr>
-       ))}
-     </>
-   );
- }
- 
- export default Expenses;
-diff --git a/apps/ui/src/pages/ExpensesPage.tsx b/apps/ui/src/pages/ExpensesPage.tsx
-index 34f44343352191287355be32373ce3836df10f28..701eebe8d32becfac57030701129bb7e52faa01f 100644
---- a/apps/ui/src/pages/ExpensesPage.tsx
-+++ b/apps/ui/src/pages/ExpensesPage.tsx
-@@ -1,20 +1,20 @@
--import { ExpensesPlaceholder } from '../components/index.js';
-+import Expenses from './Expenses.js';
- 
- /**
-  * Expenses page for tracking spending summaries that mirror the CLI.
-  * This page will eventually provide filtering by month/category and display totals.
-  */
- export function ExpensesPage(): JSX.Element {
-   return (
-     <section aria-labelledby="expenses-heading" className="page">
-       <header className="page-header">
-         <h2 id="expenses-heading">Expenses</h2>
-         <p>
--          Track spending summaries that mirror the CLI. This placeholder confirms routing structure
--          before detailed UI work begins.
-+          Import CSV data, review inline validation issues, and filter by month or category. Totals
-+          follow the CLI’s two-decimal rounding policy and update instantly as you adjust filters.
-         </p>
-       </header>
--      <ExpensesPlaceholder />
-+      <Expenses />
+       </div>
      </section>
    );
  }
-diff --git a/apps/ui/src/tests/expenses.test.tsx b/apps/ui/src/tests/expenses.test.tsx
-index 45aa46fe7f6c5f1184868a464e2e470386713092..962cd09bc5df7f04138b77b9f65f91f3511a6734 100644
---- a/apps/ui/src/tests/expenses.test.tsx
-+++ b/apps/ui/src/tests/expenses.test.tsx
-@@ -1,284 +1,271 @@
- import { render, screen, within } from '@testing-library/react';
- import userEvent from '@testing-library/user-event';
- import Expenses from '../pages/Expenses';
- import MonthSelector from '../components/expenses/MonthSelector';
- import CategorySelector from '../components/expenses/CategorySelector';
- import TotalsSummary from '../components/expenses/TotalsSummary';
+ 
+ export default QuoteFilters;
+diff --git a/apps/ui/src/pages/Quote.tsx b/apps/ui/src/pages/Quote.tsx
+index cd3c8619eb6d1c72f57763c28c145a3960f3a8ca..93196701e0fb95d935923c45ec430f919f14dd87 100644
+--- a/apps/ui/src/pages/Quote.tsx
++++ b/apps/ui/src/pages/Quote.tsx
+@@ -2,86 +2,100 @@ import { useMemo, useState, useCallback, useEffect } from 'react';
+ import type { QuoteRecord } from '@cli/shared/quote';
+ import QuoteFilters from '../components/quote/QuoteFilters';
+ import QuoteResult from '../components/quote/QuoteResult';
+ import { QuoteErrorBoundary } from '../components/quote/ErrorBoundary';
+ import { createSeededRandom } from '../lib/random/seeded';
  import {
-   buildExpenseView,
--  defaultExpensesDataset,
--  filterExpenseRecords,
-   buildMonthOptions,
-   buildCategoryOptions,
-+  filterExpenseRecords,
-+  formatCurrency,
+   DEFAULT_QUOTE_SEED,
+   applyFilters,
+   buildAuthorOptions,
+   buildTagOptions,
    hasActiveFilters,
-+  parseExpenseCsv,
-+  roundToCents,
-+  summarizeExpenses,
-   type ExpenseFilters,
-   type ExpenseSelectorOption,
- } from '../lib/expenses/totals';
+   type QuoteFiltersState,
+ } from '../lib/quote/view';
+ import { SAMPLE_QUOTES } from '../lib/quote/sampleData';
  
--const { records, issues } = defaultExpensesDataset;
--
--describe('expenses totals logic', () => {
--  interface Case {
--    readonly name: string;
--    readonly filters: ExpenseFilters;
--    readonly expectedTotal: number;
--    readonly expectedCategories: readonly string[];
--  }
--
--  const cases: readonly Case[] = [
--    {
--      name: 'all data',
--      filters: {},
--      expectedTotal: 232.1,
--      expectedCategories: ['Entertainment', 'Groceries', 'Transport', 'Utilities'],
--    },
--    {
--      name: 'filters by month',
--      filters: { month: 'February' },
--      expectedTotal: 132.1,
--      expectedCategories: ['Groceries', 'Utilities'],
--    },
--    {
--      name: 'filters by category',
--      filters: { category: 'Groceries' },
--      expectedTotal: 96.3,
--      expectedCategories: ['Groceries'],
--    },
--    {
--      name: 'no matches for month + category',
--      filters: { month: 'January', category: 'Utilities' },
--      expectedTotal: 0,
--      expectedCategories: [],
--    },
--  ];
--
--  test.each(cases)('buildExpenseView $name', ({ filters, expectedTotal, expectedCategories }) => {
--    const view = buildExpenseView(records, filters);
--    expect(view.summary.total).toBeCloseTo(expectedTotal, 2);
--    expect(view.summary.totalsByCategory.map((entry) => entry.category)).toEqual(expectedCategories);
-+const SAMPLE_CSV = `date,category,amount,currency
-+2025-01-05,Groceries,54.2,USD
-+2025-01-15,Transport,18.3,USD
-+2025-02-01,Groceries,42.1,USD
-+2025-02-07,Utilities,90,USD
-+2025-03-12,Entertainment,27.5,USD
-+2025-03-14,Café,12.345,USD
-+invalid-date,Groceries,10,USD
-+2025-02-22,,11.25,USD
-+2025-02-15,Travel,10.005,USD
-+`;
+ export interface QuoteProps {
+   quotes?: readonly QuoteRecord[];
+   initialSeed?: string;
+ }
+ 
+ const DEFAULT_FILTERS: QuoteFiltersState = {
+   author: null,
+   tag: null,
+ };
+ 
++function normalizeFilterValue(value: string | null | undefined): string | null {
++  if (value === null || value === undefined) {
++    return null;
++  }
++  const trimmed = value.trim();
++  return trimmed.length === 0 ? null : trimmed;
++}
 +
-+const MINIMAL_VALID_CSV = `2025-01-01,Groceries,10
-+2025-01-02,Groceries,20
-+2025-01-03,Utilities,30
-+2025-01-04,Travel,40
-+2025-01-05,Café,50
-+`;
+ function normalizeSeed(seed: string | undefined): string {
+-  if (!seed) {
++  if (seed === undefined || seed === null) {
+     return DEFAULT_QUOTE_SEED;
+   }
+   const trimmed = seed.trim();
+   return trimmed.length === 0 ? DEFAULT_QUOTE_SEED : trimmed;
+ }
+ 
+ function parseUrlParams(): { author: string | null; tag: string | null; seed: string } {
+   if (typeof window === 'undefined') {
+     return { author: null, tag: null, seed: DEFAULT_QUOTE_SEED };
+   }
+ 
+   const params = new URLSearchParams(window.location.search);
+   return {
+-    author: params.get('author') || null,
+-    tag: params.get('tag') || null,
+-    seed: params.get('seed') || DEFAULT_QUOTE_SEED,
++    author: normalizeFilterValue(params.get('author')),
++    tag: normalizeFilterValue(params.get('tag')),
++    seed: normalizeSeed(params.get('seed') ?? undefined),
+   };
+ }
+ 
+ function QuoteContent({ quotes, initialSeed }: QuoteProps): JSX.Element {
+   const urlParams = parseUrlParams();
+   const dataset = useMemo<readonly QuoteRecord[]>(() => (quotes ? [...quotes] : SAMPLE_QUOTES), [quotes]);
+ 
+   const [filters, setFilters] = useState<QuoteFiltersState>({
+     author: urlParams.author,
+     tag: urlParams.tag,
+   });
+-  const [seed, setSeed] = useState<string>(initialSeed ?? urlParams.seed);
++  const [seed, setSeed] = useState<string>(normalizeSeed(initialSeed ?? urlParams.seed));
+ 
+   // Sync filters to URL for shareable links
+   useEffect(() => {
++    if (typeof window === 'undefined') {
++      return;
++    }
 +
-+describe('CSV parsing and totals logic', () => {
-+  it('parses CSV with header, tracks issues, and supports non-ASCII categories', () => {
-+    const result = parseExpenseCsv(SAMPLE_CSV);
-+    expect(result.dataRowCount).toBe(9);
-+    expect(result.validRowCount).toBe(7);
-+    expect(result.records).toHaveLength(7);
-+    expect(result.records[0]).toMatchObject({
-+      date: '2025-01-05',
-+      category: 'Groceries',
-+      amount: 54.2,
-+      currency: 'USD',
-+    });
-+    expect(result.records.some((record) => record.category === 'Café')).toBe(true);
-+    expect(result.issues).toHaveLength(2);
-+    expect(result.issues[0].message).toMatch(/Row 8: date must use YYYY-MM-DD format\./);
-+    expect(result.issues[1].message).toMatch(/Row 9: category cannot be empty\./);
+     const params = new URLSearchParams();
+-    if (filters.author) params.set('author', filters.author);
+-    if (filters.tag) params.set('tag', filters.tag);
++    const author = normalizeFilterValue(filters.author);
++    const tag = normalizeFilterValue(filters.tag);
++    if (author) params.set('author', author);
++    if (tag) params.set('tag', tag);
+     if (seed !== DEFAULT_QUOTE_SEED) params.set('seed', seed);
+ 
+     const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
+     window.history.replaceState({}, '', newUrl);
+   }, [filters, seed]);
+ 
+   const authorOptions = useMemo(() => buildAuthorOptions(dataset), [dataset]);
+   const tagOptions = useMemo(() => buildTagOptions(dataset), [dataset]);
+   const filteredQuotes = useMemo(() => applyFilters(dataset, filters), [dataset, filters]);
+   const filtersActive = hasActiveFilters(filters);
+ 
+   const selectedQuote = useMemo(() => {
+     if (filtersActive) {
+       return filteredQuotes.length > 0 ? filteredQuotes[0] : null;
+     }
+     if (filteredQuotes.length === 0) {
+       return null;
+     }
+     const rng = createSeededRandom(normalizeSeed(seed));
+     const index = rng.nextInt(filteredQuotes.length);
+     return filteredQuotes[index];
+   }, [filteredQuotes, filtersActive, seed]);
+ 
+   const handleAuthorChange = useCallback((value: string | null) => {
+     setFilters((current) => ({ ...current, author: value }));
+diff --git a/apps/ui/src/tests/quote.test.tsx b/apps/ui/src/tests/quote.test.tsx
+index 225894f04c7cdede7750fdc2d2c97c118b3983b3..d39137325011d37d0fd591e00116ceefa7ca23e5 100644
+--- a/apps/ui/src/tests/quote.test.tsx
++++ b/apps/ui/src/tests/quote.test.tsx
+@@ -22,135 +22,143 @@ describe('Quote page', () => {
+   it('updates the featured quote when the seed changes', async () => {
+     const user = userEvent.setup();
+     render(<Quote initialSeed={DEFAULT_SEED} />);
+ 
+     // Verify initial quote is displayed
+     const initialFeatured = screen.getByTestId('quote-featured');
+     expect(initialFeatured).toBeInTheDocument();
+ 
+     const seedInput = screen.getByTestId('quote-seed-input');
+     await user.clear(seedInput);
+     await user.type(seedInput, 'new-seed-42');
+ 
+     // Quote should still be displayed after seed change (verifies component doesn't crash)
+     await waitFor(() => {
+       const featured = screen.getByTestId('quote-featured');
+       expect(featured).toBeInTheDocument();
+       // Just verify it contains some author text (proves it's rendering a quote)
+       expect(featured.textContent).toBeTruthy();
+     });
    });
  
--  it('filters records consistently with summarize logic', () => {
--    const filters: ExpenseFilters = { month: 'February', category: 'Utilities' };
--    const filtered = filterExpenseRecords(records, filters);
--    const view = buildExpenseView(records, filters);
--    expect(filtered).toHaveLength(view.records.length);
--    expect(filtered.map((record) => record.category)).toEqual(['Utilities']);
-+  it('throws when CSV has fewer than 5 rows', () => {
-+    const tooSmall = MINIMAL_VALID_CSV.split('\n').slice(0, 4).join('\n');
-+    expect(() => parseExpenseCsv(tooSmall)).toThrow(/between 5 and 200 data rows/);
+   it('filters quotes by author and shows clear filters control', async () => {
+     const user = userEvent.setup();
+     render(<Quote initialSeed={DEFAULT_SEED} />);
+ 
+-    await user.selectOptions(screen.getByTestId('quote-filter-author'), 'Maya Angelou');
++    const authorInput = screen.getByTestId('quote-filter-author');
++    await user.clear(authorInput);
++    await user.type(authorInput, 'maya angelou');
+ 
+     const resultsList = await screen.findByTestId('quote-filtered-list');
+     const items = within(resultsList).getAllByRole('listitem');
+     expect(items).toHaveLength(1);
+     expect(items[0]).toHaveTextContent('Still I rise.');
+     expect(items[0]).toHaveTextContent('Maya Angelou');
+ 
+     // Wait for clear button to be in document
+     await waitFor(() => {
+       expect(screen.getByTestId('quote-clear-filters')).toBeInTheDocument();
+     });
    });
  
--  it('reports malformed rows', () => {
--    expect(issues).toHaveLength(2);
--    expect(issues[0].message).toMatch(/Row 6: date must use/);
--    expect(issues[1].message).toMatch(/Row 7: category cannot be empty/);
-+  it('throws when CSV has more than 200 rows', () => {
-+    const rows = Array.from({ length: 201 }, (_, index) => `2025-01-01,Item ${index + 1},1`);
-+    const csv = `date,category,amount\n${rows.join('\n')}`;
-+    expect(() => parseExpenseCsv(csv)).toThrow(/between 5 and 200 data rows/);
+   it('filters quotes by tag and shows filter UI correctly', async () => {
+     const user = userEvent.setup();
+     render(<Quote initialSeed={DEFAULT_SEED} />);
+ 
+     const tagSelect = screen.getByTestId('quote-filter-tag');
+ 
+     // Select a tag filter
+     await user.selectOptions(tagSelect, 'hope');
+ 
+     // Clear button should be present when filter is active
+     await waitFor(() => {
+       expect(screen.getByTestId('quote-clear-filters')).toBeInTheDocument();
+     });
+ 
+     // Some result display should be visible
+     await waitFor(() => {
+       const hasResultDisplay =
+         screen.queryByTestId('quote-filtered-list') !== null ||
+         screen.queryByTestId('quote-no-results') !== null ||
+         screen.queryByTestId('quote-featured') !== null;
+       expect(hasResultDisplay).toBe(true);
+     });
    });
  
--  it('hasActiveFilters returns true when filters are set', () => {
--    expect(hasActiveFilters({ month: 'January' })).toBe(true);
--    expect(hasActiveFilters({ category: 'Groceries' })).toBe(true);
--    expect(hasActiveFilters({ month: 'January', category: 'Groceries' })).toBe(true);
-+  it('parses CSV without a header line', () => {
-+    const result = parseExpenseCsv(MINIMAL_VALID_CSV);
-+    expect(result.records).toHaveLength(5);
-+    expect(result.issues).toHaveLength(0);
-+    expect(result.records[4]).toMatchObject({ category: 'Café', amount: 50 });
+   it('shows empty state when dataset is empty', () => {
+     render(<Quote quotes={[]} initialSeed={DEFAULT_SEED} />);
+ 
+     expect(screen.getByTestId('quote-empty-state')).toHaveTextContent('No quotes available');
    });
  
--  it('hasActiveFilters returns false when no filters are set', () => {
--    expect(hasActiveFilters({})).toBe(false);
--    expect(hasActiveFilters({ month: null, category: null })).toBe(false);
--    expect(hasActiveFilters({ month: '', category: '' })).toBe(false);
-+  it('summarizes expenses with deterministic rounding', () => {
-+    const { records } = parseExpenseCsv(SAMPLE_CSV);
-+    const summary = summarizeExpenses(records);
-+    expect(summary.total).toBe(254.45);
-+    const categories = summary.totalsByCategory.reduce<Record<string, number>>((acc, entry) => ({
-+      ...acc,
-+      [entry.category]: entry.amount,
-+    }), {});
-+    expect(categories.Groceries).toBe(96.3);
-+    expect(categories.Travel).toBe(10.01);
-+    expect(categories['Café']).toBe(12.35);
-+    expect(formatCurrency(10.005)).toBe('$10.01');
-+    expect(roundToCents(39.845)).toBe(39.85);
+   it('clears all filters when clear button is clicked', async () => {
+     const user = userEvent.setup();
+     render(<Quote initialSeed={DEFAULT_SEED} />);
+ 
+     // Apply filters
+-    await user.selectOptions(screen.getByTestId('quote-filter-author'), 'Maya Angelou');
++    const authorInput = screen.getByTestId('quote-filter-author');
++    await user.clear(authorInput);
++    await user.type(authorInput, 'Maya Angelou');
+ 
+     // Wait for clear button
+     await waitFor(() => {
+       expect(screen.getByTestId('quote-clear-filters')).toBeInTheDocument();
+     });
+ 
+     // Clear filters
+     await user.click(screen.getByTestId('quote-clear-filters'));
+ 
+     // Should show featured quote again
+     await waitFor(() => {
+       expect(screen.getByTestId('quote-featured')).toBeInTheDocument();
++      expect(screen.getByTestId('quote-filter-author')).toHaveValue('');
++      expect(screen.getByTestId('quote-filter-author')).toHaveFocus();
+     });
    });
  
--  it('buildMonthOptions includes "All months" option', () => {
--    const options = buildMonthOptions(records);
--    expect(options[0]).toEqual({ label: 'All months', value: null });
+   it('shows helpful message when no quotes match filters', async () => {
+     const user = userEvent.setup();
+     render(<Quote initialSeed={DEFAULT_SEED} />);
+ 
+     // Select author
+-    await user.selectOptions(screen.getByTestId('quote-filter-author'), 'Maya Angelou');
++    const authorInput = screen.getByTestId('quote-filter-author');
++    await user.clear(authorInput);
++    await user.type(authorInput, 'Maya Angelou');
+     // Select incompatible tag
+     await user.selectOptions(screen.getByTestId('quote-filter-tag'), 'leadership');
+ 
+     await waitFor(() => {
+       expect(screen.getByTestId('quote-no-results')).toBeInTheDocument();
+     });
+ 
+     expect(screen.getByTestId('quote-no-results')).toHaveTextContent('No quotes match the current filters');
+     expect(screen.getByRole('button', { name: /clear all filters/i })).toBeInTheDocument();
+   });
+ 
+   it('provides keyboard shortcut hint for author filter', () => {
+     render(<Quote initialSeed={DEFAULT_SEED} />);
+ 
+     expect(screen.getByText(/Ctrl\+\/ to focus/)).toBeInTheDocument();
+   });
+ 
+-  it('displays available authors in dropdown', () => {
++  it('surfaces author suggestions via datalist', () => {
+     render(<Quote initialSeed={DEFAULT_SEED} />);
+ 
+-    const authorSelect = screen.getByTestId('quote-filter-author');
+-    const options = within(authorSelect).getAllByRole('option');
++    const datalist = screen.getByTestId('quote-author-options');
++    const optionValues = Array.from(datalist.querySelectorAll('option')).map((option) => option.getAttribute('value'));
+ 
+-    expect(options[0]).toHaveTextContent('All authors');
 -    expect(options.length).toBeGreaterThan(1);
-+  it('builds consistent views and filters', () => {
-+    const { records } = parseExpenseCsv(SAMPLE_CSV);
-+    const filters: ExpenseFilters = { month: 'February', category: 'Travel' };
-+    const filtered = filterExpenseRecords(records, filters);
-+    const view = buildExpenseView(records, filters);
-+    expect(filtered).toHaveLength(1);
-+    expect(filtered[0].category).toBe('Travel');
-+    expect(view.summary.total).toBe(10.01);
-+    expect(hasActiveFilters(filters)).toBe(true);
-+    expect(hasActiveFilters({})).toBe(false);
+-    expect(options.some((opt) => opt.textContent === 'Maya Angelou')).toBe(true);
++    expect(optionValues.length).toBeGreaterThan(0);
++    expect(optionValues).toContain('Maya Angelou');
++    expect(optionValues).toContain('Robert Frost');
    });
  
--  it('buildCategoryOptions includes "All categories" option', () => {
--    const options = buildCategoryOptions(records);
--    expect(options[0]).toEqual({ label: 'All categories', value: null });
--    expect(options.length).toBeGreaterThan(1);
-+  it('builds selector options including all entries', () => {
-+    const { records } = parseExpenseCsv(SAMPLE_CSV);
-+    const monthOptions = buildMonthOptions(records);
-+    const categoryOptions = buildCategoryOptions(records);
-+    expect(monthOptions.map((option) => option.label)).toContain('February');
-+    expect(categoryOptions.map((option) => option.label)).toContain('Café');
+   it('displays available tags in dropdown', () => {
+     render(<Quote initialSeed={DEFAULT_SEED} />);
+ 
+     const tagSelect = screen.getByTestId('quote-filter-tag');
+     const options = within(tagSelect).getAllByRole('option');
+ 
+     expect(options[0]).toHaveTextContent('All tags');
+     expect(options.length).toBeGreaterThan(1);
+     expect(options.some((opt) => opt.textContent === 'resilience')).toBe(true);
    });
  });
+diff --git a/specs/slice-c-quote-search/tasks.md b/specs/slice-c-quote-search/tasks.md
+index 72785d322e68ffa1e9eca739a5f2d2b85502dc2b..dd5b40b89963257fa13903ab10f19ab12fd3f974 100644
+--- a/specs/slice-c-quote-search/tasks.md
++++ b/specs/slice-c-quote-search/tasks.md
+@@ -1,20 +1,20 @@
+ # Slice C — Tasks (Quote: Filters + Seeded Random)
  
- describe('MonthSelector component', () => {
-   const mockOptions: ExpenseSelectorOption[] = [
-     { label: 'All months', value: null },
-     { label: 'January', value: 'January' },
-     { label: 'February', value: 'February' },
-   ];
- 
--  it('renders all month options', () => {
-+  it('renders all month options and supports disabling', () => {
-     const mockOnChange = vi.fn();
--    render(<MonthSelector options={mockOptions} value={null} onChange={mockOnChange} />);
--
--    const select = screen.getByLabelText(/Filter expenses by month/i);
-+    render(<MonthSelector options={mockOptions} value={null} onChange={mockOnChange} disabled />);
-+    const select = screen.getByLabelText(/filter expenses by month/i) as HTMLSelectElement;
-+    expect(select.disabled).toBe(true);
-     const options = within(select).getAllByRole('option');
--
-     expect(options).toHaveLength(3);
--    expect(options[0]).toHaveTextContent('All months');
-     expect(options[1]).toHaveTextContent('January');
--    expect(options[2]).toHaveTextContent('February');
-   });
- 
-   it('calls onChange with selected value', async () => {
-     const mockOnChange = vi.fn();
-     const user = userEvent.setup();
--
-     render(<MonthSelector options={mockOptions} value={null} onChange={mockOnChange} />);
--
--    const select = screen.getByLabelText(/Filter expenses by month/i);
-+    const select = screen.getByLabelText(/filter expenses by month/i);
-     await user.selectOptions(select, 'February');
--
-     expect(mockOnChange).toHaveBeenCalledWith('February');
-   });
--
--  it('calls onChange with null when "All months" is selected', async () => {
--    const mockOnChange = vi.fn();
--    const user = userEvent.setup();
--
--    render(<MonthSelector options={mockOptions} value="February" onChange={mockOnChange} />);
--
--    const select = screen.getByLabelText(/Filter expenses by month/i);
--    await user.selectOptions(select, '');
--
--    expect(mockOnChange).toHaveBeenCalledWith(null);
--  });
- });
- 
- describe('CategorySelector component', () => {
-   const mockOptions: ExpenseSelectorOption[] = [
-     { label: 'All categories', value: null },
-     { label: 'Groceries', value: 'Groceries' },
--    { label: 'Transport', value: 'Transport' },
-+    { label: 'Café', value: 'Café' },
-   ];
- 
--  it('renders all category options', () => {
-+  it('renders all category options and supports disabling', () => {
-     const mockOnChange = vi.fn();
--    render(<CategorySelector options={mockOptions} value={null} onChange={mockOnChange} />);
--
--    const select = screen.getByLabelText(/Filter expenses by category/i);
-+    render(<CategorySelector options={mockOptions} value={null} onChange={mockOnChange} disabled />);
-+    const select = screen.getByLabelText(/filter expenses by category/i) as HTMLSelectElement;
-+    expect(select.disabled).toBe(true);
-     const options = within(select).getAllByRole('option');
--
-     expect(options).toHaveLength(3);
--    expect(options[0]).toHaveTextContent('All categories');
--    expect(options[1]).toHaveTextContent('Groceries');
--    expect(options[2]).toHaveTextContent('Transport');
-+    expect(options[2]).toHaveTextContent('Café');
-   });
- 
-   it('calls onChange with selected value', async () => {
-     const mockOnChange = vi.fn();
-     const user = userEvent.setup();
--
-     render(<CategorySelector options={mockOptions} value={null} onChange={mockOnChange} />);
--
--    const select = screen.getByLabelText(/Filter expenses by category/i);
-+    const select = screen.getByLabelText(/filter expenses by category/i);
-     await user.selectOptions(select, 'Groceries');
--
-     expect(mockOnChange).toHaveBeenCalledWith('Groceries');
-   });
- });
- 
- describe('TotalsSummary component', () => {
-   it('displays totals and breakdown when data exists', () => {
-     const mockSummary = {
-       total: 150.5,
-       currency: 'USD',
-       totalsByCategory: [
-         { category: 'Groceries', amount: 100 },
-         { category: 'Transport', amount: 50.5 },
-       ],
-     };
- 
-     render(<TotalsSummary summary={mockSummary} hasData={true} />);
- 
-     expect(screen.getByTestId('expenses-total')).toHaveTextContent(/Total:\s*\$150\.50/);
-     expect(screen.getByText('Groceries')).toBeInTheDocument();
-     expect(screen.getByText('$100.00')).toBeInTheDocument();
-     expect(screen.getByText('Transport')).toBeInTheDocument();
-     expect(screen.getByText('$50.50')).toBeInTheDocument();
-   });
- 
--  it('displays empty state when no data exists', () => {
-+  it('displays custom empty state when no data exists', () => {
-     const mockSummary = {
-       total: 0,
-       currency: 'USD',
-       totalsByCategory: [],
-     };
- 
--    render(<TotalsSummary summary={mockSummary} hasData={false} />);
-+    render(<TotalsSummary summary={mockSummary} hasData={false} emptyMessage="Upload a CSV to begin." />);
- 
-     expect(screen.getByTestId('expenses-empty-state')).toBeInTheDocument();
--    expect(screen.getByText(/No expenses found/i)).toBeInTheDocument();
-+    expect(screen.getByText(/Upload a CSV to begin\./i)).toBeInTheDocument();
-   });
- });
- 
- describe('Expenses page behaviour', () => {
--  it('updates totals when filters change and shows inline errors', async () => {
--    const user = userEvent.setup();
--    render(<Expenses />);
--
--    const monthSelect = screen.getByLabelText(/month/i);
--    const categorySelect = screen.getByLabelText(/category/i);
-+  const createCsvFile = (content: string, name = 'expenses.csv') => new File([content], name, { type: 'text/csv' });
- 
--    expect(screen.getByTestId('expenses-total')).toHaveTextContent(/Total:\s*\$232\.10/);
--    expect(screen.queryByTestId('expenses-error')).toBeNull();
--
--    await user.selectOptions(monthSelect, 'February');
--    expect(screen.getByTestId('expenses-total')).toHaveTextContent(/Total:\s*\$132\.10/);
--
--    await user.selectOptions(categorySelect, 'Utilities');
--    expect(screen.getByTestId('expenses-total')).toHaveTextContent(/Total:\s*\$90\.00/);
--    expect(screen.queryByTestId('expenses-error')).toBeNull();
--
--    await user.selectOptions(monthSelect, 'January');
--    expect(screen.getByTestId('expenses-empty-state')).toHaveTextContent('No expenses found');
--    expect(screen.getByTestId('expenses-error')).toBeInTheDocument();
-+  it('requires upload before filters are enabled', () => {
-+    render(<Expenses />);
-+    expect(screen.getByLabelText(/filter expenses by month/i)).toBeDisabled();
-+    expect(screen.getByLabelText(/filter expenses by category/i)).toBeDisabled();
-+    expect(screen.getByTestId('expenses-empty-row')).toHaveTextContent(/Upload a CSV to view expenses/i);
-   });
- 
--  it('shows clear filters button when filters are active', async () => {
-+  it('uploads CSV, filters totals, and shows inline issues', async () => {
-     const user = userEvent.setup();
-     render(<Expenses />);
- 
--    // Initially no clear button
--    expect(screen.queryByRole('button', { name: /Clear all filters/i })).toBeNull();
-+    const fileInput = screen.getByLabelText(/upload expenses csv/i, { selector: 'input' });
-+    await user.upload(fileInput, createCsvFile(SAMPLE_CSV, 'sample.csv'));
-+
-+    expect(await screen.findByTestId('expenses-upload-meta')).toHaveTextContent('Loaded 7 valid rows from sample.csv');
-+    expect(screen.getByTestId('expenses-total')).toHaveTextContent(/Total:\s*\$254\.45/);
-+
-+    const issues = screen.getByTestId('expenses-issues');
-+    expect(issues).toBeInTheDocument();
-+    expect(within(issues).getAllByRole('listitem')).toHaveLength(2);
- 
--    // Select a month filter
-     const monthSelect = screen.getByLabelText(/month/i);
-+    const categorySelect = screen.getByLabelText(/category/i);
-+
-     await user.selectOptions(monthSelect, 'February');
-+    expect(screen.getByTestId('expenses-total')).toHaveTextContent(/Total:\s*\$142\.11/);
- 
--    // Clear button should appear - wait for it
--    const clearButton = await screen.findByRole('button', { name: /Clear all filters/i });
--    expect(clearButton).toBeInTheDocument();
-+    await user.selectOptions(categorySelect, 'Groceries');
-+    expect(screen.getByTestId('expenses-total')).toHaveTextContent(/Total:\s*\$42\.10/);
-+
-+    await user.selectOptions(monthSelect, 'March');
-+    await user.selectOptions(categorySelect, 'Utilities');
-+    expect(screen.getByTestId('expenses-error')).toHaveTextContent(/No expenses found/);
-+    expect(screen.getByTestId('expenses-empty-row')).toHaveTextContent(/No expenses match/);
-   });
- 
--  it('clears filters when clear button is clicked', async () => {
-+  it('clears filters after applying them', async () => {
-     const user = userEvent.setup();
-     render(<Expenses />);
- 
--    // Set filters
-+    const fileInput = screen.getByLabelText(/upload expenses csv/i, { selector: 'input' });
-+    await user.upload(fileInput, createCsvFile(SAMPLE_CSV));
-+
-     const monthSelect = screen.getByLabelText(/month/i) as HTMLSelectElement;
-     const categorySelect = screen.getByLabelText(/category/i) as HTMLSelectElement;
- 
-     await user.selectOptions(monthSelect, 'February');
--    await user.selectOptions(categorySelect, 'Groceries');
--
--    expect(monthSelect.value).toBe('February');
--    expect(categorySelect.value).toBe('Groceries');
-+    await user.selectOptions(categorySelect, 'Travel');
- 
--    // Click clear button - wait for it to appear
-     const clearButton = await screen.findByRole('button', { name: /Clear all filters/i });
-     await user.click(clearButton);
- 
--    // Filters should be reset
-     expect(monthSelect.value).toBe('');
-     expect(categorySelect.value).toBe('');
--
--    // Clear button should disappear
-     expect(screen.queryByRole('button', { name: /Clear all filters/i })).toBeNull();
-   });
- 
--  it('displays data quality notices for malformed rows', () => {
-+  it('shows upload error for out-of-bounds files and retains notices', async () => {
-+    const user = userEvent.setup();
-     render(<Expenses />);
- 
--    const noticesSection = screen.getByTestId('expenses-issues');
--    expect(noticesSection).toBeInTheDocument();
--    expect(within(noticesSection).getByText(/Data quality notices/i)).toBeInTheDocument();
-+    const fileInput = screen.getByLabelText(/upload expenses csv/i, { selector: 'input' });
-+    const invalidFile = createCsvFile('2025-01-01,Only,1');
-+    await user.upload(fileInput, invalidFile);
-+
-+    expect(await screen.findByTestId('expenses-upload-error')).toHaveTextContent(/between 5 and 200 data rows/);
-+    expect(screen.getByTestId('expenses-empty-row')).toHaveTextContent(/No valid expenses were imported/);
-   });
- });
-diff --git a/specs/slice-a-expenses-csv/tasks.md b/specs/slice-a-expenses-csv/tasks.md
-index 5d5c5da7a5deee8224856ba2f564b70cac52f8f8..be23d1e01e4dfcc09f7ce6d598a3bda3a265178b 100644
---- a/specs/slice-a-expenses-csv/tasks.md
-+++ b/specs/slice-a-expenses-csv/tasks.md
-@@ -1,19 +1,19 @@
- # Slice A — Tasks (Expenses: CSV Import + Totals)
- 
- Status: Planned (Day 1)
+-Status: Planned (Day 1)
++Status: In Review (Day 4)
  
  ## Build
--- [ ] T001 Add CSV upload control with visible label and helper text on `Expenses` page.
--- [ ] T002 Implement CSV parser with schema validation, 5–200 row bounds, and row-level error collection.
--- [ ] T003 Integrate parsed records into the view; month/category filters operate on uploaded data; empty dataset UX.
--- [ ] T004 Totals summary uses deterministic 2dp rounding consistent with CLI; document rounding in UI help.
-+- [x] T001 Add CSV upload control with visible label and helper text on `Expenses` page.
-+- [x] T002 Implement CSV parser with schema validation, 5–200 row bounds, and row-level error collection.
-+- [x] T003 Integrate parsed records into the view; month/category filters operate on uploaded data; empty dataset UX.
-+- [x] T004 Totals summary uses deterministic 2dp rounding consistent with CLI; document rounding in UI help.
+-- [ ] T013 Implement case‑insensitive Author filter.
+-- [ ] T014 Implement case‑insensitive Tag filter.
+-- [ ] T015 Deterministic seeded random when no filters; normalize seed to default when empty.
+-- [ ] T016 Sync author/tag/seed with URL; add clear filters action and empty/no‑match messages.
++- [x] T013 Implement case‑insensitive Author filter.
++- [x] T014 Implement case‑insensitive Tag filter.
++- [x] T015 Deterministic seeded random when no filters; normalize seed to default when empty.
++- [x] T016 Sync author/tag/seed with URL; add clear filters action and empty/no‑match messages.
  
  ## Tests
--- [ ] T005 Unit tests (table‑driven): valid/invalid CSV, bounds errors, month/category filters, 2dp rounding, non‑ASCII categories.
-+- [x] T005 Unit tests (table‑driven): valid/invalid CSV, bounds errors, month/category filters, 2dp rounding, non‑ASCII categories.
+-- [ ] T017 Unit tests: author/tag filters, seeded random determinism, empty dataset UX.
++- [x] T017 Unit tests: author/tag filters, seeded random determinism, empty dataset UX.
  
  ## CI & Artifacts
--- [ ] T006 Playwright `@smoke` (upload → filter → totals) + axe a11y; export UI coverage and Playwright report to `review-artifacts/` (UI ≥ 50% changed modules) and update README review box.
-+- [x] T006 Playwright `@smoke` (upload → filter → totals) + axe a11y; export UI coverage and Playwright report to `review-artifacts/` (UI ≥ 50% changed modules) and update README review box.
+-- [ ] T018 Playwright `@smoke` (author search equals fixture; seeded path reproducible) + axe a11y; export coverage and Playwright report to `review-artifacts/` and update README review box.
++- [x] T018 Playwright `@smoke` (author search equals fixture; seeded path reproducible) + axe a11y; export coverage and Playwright report to `review-artifacts/` and update README review box.
  
  ## Documentation
+ 
  
  
