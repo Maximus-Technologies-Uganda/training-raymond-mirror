@@ -124,8 +124,8 @@ export function toTodoClock(clock: UiClock): TodoClock {
 }
 
 /**
- * Extracts the date portion (YYYY-MM-DD) from a Date instance in UTC.
- * Used for comparing calendar dates independent of time zones.
+ * Extracts the date portion (YYYY-MM-DD) from a Date instance in local time.
+ * Used for comparing calendar dates in the user's local timezone.
  *
  * @param date - The date to convert
  * @returns ISO date string (YYYY-MM-DD)
@@ -133,11 +133,14 @@ export function toTodoClock(clock: UiClock): TodoClock {
  * @example
  * ```ts
  * const date = new Date('2025-11-05T23:59:59Z');
- * toDateOnly(date); // "2025-11-05"
+ * toDateOnly(date); // "2025-11-05" (in local timezone)
  * ```
  */
 export function toDateOnly(date: Date): string {
-  return date.toISOString().slice(0, 10);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 /**

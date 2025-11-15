@@ -210,7 +210,7 @@ function ToDo({ clock }: ToDoProps): JSX.Element {
   };
 
   return (
-    <div className="todo-page" role="main">
+    <div className="todo-page">
       <header className="todo-page__header">
         <h1 className="todo-page__title" data-testid="todo-title">
           Team ToDo tracker

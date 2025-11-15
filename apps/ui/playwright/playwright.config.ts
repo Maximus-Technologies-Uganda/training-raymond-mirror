@@ -6,6 +6,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   testDir: path.join(__dirname, 'tests'),
+  testMatch: /.*\.spec\.ts$/, // Only run TypeScript test files
   timeout: 60000, // 60 seconds per test
   reporter: [
     ['list'],
@@ -25,8 +26,8 @@ export default defineConfig({
     cwd: path.join(__dirname, '..'),
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
-    stdout: 'pipe',
-    stderr: 'pipe'
+    stdout: 'ignore',
+    stderr: 'ignore'
   },
   projects: [
     {

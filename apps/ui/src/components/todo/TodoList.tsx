@@ -100,7 +100,7 @@ function TodoList({ items, onComplete }: TodoListProps): JSX.Element {
   }
 
   return (
-    <ul className="todo-list" aria-label="Current tasks">
+    <ul id="todo-list" className="todo-list" aria-label="Current tasks">
       {items.map(({ todo, due }) => (
         <li
           key={todo.id}

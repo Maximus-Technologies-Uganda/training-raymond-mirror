@@ -1,0 +1,638 @@
+diff --git a/apps/ui/src/components/quote/QuoteFilters.tsx b/apps/ui/src/components/quote/QuoteFilters.tsx
+index a5a257bda2d83f3eefc5835e51235bc26186972f..f7cb656071d04c7ff63cffca6867080e8e6c4872 100644
+--- a/apps/ui/src/components/quote/QuoteFilters.tsx
++++ b/apps/ui/src/components/quote/QuoteFilters.tsx
+@@ -1,80 +1,83 @@
+-import { type ChangeEvent, useEffect, useRef } from 'react';
++import { type ChangeEvent, useEffect, useRef, type RefObject } from 'react';
+ import type { QuoteOption } from '../../lib/quote/view';
+ 
+ export interface QuoteFiltersProps {
+   authorOptions: readonly QuoteOption[];
+   tagOptions: readonly QuoteOption[];
+   author: string | null;
+   tag: string | null;
+   seed: string;
+   hasActiveFilters: boolean;
++  authorSelectRef?: RefObject<HTMLSelectElement>;
+   onAuthorChange: (value: string | null) => void;
+   onTagChange: (value: string | null) => void;
+   onSeedChange: (value: string) => void;
+   onClearFilters: () => void;
+ }
+ 
+ function handleSelectChange(event: ChangeEvent<HTMLSelectElement>, onChange: (value: string | null) => void): void {
+   const { value } = event.target;
+   onChange(value.length > 0 ? value : null);
+ }
+ 
+ export function QuoteFilters({
+   authorOptions,
+   tagOptions,
+   author,
+   tag,
+   seed,
+   hasActiveFilters,
++  authorSelectRef,
+   onAuthorChange,
+   onTagChange,
+   onSeedChange,
+   onClearFilters,
+ }: QuoteFiltersProps): JSX.Element {
+-  const authorSelectRef = useRef<HTMLSelectElement>(null);
++  const fallbackAuthorRef = useRef<HTMLSelectElement>(null);
++  const resolvedAuthorRef = authorSelectRef ?? fallbackAuthorRef;
+ 
+   // Keyboard shortcut: Ctrl+/ to focus author filter
+   useEffect(() => {
+     const handleKeyPress = (e: KeyboardEvent) => {
+       if (e.key === '/' && e.ctrlKey) {
+         e.preventDefault();
+-        authorSelectRef.current?.focus();
++        resolvedAuthorRef.current?.focus();
+       }
+     };
+     window.addEventListener('keydown', handleKeyPress);
+     return () => window.removeEventListener('keydown', handleKeyPress);
+-  }, []);
++  }, [resolvedAuthorRef]);
+ 
+   return (
+     <section className="quote-filters" aria-label="Quote filters and controls">
+       <div className="quote-filters__group">
+         <label className="quote-filters__label" htmlFor="quote-author-select">
+           Author
+         </label>
+         <select
+-          ref={authorSelectRef}
++          ref={resolvedAuthorRef}
+           id="quote-author-select"
+           className="quote-filters__select"
+           value={author ?? ''}
+           onChange={(event) => handleSelectChange(event, onAuthorChange)}
+           data-testid="quote-filter-author"
+           aria-describedby="quote-author-help"
+         >
+           {authorOptions.map((option) => (
+             <option key={option.label} value={option.value ?? ''}>
+               {option.label}
+             </option>
+           ))}
+         </select>
+         <p id="quote-author-help" className="quote-filters__help">
+           Filter quotes by author. Press Ctrl+/ to focus.
+         </p>
+       </div>
+ 
+       <div className="quote-filters__group">
+         <label className="quote-filters__label" htmlFor="quote-tag-select">
+           Tag
+         </label>
+         <select
+           id="quote-tag-select"
+           className="quote-filters__select"
+diff --git a/apps/ui/src/pages/Expenses.tsx b/apps/ui/src/pages/Expenses.tsx
+index 333e5dc338526ff78f7185a2d93ce3a3143919d8..ba92e7028ee20fa7723739d92146c118eda60b2e 100644
+--- a/apps/ui/src/pages/Expenses.tsx
++++ b/apps/ui/src/pages/Expenses.tsx
+@@ -1,35 +1,34 @@
+ import { type ChangeEvent, type Dispatch, type SetStateAction, useMemo, useRef, useState } from 'react';
+ import CategorySelector from '../components/expenses/CategorySelector';
+ import MonthSelector from '../components/expenses/MonthSelector';
+ import TotalsSummary from '../components/expenses/TotalsSummary';
+ import {
+   buildCategoryOptions,
+   buildMonthOptions,
+   formatCurrency,
+   hasActiveFilters,
+-  type ExpenseDataset,
+   type ExpenseFilters,
+   type ExpenseRecord,
+   useExpenseView,
+ } from '../lib/expenses/totals';
+ import { parseExpensesCsv, type ExpenseCsvParseResult, MIN_EXPENSE_ROWS, MAX_EXPENSE_ROWS } from '../lib/expenses/csv';
+ 
+ /**
+  * Reads a CSV file as text.
+  * Uses modern File.text() API with fallback to FileReader for older browsers.
+  */
+ async function readCsvFile(file: File): Promise<string> {
+   if (typeof file.text === 'function') {
+     return file.text();
+   }
+ 
+   return new Promise<string>((resolve, reject) => {
+     const reader = new FileReader();
+     reader.onerror = () => reject(new Error('Unable to read file.'));
+     reader.onload = () => {
+       const result = reader.result;
+       if (typeof result === 'string') {
+         resolve(result);
+         return;
+       }
+       resolve(String(result ?? ''));
+diff --git a/apps/ui/src/pages/Quote.tsx b/apps/ui/src/pages/Quote.tsx
+index cd3c8619eb6d1c72f57763c28c145a3960f3a8ca..965495718175566859e811e50be15945173ec0f2 100644
+--- a/apps/ui/src/pages/Quote.tsx
++++ b/apps/ui/src/pages/Quote.tsx
+@@ -1,142 +1,168 @@
+-import { useMemo, useState, useCallback, useEffect } from 'react';
++import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
+ import type { QuoteRecord } from '@cli/shared/quote';
+ import QuoteFilters from '../components/quote/QuoteFilters';
+ import QuoteResult from '../components/quote/QuoteResult';
+ import { QuoteErrorBoundary } from '../components/quote/ErrorBoundary';
+ import { createSeededRandom } from '../lib/random/seeded';
+ import {
+   DEFAULT_QUOTE_SEED,
+   applyFilters,
+   buildAuthorOptions,
+   buildTagOptions,
+   hasActiveFilters,
+   type QuoteFiltersState,
+ } from '../lib/quote/view';
+ import { SAMPLE_QUOTES } from '../lib/quote/sampleData';
+ 
+ export interface QuoteProps {
+   quotes?: readonly QuoteRecord[];
+   initialSeed?: string;
+ }
+ 
+ const DEFAULT_FILTERS: QuoteFiltersState = {
+   author: null,
+   tag: null,
+ };
+ 
+ function normalizeSeed(seed: string | undefined): string {
+   if (!seed) {
+     return DEFAULT_QUOTE_SEED;
+   }
+   const trimmed = seed.trim();
+   return trimmed.length === 0 ? DEFAULT_QUOTE_SEED : trimmed;
+ }
+ 
++function normalizeQueryValue(value: string | null): string | null {
++  if (value === null) {
++    return null;
++  }
++  const trimmed = value.trim();
++  return trimmed.length === 0 ? null : trimmed;
++}
++
+ function parseUrlParams(): { author: string | null; tag: string | null; seed: string } {
+   if (typeof window === 'undefined') {
+     return { author: null, tag: null, seed: DEFAULT_QUOTE_SEED };
+   }
+ 
+   const params = new URLSearchParams(window.location.search);
+   return {
+-    author: params.get('author') || null,
+-    tag: params.get('tag') || null,
+-    seed: params.get('seed') || DEFAULT_QUOTE_SEED,
++    author: normalizeQueryValue(params.get('author')),
++    tag: normalizeQueryValue(params.get('tag')),
++    seed: normalizeSeed(params.get('seed') ?? undefined),
+   };
+ }
+ 
+ function QuoteContent({ quotes, initialSeed }: QuoteProps): JSX.Element {
+   const urlParams = parseUrlParams();
+   const dataset = useMemo<readonly QuoteRecord[]>(() => (quotes ? [...quotes] : SAMPLE_QUOTES), [quotes]);
+ 
+-  const [filters, setFilters] = useState<QuoteFiltersState>({
++  const [filters, setFilters] = useState<QuoteFiltersState>(() => ({
+     author: urlParams.author,
+     tag: urlParams.tag,
+-  });
+-  const [seed, setSeed] = useState<string>(initialSeed ?? urlParams.seed);
++  }));
++  const [seedInput, setSeedInput] = useState<string>(() => initialSeed ?? urlParams.seed);
++  const authorSelectRef = useRef<HTMLSelectElement>(null);
++
++  const effectiveSeed = useMemo(() => normalizeSeed(seedInput), [seedInput]);
++
++  const focusAuthorFilter = useCallback(() => {
++    const element = authorSelectRef.current;
++    if (!element) {
++      return;
++    }
++    const focus = () => element.focus();
++    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
++      window.requestAnimationFrame(focus);
++      return;
++    }
++    setTimeout(focus, 0);
++  }, []);
+ 
+   // Sync filters to URL for shareable links
+   useEffect(() => {
+     const params = new URLSearchParams();
+     if (filters.author) params.set('author', filters.author);
+     if (filters.tag) params.set('tag', filters.tag);
+-    if (seed !== DEFAULT_QUOTE_SEED) params.set('seed', seed);
++    if (effectiveSeed !== DEFAULT_QUOTE_SEED) params.set('seed', effectiveSeed);
+ 
+     const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
+     window.history.replaceState({}, '', newUrl);
+-  }, [filters, seed]);
++  }, [filters, effectiveSeed]);
+ 
+   const authorOptions = useMemo(() => buildAuthorOptions(dataset), [dataset]);
+   const tagOptions = useMemo(() => buildTagOptions(dataset), [dataset]);
+   const filteredQuotes = useMemo(() => applyFilters(dataset, filters), [dataset, filters]);
+   const filtersActive = hasActiveFilters(filters);
+ 
+   const selectedQuote = useMemo(() => {
+     if (filtersActive) {
+       return filteredQuotes.length > 0 ? filteredQuotes[0] : null;
+     }
+     if (filteredQuotes.length === 0) {
+       return null;
+     }
+-    const rng = createSeededRandom(normalizeSeed(seed));
++    const rng = createSeededRandom(effectiveSeed);
+     const index = rng.nextInt(filteredQuotes.length);
+     return filteredQuotes[index];
+-  }, [filteredQuotes, filtersActive, seed]);
++  }, [filteredQuotes, filtersActive, effectiveSeed]);
+ 
+   const handleAuthorChange = useCallback((value: string | null) => {
+     setFilters((current) => ({ ...current, author: value }));
+   }, []);
+ 
+   const handleTagChange = useCallback((value: string | null) => {
+     setFilters((current) => ({ ...current, tag: value }));
+   }, []);
+ 
+   const handleSeedChange = useCallback((value: string) => {
+-    setSeed(normalizeSeed(value));
++    setSeedInput(value);
+   }, []);
+ 
+   const handleClearFilters = useCallback(() => {
+     setFilters({ ...DEFAULT_FILTERS });
+-  }, []);
++    focusAuthorFilter();
++  }, [focusAuthorFilter]);
+ 
+   return (
+     <div className="quote-page" role="main" data-testid="quote-page">
+       <header className="quote-page__header">
+         <h1 className="quote-page__title">Quote explorer</h1>
+         <p className="quote-page__subtitle">
+           Filter by author or tag, or use the deterministic seed to surface a repeatable random quote.
+         </p>
+       </header>
+ 
+       <QuoteFilters
+         authorOptions={authorOptions}
+         tagOptions={tagOptions}
+         author={filters.author}
+         tag={filters.tag}
+-        seed={seed}
++        seed={seedInput}
+         hasActiveFilters={filtersActive}
++        authorSelectRef={authorSelectRef}
+         onAuthorChange={handleAuthorChange}
+         onTagChange={handleTagChange}
+         onSeedChange={handleSeedChange}
+         onClearFilters={handleClearFilters}
+       />
+ 
+       <QuoteResult
+         filteredQuotes={filteredQuotes}
+         selectedQuote={selectedQuote}
+         hasActiveFilters={filtersActive}
+         totalQuotes={dataset.length}
+         onClearFilters={handleClearFilters}
+       />
+     </div>
+   );
+ }
+ 
+ /**
+  * Quote explorer page with error boundary, URL state persistence,
+  * and deterministic random selection.
+  */
+ function Quote(props: QuoteProps): JSX.Element {
+   return (
+     <QuoteErrorBoundary>
+       <QuoteContent {...props} />
+diff --git a/apps/ui/src/tests/expenses.test.tsx b/apps/ui/src/tests/expenses.test.tsx
+index caf618055532b1c22283cda24a4b90baf8089d08..fc6206fbc488d1b8737dfac289ddf5634653102f 100644
+--- a/apps/ui/src/tests/expenses.test.tsx
++++ b/apps/ui/src/tests/expenses.test.tsx
+@@ -1,44 +1,44 @@
+ import { render, screen, within, waitFor } from '@testing-library/react';
+ import userEvent from '@testing-library/user-event';
+ import Expenses from '../pages/Expenses';
+ import MonthSelector from '../components/expenses/MonthSelector';
+ import CategorySelector from '../components/expenses/CategorySelector';
+ import TotalsSummary from '../components/expenses/TotalsSummary';
+ import {
+   buildExpenseView,
+   buildMonthOptions,
+   buildCategoryOptions,
+   filterExpenseRecords,
+   formatCurrency,
+   hasActiveFilters,
+   roundToCents,
+   summarizeExpenses,
+   type ExpenseFilters,
+   type ExpenseSelectorOption,
+ } from '../lib/expenses/totals';
+-import { parseExpensesCsv, MIN_EXPENSE_ROWS, MAX_EXPENSE_ROWS } from '../lib/expenses/csv';
++import { parseExpensesCsv } from '../lib/expenses/csv';
+ 
+ // Sample CSV with realistic data including edge cases
+ const SAMPLE_CSV = `date,category,amount,currency
+ 2025-01-05,Groceries,54.2,USD
+ 2025-01-15,Transport,18.3,USD
+ 2025-02-01,Groceries,42.1,USD
+ 2025-02-07,Utilities,90,USD
+ 2025-03-12,Entertainment,27.5,USD
+ 2025-03-14,Café,12.345,USD
+ 2025-02-15,Travel,10.005,USD
+ invalid-date,Groceries,10,USD
+ 2025-02-22,,11.25,USD`;
+ 
+ // CSV with RFC 4180 quoted fields (commas, quotes, special chars)
+ const QUOTED_CSV = `date,category,amount,currency
+ 2025-01-01,"Groceries, organic",42.50,USD
+ 2025-01-02,"O'Reilly Books",29.99,USD
+ 2025-01-03,Normal,10.00,USD
+ 2025-01-04,"Value with ""quotes""",15.00,USD
+ 2025-01-05,"Café & Restaurant",25.00,USD`;
+ 
+ // Minimal valid CSV without header
+ const MINIMAL_CSV = `2025-01-01,Groceries,10
+ 2025-01-02,Groceries,20
+ 2025-01-03,Utilities,30
+diff --git a/apps/ui/src/tests/quote.test.tsx b/apps/ui/src/tests/quote.test.tsx
+index 225894f04c7cdede7750fdc2d2c97c118b3983b3..d1978c735b2affd5cc3e5af7f2ab067433272b29 100644
+--- a/apps/ui/src/tests/quote.test.tsx
++++ b/apps/ui/src/tests/quote.test.tsx
+@@ -1,156 +1,205 @@
+ import { render, screen, within, waitFor } from '@testing-library/react';
+ import userEvent from '@testing-library/user-event';
+ import Quote from '../pages/Quote';
+ import { createSeededRandom } from '../lib/random/seeded';
+ import { SAMPLE_QUOTES } from '../lib/quote/sampleData';
+ 
+-const DEFAULT_SEED = 'ui-test-seed';
++const CUSTOM_SEED = 'ui-test-seed';
++
++beforeEach(() => {
++  window.history.replaceState({}, '', '/');
++});
+ 
+ describe('Quote page', () => {
+   it('renders a deterministic featured quote using the provided seed', () => {
+-    render(<Quote initialSeed={DEFAULT_SEED} />);
++    render(<Quote initialSeed={CUSTOM_SEED} />);
+ 
+-    const rng = createSeededRandom(DEFAULT_SEED);
++    const rng = createSeededRandom(CUSTOM_SEED);
+     const expectedQuote = SAMPLE_QUOTES[rng.nextInt(SAMPLE_QUOTES.length)];
+ 
+     const featured = screen.getByTestId('quote-featured');
+     expect(featured).toHaveTextContent(expectedQuote.text);
+     expect(featured).toHaveTextContent(expectedQuote.author);
+     expect(screen.getByTestId('quote-tags-featured')).toHaveTextContent(`Tags: ${expectedQuote.tags.join(', ')}`);
+   });
+ 
+   it('updates the featured quote when the seed changes', async () => {
+     const user = userEvent.setup();
+-    render(<Quote initialSeed={DEFAULT_SEED} />);
++    render(<Quote initialSeed={CUSTOM_SEED} />);
+ 
+-    // Verify initial quote is displayed
+     const initialFeatured = screen.getByTestId('quote-featured');
+     expect(initialFeatured).toBeInTheDocument();
+ 
+     const seedInput = screen.getByTestId('quote-seed-input');
+     await user.clear(seedInput);
+     await user.type(seedInput, 'new-seed-42');
+ 
+-    // Quote should still be displayed after seed change (verifies component doesn't crash)
+     await waitFor(() => {
+       const featured = screen.getByTestId('quote-featured');
+       expect(featured).toBeInTheDocument();
+-      // Just verify it contains some author text (proves it's rendering a quote)
+       expect(featured.textContent).toBeTruthy();
+     });
+   });
+ 
+   it('filters quotes by author and shows clear filters control', async () => {
+     const user = userEvent.setup();
+-    render(<Quote initialSeed={DEFAULT_SEED} />);
++    render(<Quote initialSeed={CUSTOM_SEED} />);
+ 
+     await user.selectOptions(screen.getByTestId('quote-filter-author'), 'Maya Angelou');
+ 
+     const resultsList = await screen.findByTestId('quote-filtered-list');
+     const items = within(resultsList).getAllByRole('listitem');
+     expect(items).toHaveLength(1);
+     expect(items[0]).toHaveTextContent('Still I rise.');
+     expect(items[0]).toHaveTextContent('Maya Angelou');
+ 
+-    // Wait for clear button to be in document
+     await waitFor(() => {
+       expect(screen.getByTestId('quote-clear-filters')).toBeInTheDocument();
+     });
+   });
+ 
+   it('filters quotes by tag and shows filter UI correctly', async () => {
+     const user = userEvent.setup();
+-    render(<Quote initialSeed={DEFAULT_SEED} />);
++    render(<Quote initialSeed={CUSTOM_SEED} />);
+ 
+     const tagSelect = screen.getByTestId('quote-filter-tag');
+-
+-    // Select a tag filter
+     await user.selectOptions(tagSelect, 'hope');
+ 
+-    // Clear button should be present when filter is active
+     await waitFor(() => {
+       expect(screen.getByTestId('quote-clear-filters')).toBeInTheDocument();
+     });
+ 
+-    // Some result display should be visible
+     await waitFor(() => {
+       const hasResultDisplay =
+         screen.queryByTestId('quote-filtered-list') !== null ||
+         screen.queryByTestId('quote-no-results') !== null ||
+         screen.queryByTestId('quote-featured') !== null;
+       expect(hasResultDisplay).toBe(true);
+     });
+   });
+ 
+   it('shows empty state when dataset is empty', () => {
+-    render(<Quote quotes={[]} initialSeed={DEFAULT_SEED} />);
++    render(<Quote quotes={[]} initialSeed={CUSTOM_SEED} />);
+ 
+     expect(screen.getByTestId('quote-empty-state')).toHaveTextContent('No quotes available');
+   });
+ 
+   it('clears all filters when clear button is clicked', async () => {
+     const user = userEvent.setup();
+-    render(<Quote initialSeed={DEFAULT_SEED} />);
++    render(<Quote initialSeed={CUSTOM_SEED} />);
+ 
+-    // Apply filters
+     await user.selectOptions(screen.getByTestId('quote-filter-author'), 'Maya Angelou');
+ 
+-    // Wait for clear button
+     await waitFor(() => {
+       expect(screen.getByTestId('quote-clear-filters')).toBeInTheDocument();
+     });
+ 
+-    // Clear filters
+     await user.click(screen.getByTestId('quote-clear-filters'));
+ 
+-    // Should show featured quote again
+     await waitFor(() => {
+       expect(screen.getByTestId('quote-featured')).toBeInTheDocument();
+     });
++
++    await waitFor(() => {
++      expect(screen.getByTestId('quote-filter-author')).toHaveFocus();
++    });
+   });
+ 
+   it('shows helpful message when no quotes match filters', async () => {
+     const user = userEvent.setup();
+-    render(<Quote initialSeed={DEFAULT_SEED} />);
++    render(<Quote initialSeed={CUSTOM_SEED} />);
+ 
+-    // Select author
+     await user.selectOptions(screen.getByTestId('quote-filter-author'), 'Maya Angelou');
+-    // Select incompatible tag
+     await user.selectOptions(screen.getByTestId('quote-filter-tag'), 'leadership');
+ 
+     await waitFor(() => {
+       expect(screen.getByTestId('quote-no-results')).toBeInTheDocument();
+     });
+ 
+     expect(screen.getByTestId('quote-no-results')).toHaveTextContent('No quotes match the current filters');
+     expect(screen.getByRole('button', { name: /clear all filters/i })).toBeInTheDocument();
+   });
+ 
+   it('provides keyboard shortcut hint for author filter', () => {
+-    render(<Quote initialSeed={DEFAULT_SEED} />);
++    render(<Quote initialSeed={CUSTOM_SEED} />);
+ 
+     expect(screen.getByText(/Ctrl\+\/ to focus/)).toBeInTheDocument();
+   });
+ 
+   it('displays available authors in dropdown', () => {
+-    render(<Quote initialSeed={DEFAULT_SEED} />);
++    render(<Quote initialSeed={CUSTOM_SEED} />);
+ 
+     const authorSelect = screen.getByTestId('quote-filter-author');
+     const options = within(authorSelect).getAllByRole('option');
+ 
+     expect(options[0]).toHaveTextContent('All authors');
+     expect(options.length).toBeGreaterThan(1);
+     expect(options.some((opt) => opt.textContent === 'Maya Angelou')).toBe(true);
+   });
+ 
+   it('displays available tags in dropdown', () => {
+-    render(<Quote initialSeed={DEFAULT_SEED} />);
++    render(<Quote initialSeed={CUSTOM_SEED} />);
+ 
+     const tagSelect = screen.getByTestId('quote-filter-tag');
+     const options = within(tagSelect).getAllByRole('option');
+ 
+     expect(options[0]).toHaveTextContent('All tags');
+     expect(options.length).toBeGreaterThan(1);
+     expect(options.some((opt) => opt.textContent === 'resilience')).toBe(true);
+   });
++
++  it('syncs filters and seed with the URL query string', async () => {
++    const user = userEvent.setup();
++    render(<Quote />);
++
++    const authorSelect = screen.getByTestId('quote-filter-author');
++    const tagSelect = screen.getByTestId('quote-filter-tag');
++    const seedInput = screen.getByTestId('quote-seed-input');
++
++    expect(window.location.search).toBe('');
++
++    await user.selectOptions(authorSelect, 'Maya Angelou');
++    await user.selectOptions(tagSelect, 'hope');
++
++    await waitFor(() => {
++      const params = new URLSearchParams(window.location.search);
++      expect(params.get('author')).toBe('Maya Angelou');
++      expect(params.get('tag')).toBe('hope');
++    });
++
++    await user.clear(seedInput);
++    await user.type(seedInput, 'custom-seed');
++
++    await waitFor(() => {
++      const params = new URLSearchParams(window.location.search);
++      expect(params.get('seed')).toBe('custom-seed');
++    });
++
++    await user.click(screen.getByTestId('quote-clear-filters'));
++
++    await waitFor(() => {
++      const params = new URLSearchParams(window.location.search);
++      expect(params.has('author')).toBe(false);
++      expect(params.has('tag')).toBe(false);
++      expect(params.get('seed')).toBe('custom-seed');
++    });
++
++    await user.clear(seedInput);
++
++    await waitFor(() => {
++      const params = new URLSearchParams(window.location.search);
++      expect(params.has('seed')).toBe(false);
++      expect(seedInput).toHaveValue('');
++    });
++  });
++
++  it('hydrates filters and seed from the URL when present', () => {
++    window.history.replaceState({}, '', '/?author=Maya%20Angelou&tag=hope&seed=demo-seed');
++
++    render(<Quote />);
++
++    expect(screen.getByTestId('quote-filter-author')).toHaveValue('Maya Angelou');
++    expect(screen.getByTestId('quote-filter-tag')).toHaveValue('hope');
++    expect(screen.getByTestId('quote-seed-input')).toHaveValue('demo-seed');
++  });
+ });
+diff --git a/specs/slice-c-quote-search/tasks.md b/specs/slice-c-quote-search/tasks.md
+index 72785d322e68ffa1e9eca739a5f2d2b85502dc2b..c5c0f777146cf97a20bfb570a4bf445e1d4ee6cf 100644
+--- a/specs/slice-c-quote-search/tasks.md
++++ b/specs/slice-c-quote-search/tasks.md
+@@ -1,20 +1,20 @@
+ # Slice C — Tasks (Quote: Filters + Seeded Random)
+ 
+-Status: Planned (Day 1)
++Status: Completed
+ 
+ ## Build
+-- [ ] T013 Implement case‑insensitive Author filter.
+-- [ ] T014 Implement case‑insensitive Tag filter.
+-- [ ] T015 Deterministic seeded random when no filters; normalize seed to default when empty.
+-- [ ] T016 Sync author/tag/seed with URL; add clear filters action and empty/no‑match messages.
++- [x] T013 Implement case‑insensitive Author filter.
++- [x] T014 Implement case‑insensitive Tag filter.
++- [x] T015 Deterministic seeded random when no filters; normalize seed to default when empty.
++- [x] T016 Sync author/tag/seed with URL; add clear filters action and empty/no‑match messages.
+ 
+ ## Tests
+-- [ ] T017 Unit tests: author/tag filters, seeded random determinism, empty dataset UX.
++- [x] T017 Unit tests: author/tag filters, seeded random determinism, empty dataset UX.
+ 
+ ## CI & Artifacts
+-- [ ] T018 Playwright `@smoke` (author search equals fixture; seeded path reproducible) + axe a11y; export coverage and Playwright report to `review-artifacts/` and update README review box.
++- [x] T018 Playwright `@smoke` (author search equals fixture; seeded path reproducible) + axe a11y; export coverage and Playwright report to `review-artifacts/` and update README review box.
+ 
+ ## Documentation
+ 
+ 
+ 

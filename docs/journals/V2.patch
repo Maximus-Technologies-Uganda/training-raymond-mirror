@@ -1,0 +1,670 @@
+diff --git a/README.md b/README.md
+index 9d518f4b05110ce53d96e1d8bf79777da90a89e4..7ecd0826a57069161f5294156f91c34cc80e9bb0 100644
+--- a/README.md
++++ b/README.md
+@@ -360,50 +360,51 @@ apps/ui/
+ 
+ ## 👨‍🏫 For Mentors & Reviewers
+ 
+ ### 📦 Download Review Package
+ Get a complete, self-contained package with all work and artifacts:
+ 
+ - **[Download Latest Release](https://github.com/Maximus-Technologies-Uganda/training-raymond/releases/latest)** - Ready-to-review ZIP package
+ - **[Review Packet](docs/review-packet-week1.md)** - Detailed assessment and rubric
+ - **[Public Mirror](https://github.com/Maximus-Technologies-Uganda/training-raymond-mirror)** - Live public repository
+ 
+ ### 📋 How to Review Me
+ 
+ **Latest Release:** [v0.3.0 — Week 3: UI + Reviewability](https://github.com/Maximus-Technologies-Uganda/training-raymond/releases/tag/v0.3.0-week3)
+ 
+ **GitHub Pages:** [Coverage Reports & Demo](https://maximus-technologies-uganda.github.io/training-raymond/review-artifacts/index.html) _(requires repo access)_
+ 
+ **Review Documents:**
+ - [Week 3 Review Packet](docs/review.md) - UI implementation summary
+ - [Week 1 Review Packet](docs/review-packet-week1.md) - Initial CLI assessment
+ 
+ ### Quick Review Process
+ 1. Download the review package from [latest release](https://github.com/Maximus-Technologies-Uganda/training-raymond/releases/latest)
+ 2. Extract and review artifacts:
+    - Coverage reports (CLI + UI)
+    - Playwright test results
++   - Quote explorer slice: seeded random + author/tag filters (`@smoke`)
+    - Source code and tests
+ 3. Verify tests pass:
+    ```bash
+    npm test                                      # CLI tests
+    npm --prefix apps/ui run test:coverage        # UI unit tests
+    npm --prefix apps/ui run test:e2e -- --project=chromium --grep @smoke  # E2E tests
+    ```
+ 4. Run the UIs locally:
+    ```bash
+    cd apps/ui
+    npm install
+    npm run dev  # Opens http://localhost:5173
+    ```
+ 5. Review the documentation for detailed assessment
+ 
+ ### Package Contents
+ - ✅ Complete source code (6 CLIs + 3 React UIs)
+ - ✅ Comprehensive test suites (CLI + UI unit tests + E2E)
+ - ✅ Coverage reports (CLI & UI)
+ - ✅ Playwright test results
+ - ✅ Documentation and review packets
+ - ✅ GitHub Actions workflows
+ - ✅ All configuration files
+ 
+ ### Continuous Updates
+diff --git a/apps/ui/playwright/tests/quote.smoke.spec.ts b/apps/ui/playwright/tests/quote.smoke.spec.ts
+index 633007521b9874938bd1588ebb0f299b8e02cd83..7f506f6fb00e0a222b69d3b04ee95145fdfd809f 100644
+--- a/apps/ui/playwright/tests/quote.smoke.spec.ts
++++ b/apps/ui/playwright/tests/quote.smoke.spec.ts
+@@ -18,120 +18,122 @@ test.describe('Quote UI smoke tests', () => {
+     await expect(blockquote).toBeVisible();
+     const quoteText = await blockquote.textContent();
+     expect(quoteText).toBeTruthy(); // Ensure some quote text is present
+ 
+     const seedInput = page.getByTestId('quote-seed-input');
+     await seedInput.fill('seed-a');
+ 
+     // Quote should change deterministically
+     const quoteBefore = await featured.textContent();
+ 
+     await seedInput.fill('seed-b');
+     const quoteAfter = await featured.textContent();
+ 
+     expect(quoteBefore).not.toBe(quoteAfter);
+ 
+     // Setting seed back should restore the quote
+     await seedInput.fill('seed-a');
+     const quoteRestored = await featured.textContent();
+     expect(quoteRestored).toBe(quoteBefore);
+   });
+ 
+   test('filters by author and tag with clear action @smoke', async ({ page }) => {
+     await page.goto('/');
+     await page.getByTestId('nav-quote').click();
+ 
+-    // Verify dropdown options are populated
+-    const authorSelect = page.getByTestId('quote-filter-author');
+-    const authorOptions = await authorSelect.locator('option').allTextContents();
+-    expect(authorOptions).toContain('All authors');
+-    expect(authorOptions.length).toBeGreaterThan(1);
++    const authorInput = page.getByTestId('quote-filter-author');
++    await expect(authorInput).toHaveAttribute('list', 'quote-author-options');
+ 
+-    // Filter by author
+-    await authorSelect.selectOption('Maya Angelou');
++    const authorOptions = await page.locator('#quote-author-options option').allTextContents();
++    expect(authorOptions.length).toBeGreaterThan(0);
++    expect(authorOptions).toContain('Maya Angelou');
++
++    // Filter by author (case-insensitive)
++    await authorInput.fill('maya angelou');
+ 
+     const authorResults = page.getByTestId('quote-filtered-list');
+     await expect(authorResults).toBeVisible();
+     await expect(authorResults).toContainText('Still I rise.');
+     await expect(authorResults).toContainText('Maya Angelou');
+ 
+     // Clear filters button should be visible
+     const clearButton = page.getByTestId('quote-clear-filters');
+     await expect(clearButton).toBeVisible();
+     await clearButton.click();
+ 
+     // Should return to featured quote view
+-    await expect(page.getByTestId('quote-featured')).toBeVisible();
++    const featured = page.getByTestId('quote-featured');
++    await expect(featured).toBeVisible();
++    await expect(authorInput).toHaveValue('');
+ 
+     // Filter by tag
+     const tagSelect = page.getByTestId('quote-filter-tag');
+     const tagOptions = await tagSelect.locator('option').allTextContents();
+     expect(tagOptions).toContain('All tags');
+     expect(tagOptions.length).toBeGreaterThan(1);
+ 
+     await tagSelect.selectOption('perseverance');
+     const tagResults = page.getByTestId('quote-filtered-list');
+     await expect(tagResults).toBeVisible();
+ 
+     // Should show multiple results
+     const listItems = tagResults.locator('li');
+     const count = await listItems.count();
+     expect(count).toBeGreaterThanOrEqual(2);
+   });
+ 
+   test('displays all available authors in dropdown @smoke', async ({ page }) => {
+     await page.goto('/');
+     await page.getByTestId('nav-quote').click();
+ 
+-    const authorSelect = page.getByTestId('quote-filter-author');
+-    const options = await authorSelect.locator('option').allTextContents();
++    const authorOptions = await page.locator('#quote-author-options option').allTextContents();
+ 
+-    expect(options).toContain('All authors');
+-    expect(options).toContain('Maya Angelou');
+-    expect(options).toContain('Robert Frost');
+-    expect(options.length).toBeGreaterThan(3);
++    expect(authorOptions).toContain('Maya Angelou');
++    expect(authorOptions).toContain('Robert Frost');
++    expect(authorOptions.length).toBeGreaterThan(2);
+   });
+ 
+   test('shows helpful empty state when no matches @smoke', async ({ page }) => {
+     await page.goto('/');
+     await page.getByTestId('nav-quote').click();
+ 
+-    // Select author
+-    await page.getByTestId('quote-filter-author').selectOption('Maya Angelou');
++    const authorInput = page.getByTestId('quote-filter-author');
++    await authorInput.fill('Maya Angelou');
+ 
+     // Select incompatible tag
+     await page.getByTestId('quote-filter-tag').selectOption('leadership');
+ 
+     // Should show no results message
+     const emptyState = page.getByTestId('quote-no-results');
+     await expect(emptyState).toBeVisible();
+     await expect(emptyState).toContainText('No quotes match the current filters');
+ 
+     // Should have clear action button
+     const clearAction = emptyState.locator('button');
+     await expect(clearAction).toBeVisible();
+     await clearAction.click();
+ 
+     // Should return to featured view
+     await expect(page.getByTestId('quote-featured')).toBeVisible();
+   });
+ 
+   test('maintains accessibility attributes @smoke', async ({ page }) => {
+     await page.goto('/');
+     await page.getByTestId('nav-quote').click();
+ 
+     // Check ARIA labels
+-    const authorSelect = page.getByTestId('quote-filter-author');
+-    await expect(authorSelect).toHaveAttribute('aria-describedby', 'quote-author-help');
++    const authorInput = page.getByTestId('quote-filter-author');
++    await expect(authorInput).toHaveAttribute('aria-describedby', 'quote-author-help');
++    await expect(authorInput).toHaveAttribute('list', 'quote-author-options');
+ 
+     const tagSelect = page.getByTestId('quote-filter-tag');
+     await expect(tagSelect).toHaveAttribute('aria-describedby', 'quote-tag-help');
+ 
+     const seedInput = page.getByTestId('quote-seed-input');
+     await expect(seedInput).toHaveAttribute('aria-describedby', 'quote-seed-help');
+ 
+     // Check help text is present
+     await expect(page.locator('#quote-author-help')).toBeVisible();
+     await expect(page.locator('#quote-tag-help')).toBeVisible();
+     await expect(page.locator('#quote-seed-help')).toBeVisible();
+   });
+ });
+diff --git a/apps/ui/src/components/quote/QuoteFilters.tsx b/apps/ui/src/components/quote/QuoteFilters.tsx
+index a5a257bda2d83f3eefc5835e51235bc26186972f..cae416264851101036df8b266accc3d857f732e1 100644
+--- a/apps/ui/src/components/quote/QuoteFilters.tsx
++++ b/apps/ui/src/components/quote/QuoteFilters.tsx
+@@ -1,133 +1,148 @@
+ import { type ChangeEvent, useEffect, useRef } from 'react';
+ import type { QuoteOption } from '../../lib/quote/view';
+ 
+ export interface QuoteFiltersProps {
+   authorOptions: readonly QuoteOption[];
+   tagOptions: readonly QuoteOption[];
+   author: string | null;
+   tag: string | null;
+   seed: string;
+   hasActiveFilters: boolean;
+   onAuthorChange: (value: string | null) => void;
+   onTagChange: (value: string | null) => void;
+   onSeedChange: (value: string) => void;
+   onClearFilters: () => void;
+ }
+ 
++function isSuggestionOption(option: QuoteOption): option is QuoteOption & { value: string } {
++  return typeof option.value === 'string' && option.value.trim().length > 0;
++}
++
+ function handleSelectChange(event: ChangeEvent<HTMLSelectElement>, onChange: (value: string | null) => void): void {
+   const { value } = event.target;
+-  onChange(value.length > 0 ? value : null);
++  const normalized = value.trim();
++  onChange(normalized.length > 0 ? normalized : null);
+ }
+ 
+ export function QuoteFilters({
+   authorOptions,
+   tagOptions,
+   author,
+   tag,
+   seed,
+   hasActiveFilters,
+   onAuthorChange,
+   onTagChange,
+   onSeedChange,
+   onClearFilters,
+ }: QuoteFiltersProps): JSX.Element {
+-  const authorSelectRef = useRef<HTMLSelectElement>(null);
++  const authorInputRef = useRef<HTMLInputElement>(null);
+ 
+   // Keyboard shortcut: Ctrl+/ to focus author filter
+   useEffect(() => {
+     const handleKeyPress = (e: KeyboardEvent) => {
+       if (e.key === '/' && e.ctrlKey) {
+         e.preventDefault();
+-        authorSelectRef.current?.focus();
++        authorInputRef.current?.focus();
+       }
+     };
+     window.addEventListener('keydown', handleKeyPress);
+     return () => window.removeEventListener('keydown', handleKeyPress);
+   }, []);
+ 
++  const handleClearClick = (): void => {
++    onClearFilters();
++    authorInputRef.current?.focus();
++  };
++
+   return (
+     <section className="quote-filters" aria-label="Quote filters and controls">
+       <div className="quote-filters__group">
+-        <label className="quote-filters__label" htmlFor="quote-author-select">
++        <label className="quote-filters__label" htmlFor="quote-author-input">
+           Author
+         </label>
+-        <select
+-          ref={authorSelectRef}
+-          id="quote-author-select"
+-          className="quote-filters__select"
++        <input
++          ref={authorInputRef}
++          id="quote-author-input"
++          className="quote-filters__input"
++          type="text"
+           value={author ?? ''}
+-          onChange={(event) => handleSelectChange(event, onAuthorChange)}
++          onChange={(event) => onAuthorChange(event.target.value.length > 0 ? event.target.value : null)}
+           data-testid="quote-filter-author"
+           aria-describedby="quote-author-help"
+-        >
+-          {authorOptions.map((option) => (
+-            <option key={option.label} value={option.value ?? ''}>
++          list="quote-author-options"
++          placeholder="Type an author name"
++          autoComplete="off"
++        />
++        <datalist id="quote-author-options" data-testid="quote-author-options">
++          {authorOptions.filter(isSuggestionOption).map((option) => (
++            <option key={option.label} value={option.value}>
+               {option.label}
+             </option>
+           ))}
+-        </select>
++        </datalist>
+         <p id="quote-author-help" className="quote-filters__help">
+-          Filter quotes by author. Press Ctrl+/ to focus.
++          Filter quotes by author (case-insensitive). Press Ctrl+/ to focus.
+         </p>
+       </div>
+ 
+       <div className="quote-filters__group">
+         <label className="quote-filters__label" htmlFor="quote-tag-select">
+           Tag
+         </label>
+         <select
+           id="quote-tag-select"
+           className="quote-filters__select"
+           value={tag ?? ''}
+           onChange={(event) => handleSelectChange(event, onTagChange)}
+           data-testid="quote-filter-tag"
+           aria-describedby="quote-tag-help"
+         >
+           {tagOptions.map((option) => (
+             <option key={option.label} value={option.value ?? ''}>
+               {option.label}
+             </option>
+           ))}
+         </select>
+         <p id="quote-tag-help" className="quote-filters__help">
+           Filter quotes by tag category.
+         </p>
+       </div>
+ 
+       <div className="quote-filters__group">
+         <label className="quote-filters__label" htmlFor="quote-seed-input">
+           Random seed
+         </label>
+         <input
+           id="quote-seed-input"
+           className="quote-filters__input"
+           type="text"
+           value={seed}
+           onChange={(event) => onSeedChange(event.target.value)}
+           data-testid="quote-seed-input"
+           placeholder="Enter seed (e.g. 42)"
+           aria-describedby="quote-seed-help"
+         />
+         <p id="quote-seed-help" className="quote-filters__help">
+           Using the same seed will always surface the same random quote.
+         </p>
+       </div>
+ 
+       <div className="quote-filters__actions">
+         {hasActiveFilters && (
+           <button
+             type="button"
+             className="quote-filters__clear"
+-            onClick={onClearFilters}
++            onClick={handleClearClick}
+             data-testid="quote-clear-filters"
+             aria-label="Clear all active filters"
+           >
+             Clear filters
+           </button>
+         )}
+       </div>
+     </section>
+   );
+ }
+ 
+ export default QuoteFilters;
+diff --git a/apps/ui/src/pages/Quote.tsx b/apps/ui/src/pages/Quote.tsx
+index cd3c8619eb6d1c72f57763c28c145a3960f3a8ca..93196701e0fb95d935923c45ec430f919f14dd87 100644
+--- a/apps/ui/src/pages/Quote.tsx
++++ b/apps/ui/src/pages/Quote.tsx
+@@ -2,86 +2,100 @@ import { useMemo, useState, useCallback, useEffect } from 'react';
+ import type { QuoteRecord } from '@cli/shared/quote';
+ import QuoteFilters from '../components/quote/QuoteFilters';
+ import QuoteResult from '../components/quote/QuoteResult';
+ import { QuoteErrorBoundary } from '../components/quote/ErrorBoundary';
+ import { createSeededRandom } from '../lib/random/seeded';
+ import {
+   DEFAULT_QUOTE_SEED,
+   applyFilters,
+   buildAuthorOptions,
+   buildTagOptions,
+   hasActiveFilters,
+   type QuoteFiltersState,
+ } from '../lib/quote/view';
+ import { SAMPLE_QUOTES } from '../lib/quote/sampleData';
+ 
+ export interface QuoteProps {
+   quotes?: readonly QuoteRecord[];
+   initialSeed?: string;
+ }
+ 
+ const DEFAULT_FILTERS: QuoteFiltersState = {
+   author: null,
+   tag: null,
+ };
+ 
++function normalizeFilterValue(value: string | null | undefined): string | null {
++  if (value === null || value === undefined) {
++    return null;
++  }
++  const trimmed = value.trim();
++  return trimmed.length === 0 ? null : trimmed;
++}
++
+ function normalizeSeed(seed: string | undefined): string {
+-  if (!seed) {
++  if (seed === undefined || seed === null) {
+     return DEFAULT_QUOTE_SEED;
+   }
+   const trimmed = seed.trim();
+   return trimmed.length === 0 ? DEFAULT_QUOTE_SEED : trimmed;
+ }
+ 
+ function parseUrlParams(): { author: string | null; tag: string | null; seed: string } {
+   if (typeof window === 'undefined') {
+     return { author: null, tag: null, seed: DEFAULT_QUOTE_SEED };
+   }
+ 
+   const params = new URLSearchParams(window.location.search);
+   return {
+-    author: params.get('author') || null,
+-    tag: params.get('tag') || null,
+-    seed: params.get('seed') || DEFAULT_QUOTE_SEED,
++    author: normalizeFilterValue(params.get('author')),
++    tag: normalizeFilterValue(params.get('tag')),
++    seed: normalizeSeed(params.get('seed') ?? undefined),
+   };
+ }
+ 
+ function QuoteContent({ quotes, initialSeed }: QuoteProps): JSX.Element {
+   const urlParams = parseUrlParams();
+   const dataset = useMemo<readonly QuoteRecord[]>(() => (quotes ? [...quotes] : SAMPLE_QUOTES), [quotes]);
+ 
+   const [filters, setFilters] = useState<QuoteFiltersState>({
+     author: urlParams.author,
+     tag: urlParams.tag,
+   });
+-  const [seed, setSeed] = useState<string>(initialSeed ?? urlParams.seed);
++  const [seed, setSeed] = useState<string>(normalizeSeed(initialSeed ?? urlParams.seed));
+ 
+   // Sync filters to URL for shareable links
+   useEffect(() => {
++    if (typeof window === 'undefined') {
++      return;
++    }
++
+     const params = new URLSearchParams();
+-    if (filters.author) params.set('author', filters.author);
+-    if (filters.tag) params.set('tag', filters.tag);
++    const author = normalizeFilterValue(filters.author);
++    const tag = normalizeFilterValue(filters.tag);
++    if (author) params.set('author', author);
++    if (tag) params.set('tag', tag);
+     if (seed !== DEFAULT_QUOTE_SEED) params.set('seed', seed);
+ 
+     const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
+     window.history.replaceState({}, '', newUrl);
+   }, [filters, seed]);
+ 
+   const authorOptions = useMemo(() => buildAuthorOptions(dataset), [dataset]);
+   const tagOptions = useMemo(() => buildTagOptions(dataset), [dataset]);
+   const filteredQuotes = useMemo(() => applyFilters(dataset, filters), [dataset, filters]);
+   const filtersActive = hasActiveFilters(filters);
+ 
+   const selectedQuote = useMemo(() => {
+     if (filtersActive) {
+       return filteredQuotes.length > 0 ? filteredQuotes[0] : null;
+     }
+     if (filteredQuotes.length === 0) {
+       return null;
+     }
+     const rng = createSeededRandom(normalizeSeed(seed));
+     const index = rng.nextInt(filteredQuotes.length);
+     return filteredQuotes[index];
+   }, [filteredQuotes, filtersActive, seed]);
+ 
+   const handleAuthorChange = useCallback((value: string | null) => {
+     setFilters((current) => ({ ...current, author: value }));
+diff --git a/apps/ui/src/tests/quote.test.tsx b/apps/ui/src/tests/quote.test.tsx
+index 225894f04c7cdede7750fdc2d2c97c118b3983b3..d39137325011d37d0fd591e00116ceefa7ca23e5 100644
+--- a/apps/ui/src/tests/quote.test.tsx
++++ b/apps/ui/src/tests/quote.test.tsx
+@@ -22,135 +22,143 @@ describe('Quote page', () => {
+   it('updates the featured quote when the seed changes', async () => {
+     const user = userEvent.setup();
+     render(<Quote initialSeed={DEFAULT_SEED} />);
+ 
+     // Verify initial quote is displayed
+     const initialFeatured = screen.getByTestId('quote-featured');
+     expect(initialFeatured).toBeInTheDocument();
+ 
+     const seedInput = screen.getByTestId('quote-seed-input');
+     await user.clear(seedInput);
+     await user.type(seedInput, 'new-seed-42');
+ 
+     // Quote should still be displayed after seed change (verifies component doesn't crash)
+     await waitFor(() => {
+       const featured = screen.getByTestId('quote-featured');
+       expect(featured).toBeInTheDocument();
+       // Just verify it contains some author text (proves it's rendering a quote)
+       expect(featured.textContent).toBeTruthy();
+     });
+   });
+ 
+   it('filters quotes by author and shows clear filters control', async () => {
+     const user = userEvent.setup();
+     render(<Quote initialSeed={DEFAULT_SEED} />);
+ 
+-    await user.selectOptions(screen.getByTestId('quote-filter-author'), 'Maya Angelou');
++    const authorInput = screen.getByTestId('quote-filter-author');
++    await user.clear(authorInput);
++    await user.type(authorInput, 'maya angelou');
+ 
+     const resultsList = await screen.findByTestId('quote-filtered-list');
+     const items = within(resultsList).getAllByRole('listitem');
+     expect(items).toHaveLength(1);
+     expect(items[0]).toHaveTextContent('Still I rise.');
+     expect(items[0]).toHaveTextContent('Maya Angelou');
+ 
+     // Wait for clear button to be in document
+     await waitFor(() => {
+       expect(screen.getByTestId('quote-clear-filters')).toBeInTheDocument();
+     });
+   });
+ 
+   it('filters quotes by tag and shows filter UI correctly', async () => {
+     const user = userEvent.setup();
+     render(<Quote initialSeed={DEFAULT_SEED} />);
+ 
+     const tagSelect = screen.getByTestId('quote-filter-tag');
+ 
+     // Select a tag filter
+     await user.selectOptions(tagSelect, 'hope');
+ 
+     // Clear button should be present when filter is active
+     await waitFor(() => {
+       expect(screen.getByTestId('quote-clear-filters')).toBeInTheDocument();
+     });
+ 
+     // Some result display should be visible
+     await waitFor(() => {
+       const hasResultDisplay =
+         screen.queryByTestId('quote-filtered-list') !== null ||
+         screen.queryByTestId('quote-no-results') !== null ||
+         screen.queryByTestId('quote-featured') !== null;
+       expect(hasResultDisplay).toBe(true);
+     });
+   });
+ 
+   it('shows empty state when dataset is empty', () => {
+     render(<Quote quotes={[]} initialSeed={DEFAULT_SEED} />);
+ 
+     expect(screen.getByTestId('quote-empty-state')).toHaveTextContent('No quotes available');
+   });
+ 
+   it('clears all filters when clear button is clicked', async () => {
+     const user = userEvent.setup();
+     render(<Quote initialSeed={DEFAULT_SEED} />);
+ 
+     // Apply filters
+-    await user.selectOptions(screen.getByTestId('quote-filter-author'), 'Maya Angelou');
++    const authorInput = screen.getByTestId('quote-filter-author');
++    await user.clear(authorInput);
++    await user.type(authorInput, 'Maya Angelou');
+ 
+     // Wait for clear button
+     await waitFor(() => {
+       expect(screen.getByTestId('quote-clear-filters')).toBeInTheDocument();
+     });
+ 
+     // Clear filters
+     await user.click(screen.getByTestId('quote-clear-filters'));
+ 
+     // Should show featured quote again
+     await waitFor(() => {
+       expect(screen.getByTestId('quote-featured')).toBeInTheDocument();
++      expect(screen.getByTestId('quote-filter-author')).toHaveValue('');
++      expect(screen.getByTestId('quote-filter-author')).toHaveFocus();
+     });
+   });
+ 
+   it('shows helpful message when no quotes match filters', async () => {
+     const user = userEvent.setup();
+     render(<Quote initialSeed={DEFAULT_SEED} />);
+ 
+     // Select author
+-    await user.selectOptions(screen.getByTestId('quote-filter-author'), 'Maya Angelou');
++    const authorInput = screen.getByTestId('quote-filter-author');
++    await user.clear(authorInput);
++    await user.type(authorInput, 'Maya Angelou');
+     // Select incompatible tag
+     await user.selectOptions(screen.getByTestId('quote-filter-tag'), 'leadership');
+ 
+     await waitFor(() => {
+       expect(screen.getByTestId('quote-no-results')).toBeInTheDocument();
+     });
+ 
+     expect(screen.getByTestId('quote-no-results')).toHaveTextContent('No quotes match the current filters');
+     expect(screen.getByRole('button', { name: /clear all filters/i })).toBeInTheDocument();
+   });
+ 
+   it('provides keyboard shortcut hint for author filter', () => {
+     render(<Quote initialSeed={DEFAULT_SEED} />);
+ 
+     expect(screen.getByText(/Ctrl\+\/ to focus/)).toBeInTheDocument();
+   });
+ 
+-  it('displays available authors in dropdown', () => {
++  it('surfaces author suggestions via datalist', () => {
+     render(<Quote initialSeed={DEFAULT_SEED} />);
+ 
+-    const authorSelect = screen.getByTestId('quote-filter-author');
+-    const options = within(authorSelect).getAllByRole('option');
++    const datalist = screen.getByTestId('quote-author-options');
++    const optionValues = Array.from(datalist.querySelectorAll('option')).map((option) => option.getAttribute('value'));
+ 
+-    expect(options[0]).toHaveTextContent('All authors');
+-    expect(options.length).toBeGreaterThan(1);
+-    expect(options.some((opt) => opt.textContent === 'Maya Angelou')).toBe(true);
++    expect(optionValues.length).toBeGreaterThan(0);
++    expect(optionValues).toContain('Maya Angelou');
++    expect(optionValues).toContain('Robert Frost');
+   });
+ 
+   it('displays available tags in dropdown', () => {
+     render(<Quote initialSeed={DEFAULT_SEED} />);
+ 
+     const tagSelect = screen.getByTestId('quote-filter-tag');
+     const options = within(tagSelect).getAllByRole('option');
+ 
+     expect(options[0]).toHaveTextContent('All tags');
+     expect(options.length).toBeGreaterThan(1);
+     expect(options.some((opt) => opt.textContent === 'resilience')).toBe(true);
+   });
+ });
+diff --git a/specs/slice-c-quote-search/tasks.md b/specs/slice-c-quote-search/tasks.md
+index 72785d322e68ffa1e9eca739a5f2d2b85502dc2b..dd5b40b89963257fa13903ab10f19ab12fd3f974 100644
+--- a/specs/slice-c-quote-search/tasks.md
++++ b/specs/slice-c-quote-search/tasks.md
+@@ -1,20 +1,20 @@
+ # Slice C — Tasks (Quote: Filters + Seeded Random)
+ 
+-Status: Planned (Day 1)
++Status: In Review (Day 4)
+ 
+ ## Build
+-- [ ] T013 Implement case‑insensitive Author filter.
+-- [ ] T014 Implement case‑insensitive Tag filter.
+-- [ ] T015 Deterministic seeded random when no filters; normalize seed to default when empty.
+-- [ ] T016 Sync author/tag/seed with URL; add clear filters action and empty/no‑match messages.
++- [x] T013 Implement case‑insensitive Author filter.
++- [x] T014 Implement case‑insensitive Tag filter.
++- [x] T015 Deterministic seeded random when no filters; normalize seed to default when empty.
++- [x] T016 Sync author/tag/seed with URL; add clear filters action and empty/no‑match messages.
+ 
+ ## Tests
+-- [ ] T017 Unit tests: author/tag filters, seeded random determinism, empty dataset UX.
++- [x] T017 Unit tests: author/tag filters, seeded random determinism, empty dataset UX.
+ 
+ ## CI & Artifacts
+-- [ ] T018 Playwright `@smoke` (author search equals fixture; seeded path reproducible) + axe a11y; export coverage and Playwright report to `review-artifacts/` and update README review box.
++- [x] T018 Playwright `@smoke` (author search equals fixture; seeded path reproducible) + axe a11y; export coverage and Playwright report to `review-artifacts/` and update README review box.
+ 
+ ## Documentation
+ 
+ 
+ 

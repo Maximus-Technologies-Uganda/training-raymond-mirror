@@ -1,0 +1,10 @@
+date,category,amount,currency
+2025-01-05,Groceries,54.2,USD
+2025-01-15,Transport,18.3,USD
+2025-02-01,Groceries,42.1,USD
+2025-02-07,Utilities,90,USD
+2025-03-12,Entertainment,27.5,USD
+2025-03-14,Café,12.345,USD
+2025-02-15,Travel,10.005,USD
+invalid-date,Groceries,10,USD
+2025-02-22,,11.25,USD

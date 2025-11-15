@@ -29,13 +29,14 @@ test.describe('Quote UI smoke tests', () => {
     test('filters by author and tag with clear action @smoke', async ({ page }) => {
         await page.goto('/');
         await page.getByTestId('nav-quote').click();
-        // Verify dropdown options are populated
-        const authorSelect = page.getByTestId('quote-filter-author');
-        const authorOptions = await authorSelect.locator('option').allTextContents();
-        expect(authorOptions).toContain('All authors');
-        expect(authorOptions.length).toBeGreaterThan(1);
-        // Filter by author
-        await authorSelect.selectOption('Maya Angelou');
+        // Verify datalist options are populated
+        const authorInput = page.getByTestId('quote-filter-author');
+        await expect(authorInput).toHaveAttribute('list', 'quote-author-options');
+        const authorOptions = await page.locator('#quote-author-options option').allTextContents();
+        expect(authorOptions.length).toBeGreaterThan(0);
+        expect(authorOptions).toContain('Maya Angelou');
+        // Filter by author (case-insensitive)
+        await authorInput.fill('maya angelou');
         const authorResults = page.getByTestId('quote-filtered-list');
         await expect(authorResults).toBeVisible();
         await expect(authorResults).toContainText('Still I rise.');
@@ -44,8 +45,10 @@ test.describe('Quote UI smoke tests', () => {
         const clearButton = page.getByTestId('quote-clear-filters');
         await expect(clearButton).toBeVisible();
         await clearButton.click();
-        // Should return to featured quote view
-        await expect(page.getByTestId('quote-featured')).toBeVisible();
+        // Should return to featured quote view and focus author input
+        const featured = page.getByTestId('quote-featured');
+        await expect(featured).toBeVisible();
+        await expect(authorInput).toHaveValue('');
         // Filter by tag
         const tagSelect = page.getByTestId('quote-filter-tag');
         const tagOptions = await tagSelect.locator('option').allTextContents();
@@ -59,21 +62,20 @@ test.describe('Quote UI smoke tests', () => {
         const count = await listItems.count();
         expect(count).toBeGreaterThanOrEqual(2);
     });
-    test('displays all available authors in dropdown @smoke', async ({ page }) => {
+    test('displays all available authors in datalist @smoke', async ({ page }) => {
         await page.goto('/');
         await page.getByTestId('nav-quote').click();
-        const authorSelect = page.getByTestId('quote-filter-author');
-        const options = await authorSelect.locator('option').allTextContents();
-        expect(options).toContain('All authors');
-        expect(options).toContain('Maya Angelou');
-        expect(options).toContain('Robert Frost');
-        expect(options.length).toBeGreaterThan(3);
+        const authorOptions = await page.locator('#quote-author-options option').allTextContents();
+        expect(authorOptions).toContain('Maya Angelou');
+        expect(authorOptions).toContain('Robert Frost');
+        expect(authorOptions.length).toBeGreaterThan(2);
     });
     test('shows helpful empty state when no matches @smoke', async ({ page }) => {
         await page.goto('/');
         await page.getByTestId('nav-quote').click();
-        // Select author
-        await page.getByTestId('quote-filter-author').selectOption('Maya Angelou');
+        // Filter by author
+        const authorInput = page.getByTestId('quote-filter-author');
+        await authorInput.fill('Maya Angelou');
         // Select incompatible tag
         await page.getByTestId('quote-filter-tag').selectOption('leadership');
         // Should show no results message
@@ -91,8 +93,9 @@ test.describe('Quote UI smoke tests', () => {
         await page.goto('/');
         await page.getByTestId('nav-quote').click();
         // Check ARIA labels
-        const authorSelect = page.getByTestId('quote-filter-author');
-        await expect(authorSelect).toHaveAttribute('aria-describedby', 'quote-author-help');
+        const authorInput = page.getByTestId('quote-filter-author');
+        await expect(authorInput).toHaveAttribute('aria-describedby', 'quote-author-help');
+        await expect(authorInput).toHaveAttribute('list', 'quote-author-options');
         const tagSelect = page.getByTestId('quote-filter-tag');
         await expect(tagSelect).toHaveAttribute('aria-describedby', 'quote-tag-help');
         const seedInput = page.getByTestId('quote-seed-input');

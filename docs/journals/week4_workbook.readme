@@ -1,0 +1,283 @@
+## Maximus Technologies — Week 4 Workbook (Raymond)
+
+**Cohort**: AI powered Developer Learning  
+**Trainee**: Raymond  
+**Week**: 4  
+**Dates**: Mon 10 Nov 2025 → Fri 14 Nov 2025 (Africa/Kampala)  
+**Version**: v1.0  
+**Mentor**: Paul / Maximus Technologies Mentors
+
+### How to Use This Workbook
+- **Source of truth** for Week 4 scope, acceptance bars, artifacts, and daily checklists.
+- **Workflow**: create/claim a GitHub Issue (add to Project) → branch → PR → Release/Pages → Review Packet.
+- **Submission**: one capstone PR by Friday EOD aggregating the week’s work with all evidence.
+
+### Week 4 Theme
+Spec-driven product slices, Figma integration, and publishing. Design in Figma, slice features into reviewable increments, and ship them with Releases + Pages for quick verification.
+
+
+## Week 4 Outcomes (Go/No Go Gate — all must be true by Fri EOD, 14 Nov 2025)
+- [ ] Day 0 finishers from Week 3 completed with proof screenshots (see Day 0).
+- [ ] Figma integration: component inventory + 1–2 user flows; link in PR + README.
+- [ ] Three product slices shipped to development behind CI gates; Spec Kit (/specify → /plan → /tasks) updated per slice.
+- [ ] Tests & coverage: unit (CLI+UI) + Playwright smoke per slice. Targets:
+  - [ ] UI ≥ 80% statements overall (≥ 50% per changed module minimum).
+  - [ ] CLI ≥ 60% statements aggregate.
+- [ ] Accessibility: labeled form controls; inline errors; keyboard focus order; a11y smoke (axe or equivalent) in CI.
+- [ ] Reviewability:
+  - [ ] GitHub Release published with the Week 4 Review Packet (coverage HTML + Playwright report + review.md).
+  - [ ] GitHub Pages (or Cloud Run preview) updated for Coverage Index and UI demo links.
+  - [ ] README has “How to review me (Week 4)” with Release + Pages links.
+- [ ] GitHub Projects discipline: Issues ↔ PRs auto-linked (`Closes #123`), branches follow `feature/gh-123-scope`, cards appear on Project board. Screenshots in PR.
+- [ ] Branch protection on `development` enforced; all checks required; screenshot in PR.
+- [ ] Capstone PR merged with Coverage Table (CLI + UI), Release/Pages links, Figma link, and proof screenshots.
+
+
+## Day 0 — Quick Finishers from Week 3 (Mon 10 Nov, first hour)
+**Goal**: Close Week 3 reviewability gaps before starting Week 4 work.
+
+### Tasks
+- [ ] Publish a Release from tag `v0.3.0-week3` and attach `week3 review packet.zip`.
+- [ ] README: Add a “How to review me (Week 3 & Week 4)” box linking:
+  - [ ] Latest Release → open `review-artifacts/index.html`.
+  - [ ] Pages → Coverage Index + UI demo.
+- [ ] PR: Add screenshots of Branch protection rules, Issue auto-link proof (`Closes #123`) + Project card, Coverage table, Release asset.
+
+### Evidence to capture
+- [ ] Releases page with packet asset visible.
+- [ ] README diff snippet showing review box.
+- [ ] PR body with screenshots + Coverage table pasted.
+
+
+## Product Slices (Spec-driven)
+Each slice must include a Spec Kit trio per repo: `/specify` (problem & acceptance), `/plan` (design/UI flow/test plan), `/tasks` (implementation steps). Each slice ships with unit + Playwright smoke tests and updates Pages + Release.
+
+### Slice A — Expenses: CSV Import + Totals View polish
+**User value**: Upload a small CSV and see category/month totals with deterministic formatting.
+
+**Acceptance rules**
+- [ ] CSV import (5–200 rows) with schema validation; malformed rows reported inline.
+- [ ] Month/category selectors; totals shown; rounding policy documented (2dp).
+- [ ] Empty dataset UX; non‑ASCII category names supported.
+- [ ] Unit tests: table-driven across months/categories + malformed rows.
+- [ ] Playwright smoke: upload sample CSV → select month/category → totals match fixture.
+
+### Slice B — To Do: Due today filter + Priority badges
+**User value**: Quickly see today’s tasks and prioritize.
+
+**Acceptance rules**
+- [ ] `dueToday` filter (local midnight boundary); keyboard-navigable filter toggle.
+- [ ] Priority: Low/Med/High badges; default sort by priority desc.
+- [ ] Duplicate insert guard; complete non-existent → inline error.
+- [ ] Unit tests: yesterday/today/tomorrow boundaries; duplicate add; bad complete.
+- [ ] Playwright smoke: add → filter today → complete → assert remaining list.
+
+### Slice C — Quote: Author/tag search + Random pick (seeded)
+**User value**: Find quotes by author/tag; get a random quote reliably.
+
+**Acceptance rules**
+- [ ] Case-insensitive author/tag filters; not found → inline message.
+- [ ] Random when no filter; seeded RNG for deterministic e2e.
+- [ ] Empty dataset UX.
+- [ ] Unit tests: author/tag filters; empty dataset; seeded random.
+- [ ] Playwright smoke: search by author → result matches fixture; random path reproducible.
+
+
+## Daily Plan & Checklists
+
+### Day 1 — Mon 10 Nov: Figma + Spec Kit + CI guardrails
+**Goals**: Align UI with Figma components & flows; lock specs; ensure CI covers a11y, tests, packet build.
+
+- [ ] Figma: Component Inventory (buttons, inputs, selects, tables, badges, alerts); define naming and tokens (colors, spacing, radii, shadows).
+- [ ] Figma flows: one screen per slice (Upload Expenses CSV; To Do with `dueToday` + priority; Quote search).
+- [ ] Add Figma link to README + PR.
+- [ ] Spec Kit: write `/specify` & `/plan` (with test plan & accessibility notes) and `/tasks` for Slice A/B/C.
+- [ ] GitHub Projects: create/confirm a Project; enable “Auto add issues from this repo”; add custom fields (Status, Priority); automation (PR merged → Done). Capture a Project board screenshot with issues.
+- [ ] CI: add axe (or equivalent) a11y smoke; ensure packet build uploads coverage HTML + Playwright report as artifact.
+
+**Proof**
+- [ ] Figma link visible in README.
+- [ ] Spec Kit diffs committed.
+- [ ] CI green checks including a11y.
+
+### Day 2 — Tue 11 Nov: Implement Slice A (Expenses)
+**Goals**: Ship CSV import + totals polish with tests & a11y.
+
+- [ ] Implement CSV import with schema checks; surface errors inline.
+- [ ] Totals view polish; document rounding policy in UI help.
+- [ ] Unit tests: table-driven months/categories; malformed CSV rows.
+- [ ] Playwright smoke: upload fixture → totals render as expected.
+- [ ] Update Coverage Index; update README review box with Slice A notes.
+
+**Coverage target**
+- [ ] Expenses UI ≥ 50% statements for new/changed modules; keep project UI ≥ 80% overall.
+
+### Day 3 — Wed 12 Nov: Implement Slice B (To Do)
+**Goals**: Ship `dueToday` + priority badges with tests & a11y.
+
+- [ ] Add `dueToday` filter; ensure keyboard focus & ARIA labeling.
+- [ ] Priority badges; default sort by priority desc.
+- [ ] Unit tests: date boundaries & duplicates; error on completing non-existent.
+- [ ] Playwright smoke: add → filter today → complete.
+- [ ] Update Coverage Index & README review box.
+
+**Coverage target**
+- [ ] To Do UI ≥ 50% statements for new/changed modules; keep UI ≥ 80% overall.
+
+### Day 4 — Thu 13 Nov: Implement Slice C (Quote) + Reviewability
+**Goals**: Finish Quote features; raise reviewability to “one click verify”.
+
+- [ ] Implement author/tag; seeded random; empty dataset UX.
+- [ ] Unit tests; Playwright smoke with seeded random.
+- [ ] README: finalize Week 4 “How to review me” (Release + Pages links + Figma).
+- [ ] Pages: publish latest Coverage Index + demo links.
+
+**Coverage target**
+- [ ] Quote UI ≥ 50% statements for changed modules; keep UI ≥ 80% overall.
+
+### Day 5 — Fri 14 Nov: Capstone & Review Packet
+- [ ] Update `review.md` (what changed, how tested, risks, next).
+- [ ] Export Coverage Index (CLI + UI) to `review-artifacts/index.html`; include Playwright artifacts.
+- [ ] GitHub Release: attach `week4 review packet.zip` (coverage HTML, Playwright report, `review.md`).
+- [ ] Capstone PR to `development`: title `feat(week 4): spec driven slices + figma + publishing (#123)`; body includes Release & Pages links, Figma, Coverage Table, screenshots (branch protection & Project/Issue linking).
+- [ ] Merge when checks are green.
+
+**Coverage Table (paste in PR)**
+
+| Tool | Statements % | Branches % | Functions % | Lines % |
+| --- | ---:| ---:| ---:| ---:|
+| CLI (aggregate) |  |  |  |  |
+| Expenses (UI) |  |  |  |  |
+| To Do (UI) |  |  |  |  |
+| Quote (UI) |  |  |  |  |
+
+
+## Technical Requirements & Patterns
+
+### Figma → Code
+- Component inventory drives code components; map tokens to Tailwind theme (colors/spacing/radii/shadows).
+- Export SVGs/PNG as needed; prefer CSS for simple icons.
+- Keep names consistent (e.g., `Button/Primary`, `Badge/High`).
+
+### Spec Kit discipline
+- `/specify`: problem, scope boundaries, acceptance rules.
+- `/plan`: UI flows, state shapes, test plan (unit + e2e + a11y), risks.
+- `/tasks`: granular steps; link each task to commits/PRs.
+
+### Testing & a11y
+- Unit: Vitest + RTL; table driven; inject clock/seed.
+- e2e smoke: Playwright with deterministic fixtures; tag `@smoke`.
+- a11y: an axe (or equivalent) smoke test per route; labeled controls; focus management.
+- Coverage: collect CLI + UI separately; export HTML to `review-artifacts/` with an index.
+
+### CI & Publishing
+- Branch protection on `development`: require lint, unit, e2e, a11y, packet build.
+- Releases: every capstone PR publishes a Packet ZIP.
+- Pages/Preview: Coverage Index + demo links surfaced in README’s review box.
+
+### PR Discipline
+- Branch: `feature/gh-<issue>-short-scope` (e.g., `feature/gh-123-expenses-upload`)
+- Title: `feat(scope): short description (#123)`
+- Body: What changed / How I tested (real outputs) / Artifacts (Release & Pages links + Figma) / Coverage Table / Screenshots (Project card + branch protection) / Linked issues.
+
+
+## Deliverables (What to Submit)
+- [ ] Screenshots: Release asset, Pages URL, Figma link in README, GitHub Project card & Issue link proof, branch protection rules.
+- [ ] Review Packet: Coverage HTML (CLI + UI), Playwright report, `review.md`.
+- [ ] Capstone PR merged with Coverage Table and artifact links.
+
+
+## Mentor Review Rubric (Pass/Revise)
+
+### 1) Discipline (Spec Kit, GitHub Projects & Issues, PR hygiene)
+- **Pass**: Issues → branches → PRs; screenshots in PR; Spec Kit updated per slice.
+- **Revise**: Missing links/screens; ad hoc branches; stale specs.
+
+### 2) Correctness (UI parity & rules)
+- **Pass**: UI mirrors CLI; helpful inline errors; deterministic flows; a11y considered.
+- **Revise**: Happy path only; mismatched validation; poor a11y.
+
+### 3) Tests & Coverage
+- **Pass**: Targets met (UI ≥ 80% overall / ≥ 50% changed); deterministic unit + e2e + a11y smoke.
+- **Revise**: Targets missed; lack of smokes; brittle tests.
+
+### 4) Artifacts & Reviewability
+- **Pass**: Release with Packet; Pages/preview live; README review box current.
+- **Revise**: Missing Release/Pages; artifacts hard to find.
+
+
+## Appendices
+
+### A) README — “How to review me (Week 4)” — sample
+
+```markdown
+## How to review this project (Week 4)
+
+- **Release (Packet)**: Download the Review Packet ZIP from the latest Release → open `review-artifacts/index.html`.
+- **Live demo**: Visit GitHub Pages for the UI demo (links below each slice).
+- **What changed**: See the Week 4 Capstone PR body for coverage, screenshots, and links.
+- **Design**: Figma link to component inventory and user flows.
+```
+
+### B) Playwright smoke — sample
+
+```ts
+import { test, expect } from '@playwright/test';
+
+test('@smoke expenses happy path', async ({ page }) => {
+  await page.goto(process.env.UI_BASE_URL!);
+  await page.getByLabel('Upload CSV').setInputFiles('fixtures/expenses.csv');
+  await page.getByLabel('Month').selectOption('March');
+  await page.getByLabel('Category').selectOption('Utilities');
+  await expect(page.getByTestId('total')).toHaveText('$120.50');
+});
+```
+
+### C) Coverage commands — reminder
+
+```bash
+pnpm test -- --coverage
+pnpm exec playwright test --project=chromium --grep @smoke
+xdg-open coverage/index.html || open coverage/index.html
+```
+
+### D) PR body template — copy/paste
+
+```markdown
+**What changed**
+
+- Implemented Week 4 slices (A/B/C), Figma, publishing
+
+**How I tested**
+
+- Unit + Playwright smoke + a11y
+
+**Artifacts**
+
+- Release (Packet): <link>
+- Pages (Coverage Index & demo): <link>
+- Figma: <link>
+
+**Coverage Table (CLI + UI)**
+
+| Tool | Stmts | Branches | Funcs | Lines |
+| --- | ---:| ---:| ---:| ---:|
+| CLI (aggregate) |  |  |  |  |
+| Expenses (UI) |  |  |  |  |
+| To Do (UI) |  |  |  |  |
+| Quote (UI) |  |  |  |  |
+
+**Screenshots**
+
+- Branch protection rules
+- Project card + Issue auto link proof
+
+**Links**
+
+- GitHub Issue(s): #123
+```
+
+
+— End of Week 4 Workbook (Raymond) —
+
+

@@ -1,0 +1,721 @@
+diff --git a/apps/ui/src/pages/Quote.tsx b/apps/ui/src/pages/Quote.tsx
+index cd3c8619eb6d1c72f57763c28c145a3960f3a8ca..d02a611d50a36248b7018c33b2980e047b25c688 100644
+--- a/apps/ui/src/pages/Quote.tsx
++++ b/apps/ui/src/pages/Quote.tsx
+@@ -19,63 +19,63 @@ export interface QuoteProps {
+   initialSeed?: string;
+ }
+ 
+ const DEFAULT_FILTERS: QuoteFiltersState = {
+   author: null,
+   tag: null,
+ };
+ 
+ function normalizeSeed(seed: string | undefined): string {
+   if (!seed) {
+     return DEFAULT_QUOTE_SEED;
+   }
+   const trimmed = seed.trim();
+   return trimmed.length === 0 ? DEFAULT_QUOTE_SEED : trimmed;
+ }
+ 
+ function parseUrlParams(): { author: string | null; tag: string | null; seed: string } {
+   if (typeof window === 'undefined') {
+     return { author: null, tag: null, seed: DEFAULT_QUOTE_SEED };
+   }
+ 
+   const params = new URLSearchParams(window.location.search);
+   return {
+     author: params.get('author') || null,
+     tag: params.get('tag') || null,
+-    seed: params.get('seed') || DEFAULT_QUOTE_SEED,
++    seed: normalizeSeed(params.get('seed') ?? undefined),
+   };
+ }
+ 
+ function QuoteContent({ quotes, initialSeed }: QuoteProps): JSX.Element {
+   const urlParams = parseUrlParams();
+   const dataset = useMemo<readonly QuoteRecord[]>(() => (quotes ? [...quotes] : SAMPLE_QUOTES), [quotes]);
+ 
+   const [filters, setFilters] = useState<QuoteFiltersState>({
+     author: urlParams.author,
+     tag: urlParams.tag,
+   });
+-  const [seed, setSeed] = useState<string>(initialSeed ?? urlParams.seed);
++  const [seed, setSeed] = useState<string>(() => normalizeSeed(initialSeed ?? urlParams.seed));
+ 
+   // Sync filters to URL for shareable links
+   useEffect(() => {
+     const params = new URLSearchParams();
+     if (filters.author) params.set('author', filters.author);
+     if (filters.tag) params.set('tag', filters.tag);
+     if (seed !== DEFAULT_QUOTE_SEED) params.set('seed', seed);
+ 
+     const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
+     window.history.replaceState({}, '', newUrl);
+   }, [filters, seed]);
+ 
+   const authorOptions = useMemo(() => buildAuthorOptions(dataset), [dataset]);
+   const tagOptions = useMemo(() => buildTagOptions(dataset), [dataset]);
+   const filteredQuotes = useMemo(() => applyFilters(dataset, filters), [dataset, filters]);
+   const filtersActive = hasActiveFilters(filters);
+ 
+   const selectedQuote = useMemo(() => {
+     if (filtersActive) {
+       return filteredQuotes.length > 0 ? filteredQuotes[0] : null;
+     }
+     if (filteredQuotes.length === 0) {
+       return null;
+     }
+     const rng = createSeededRandom(normalizeSeed(seed));
+diff --git a/apps/ui/src/tests/quote.test.tsx b/apps/ui/src/tests/quote.test.tsx
+index 225894f04c7cdede7750fdc2d2c97c118b3983b3..281124d8a97b011d75c59ccf033d07241f4bde3d 100644
+--- a/apps/ui/src/tests/quote.test.tsx
++++ b/apps/ui/src/tests/quote.test.tsx
+@@ -1,67 +1,90 @@
+ import { render, screen, within, waitFor } from '@testing-library/react';
+ import userEvent from '@testing-library/user-event';
++import { beforeEach } from 'vitest';
+ import Quote from '../pages/Quote';
+ import { createSeededRandom } from '../lib/random/seeded';
+ import { SAMPLE_QUOTES } from '../lib/quote/sampleData';
++import { DEFAULT_QUOTE_SEED } from '../lib/quote/view';
+ 
+ const DEFAULT_SEED = 'ui-test-seed';
+ 
+ describe('Quote page', () => {
++  beforeEach(() => {
++    window.history.replaceState({}, '', '/');
++  });
++
+   it('renders a deterministic featured quote using the provided seed', () => {
+     render(<Quote initialSeed={DEFAULT_SEED} />);
+ 
+     const rng = createSeededRandom(DEFAULT_SEED);
+     const expectedQuote = SAMPLE_QUOTES[rng.nextInt(SAMPLE_QUOTES.length)];
+ 
+     const featured = screen.getByTestId('quote-featured');
+     expect(featured).toHaveTextContent(expectedQuote.text);
+     expect(featured).toHaveTextContent(expectedQuote.author);
+     expect(screen.getByTestId('quote-tags-featured')).toHaveTextContent(`Tags: ${expectedQuote.tags.join(', ')}`);
+   });
+ 
+   it('updates the featured quote when the seed changes', async () => {
+     const user = userEvent.setup();
+     render(<Quote initialSeed={DEFAULT_SEED} />);
+ 
+     // Verify initial quote is displayed
+     const initialFeatured = screen.getByTestId('quote-featured');
+     expect(initialFeatured).toBeInTheDocument();
+ 
+     const seedInput = screen.getByTestId('quote-seed-input');
+     await user.clear(seedInput);
+     await user.type(seedInput, 'new-seed-42');
+ 
+     // Quote should still be displayed after seed change (verifies component doesn't crash)
+     await waitFor(() => {
+       const featured = screen.getByTestId('quote-featured');
+       expect(featured).toBeInTheDocument();
+       // Just verify it contains some author text (proves it's rendering a quote)
+       expect(featured.textContent).toBeTruthy();
+     });
+   });
+ 
++  it('normalizes blank seeds from the URL and user input', async () => {
++    const user = userEvent.setup();
++    window.history.pushState({}, '', '/quote?seed=%20');
++
++    render(<Quote />);
++
++    const seedInput = await screen.findByTestId('quote-seed-input');
++    expect(seedInput).toHaveValue(DEFAULT_QUOTE_SEED);
++
++    await user.clear(seedInput);
++
++    await waitFor(() => {
++      expect(seedInput).toHaveValue(DEFAULT_QUOTE_SEED);
++      expect(window.location.search).toBe('');
++    });
++  });
++
+   it('filters quotes by author and shows clear filters control', async () => {
+     const user = userEvent.setup();
+     render(<Quote initialSeed={DEFAULT_SEED} />);
+ 
+     await user.selectOptions(screen.getByTestId('quote-filter-author'), 'Maya Angelou');
+ 
+     const resultsList = await screen.findByTestId('quote-filtered-list');
+     const items = within(resultsList).getAllByRole('listitem');
+     expect(items).toHaveLength(1);
+     expect(items[0]).toHaveTextContent('Still I rise.');
+     expect(items[0]).toHaveTextContent('Maya Angelou');
+ 
+     // Wait for clear button to be in document
+     await waitFor(() => {
+       expect(screen.getByTestId('quote-clear-filters')).toBeInTheDocument();
+     });
+   });
+ 
+   it('filters quotes by tag and shows filter UI correctly', async () => {
+     const user = userEvent.setup();
+     render(<Quote initialSeed={DEFAULT_SEED} />);
+ 
+     const tagSelect = screen.getByTestId('quote-filter-tag');
+ 
+     // Select a tag filter
+diff --git a/specs/slice-c-quote-search/tasks.md b/specs/slice-c-quote-search/tasks.md
+index 72785d322e68ffa1e9eca739a5f2d2b85502dc2b..681081d258ff6675567061faec8de411d626e4b5 100644
+--- a/specs/slice-c-quote-search/tasks.md
++++ b/specs/slice-c-quote-search/tasks.md
+@@ -1,20 +1,20 @@
+ # Slice C — Tasks (Quote: Filters + Seeded Random)
+ 
+-Status: Planned (Day 1)
++Status: Completed (Day 5)
+ 
+ ## Build
+-- [ ] T013 Implement case‑insensitive Author filter.
+-- [ ] T014 Implement case‑insensitive Tag filter.
+-- [ ] T015 Deterministic seeded random when no filters; normalize seed to default when empty.
+-- [ ] T016 Sync author/tag/seed with URL; add clear filters action and empty/no‑match messages.
++- [x] T013 Implement case‑insensitive Author filter.
++- [x] T014 Implement case‑insensitive Tag filter.
++- [x] T015 Deterministic seeded random when no filters; normalize seed to default when empty.
++- [x] T016 Sync author/tag/seed with URL; add clear filters action and empty/no‑match messages.
+ 
+ ## Tests
+-- [ ] T017 Unit tests: author/tag filters, seeded random determinism, empty dataset UX.
++- [x] T017 Unit tests: author/tag filters, seeded random determinism, empty dataset UX.
+ 
+ ## CI & Artifacts
+-- [ ] T018 Playwright `@smoke` (author search equals fixture; seeded path reproducible) + axe a11y; export coverage and Playwright report to `review-artifacts/` and update README review box.
++- [x] T018 Playwright `@smoke` (author search equals fixture; seeded path reproducible) + axe a11y; export coverage and Playwright report to `review-artifacts/` and update README review box.
+ 
+ ## Documentation
+ 
+ 
+ 
+diff --git a/src/cli/quote.js b/src/cli/quote.js
+index 6b9a45c0e4faa49324e27806237ea74de8b51bf1..602e4bd5c62fcc94dacca97a9e10349b6c6f9c5a 100644
+--- a/src/cli/quote.js
++++ b/src/cli/quote.js
+@@ -1,29 +1,29 @@
+ import { promises as fs } from 'node:fs';
+ import { extname } from 'node:path';
+ import { pathToFileURL } from 'node:url';
+-import { getIntegerFlag, getStringFlag, parseArgs, requireStringFlag } from '../helpers/args.js';
++import { getStringFlag, parseArgs, requireStringFlag } from '../helpers/args.js';
+ import { formatQuote, parseQuotes, QuoteError, selectQuote } from '../quote/core.js';
+ 
+ function determineFormat(path) {
+   const extension = extname(path).toLowerCase();
+   if (extension === '.json') {
+     return 'json';
+   }
+   if (extension === '.csv') {
+     return 'csv';
+   }
+   return undefined;
+ }
+ 
+ async function loadQuotes(path, env) {
+   const reader = env && env.readFile ? env.readFile : fs.readFile;
+   try {
+     const raw = await reader(path, 'utf8');
+     const format = determineFormat(path);
+     return parseQuotes(raw, format);
+   } catch (error) {
+     if (error instanceof QuoteError) {
+       throw error;
+     }
+ 
+     const message =
+@@ -44,51 +44,61 @@ function mapReasonToExitCode(reason) {
+   case 'no-quotes':
+     return 2;
+   default:
+     return 2;
+   }
+ }
+ 
+ export async function runQuoteCli(
+   argv,
+   io = { stdout: (message) => console.log(message), stderr: (message) => console.error(message) },
+   env = {},
+ ) {
+   const { flags } = parseArgs(argv);
+ 
+   let inputPath;
+   let author;
+   let tag;
+   let seed;
+ 
+   try {
+     inputPath = requireStringFlag(flags, 'input', 'Provide --input <path> to specify a quotes file.', {
+       label: 'Input path',
+     });
+     author = getStringFlag(flags, 'author', { label: 'Author' });
+     tag = getStringFlag(flags, 'tag', { label: 'Tag' });
+-    seed = getIntegerFlag(flags, 'seed', { label: 'Seed' });
++    const seedFlag = getStringFlag(flags, 'seed', { label: 'Seed', allowEmpty: true });
++    if (seedFlag !== undefined) {
++      const trimmed = seedFlag.trim();
++      if (trimmed.length > 0) {
++        if (/^[+-]?\d+(\.\d+)?$/.test(trimmed)) {
++          seed = Number(trimmed);
++        } else {
++          seed = trimmed;
++        }
++      }
++    }
+   } catch (error) {
+     io.stderr?.(error.message);
+     return 1;
+   }
+ 
+   let quotes;
+   try {
+     quotes = await loadQuotes(inputPath, env);
+   } catch (error) {
+     io.stderr?.(error.message);
+     return error.exitCode ?? 2;
+   }
+ 
+   try {
+     const quote = selectQuote(quotes, { author, tag, seed });
+     io.stdout?.(formatQuote(quote));
+     return 0;
+   } catch (error) {
+     const reason = error && error.reason;
+     const exitCode = mapReasonToExitCode(reason);
+     const message = (error && error.message) || 'Failed to select quote.';
+     io.stderr?.(message);
+     return exitCode;
+   }
+ }
+diff --git a/src/cli/quote.ts b/src/cli/quote.ts
+index 105351610800d8e3f8447aacff15deb197f7b6e7..e2da1d9d1095f6e93691c044d1294bf959711936 100644
+--- a/src/cli/quote.ts
++++ b/src/cli/quote.ts
+@@ -1,35 +1,30 @@
+ /* c8 ignore start */
+ import { promises as fs } from 'node:fs';
+ import { extname } from 'node:path';
+ import { pathToFileURL } from 'node:url';
+-import {
+-  getIntegerFlag,
+-  getStringFlag,
+-  parseArgs,
+-  requireStringFlag,
+-} from '../helpers/args.js';
++import { getStringFlag, parseArgs, requireStringFlag } from '../helpers/args.js';
+ import {
+   formatQuote,
+   parseQuotes,
+   QuoteError,
+   QuoteErrorReason,
+   QuoteRecord,
+   selectQuote,
+ } from '../quote/core.js';
+ 
+ interface CliIO {
+   stdout?: (message: string) => void;
+   stderr?: (message: string) => void;
+ }
+ 
+ interface QuoteEnvironment {
+   readFile?: (path: string, encoding: BufferEncoding) => Promise<string>;
+ }
+ 
+ function determineFormat(path: string): 'json' | 'csv' | undefined {
+   const extension = extname(path).toLowerCase();
+   if (extension === '.json') {
+     return 'json';
+   }
+   if (extension === '.csv') {
+     return 'csv';
+@@ -61,62 +56,72 @@ async function loadQuotes(path: string, env: QuoteEnvironment): Promise<QuoteRec
+   }
+ }
+ 
+ function mapReasonToExitCode(reason?: QuoteErrorReason): number {
+   switch (reason) {
+     case 'author-not-found':
+     case 'tag-not-found':
+       return 1;
+     case 'no-quotes':
+       return 2;
+     default:
+       return 2;
+   }
+ }
+ 
+ export async function runQuoteCli(
+   argv: readonly string[],
+   io: CliIO = { stdout: (message) => console.log(message), stderr: (message) => console.error(message) },
+   env: QuoteEnvironment = {},
+ ): Promise<number> {
+   const { flags } = parseArgs(argv);
+ 
+   let inputPath: string;
+   let author: string | undefined;
+   let tag: string | undefined;
+-  let seed: number | undefined;
++  let seed: number | string | undefined;
+ 
+   try {
+     inputPath = requireStringFlag(
+       flags,
+       'input',
+       'Provide --input <path> to specify a quotes file.',
+       { label: 'Input path' },
+     );
+     author = getStringFlag(flags, 'author', { label: 'Author' });
+     tag = getStringFlag(flags, 'tag', { label: 'Tag' });
+-    seed = getIntegerFlag(flags, 'seed', { label: 'Seed' });
++    const seedFlag = getStringFlag(flags, 'seed', { label: 'Seed', allowEmpty: true });
++    if (seedFlag !== undefined) {
++      const trimmed = seedFlag.trim();
++      if (trimmed.length > 0) {
++        if (/^[+-]?\d+(\.\d+)?$/.test(trimmed)) {
++          seed = Number(trimmed);
++        } else {
++          seed = trimmed;
++        }
++      }
++    }
+   } catch (error: unknown) {
+     io.stderr?.((error as Error).message);
+     return 1;
+   }
+ 
+   let quotes: QuoteRecord[];
+   try {
+     quotes = await loadQuotes(inputPath, env);
+   } catch (error: unknown) {
+     io.stderr?.((error as Error).message);
+     return (error as { exitCode?: number }).exitCode ?? 2;
+   }
+ 
+   try {
+     const quote = selectQuote(quotes, { author, tag, seed });
+     io.stdout?.(formatQuote(quote));
+     return 0;
+   } catch (error: unknown) {
+     const reason = (error as QuoteError).reason;
+     const exitCode = mapReasonToExitCode(reason);
+     const message = (error as Error).message ?? 'Failed to select quote.';
+     io.stderr?.(message);
+     return exitCode;
+   }
+ }
+diff --git a/src/quote/core.js b/src/quote/core.js
+index 70d79754afb9a2442c71f8bec580b58b0e1f6f22..248204e3f1e4db523531a400793c7333ad7795fd 100644
+--- a/src/quote/core.js
++++ b/src/quote/core.js
+@@ -188,64 +188,91 @@ function normalizeTags(value) {
+ 
+   return text
+     .split(/[;|,]/)
+     .map((tag) => tag.trim())
+     .filter((tag) => tag.length > 0);
+ }
+ 
+ function filterNormalizedQuotes(quotes, filters = {}) {
+   const normalizedAuthor = filters.author ? filters.author.trim().toLowerCase() : null;
+   const normalizedTag = filters.tag ? filters.tag.trim().toLowerCase() : null;
+ 
+   return quotes.filter((quote) => {
+     const matchesAuthor =
+       !normalizedAuthor || quote.author.trim().toLowerCase() === normalizedAuthor;
+     const matchesTag =
+       !normalizedTag || quote.tags.some((tag) => tag.trim().toLowerCase() === normalizedTag);
+     return matchesAuthor && matchesTag;
+   });
+ }
+ 
+ export function filterQuotes(quotes, filters = {}) {
+   const normalized = normalizeQuotes(quotes);
+   return filterNormalizedQuotes(normalized, filters);
+ }
+ 
++function toSeedValue(seed) {
++  if (seed === undefined || seed === null) {
++    return 1;
++  }
++
++  if (typeof seed === 'number') {
++    if (!Number.isFinite(seed)) {
++      throw new Error('Seed must be a finite number.');
++    }
++    const normalized = Math.floor(Math.abs(seed));
++    return normalized === 0 ? 1 : normalized;
++  }
++
++  const text = String(seed).trim();
++  if (text.length === 0) {
++    return 1;
++  }
++
++  let hash = 0;
++  for (let index = 0; index < text.length; index += 1) {
++    hash = (hash * 31 + text.charCodeAt(index)) | 0;
++  }
++  const normalized = Math.abs(hash);
++  return normalized === 0 ? 1 : normalized;
++}
++
+ function createSeededRandom(seed) {
+-  let state = (seed >>> 0) || 1;
++  const seedValue = toSeedValue(seed);
++  let state = seedValue >>> 0;
+   return () => {
+     state = (state * 1664525 + 1013904223) % 0x100000000;
+     return state / 0x100000000;
+   };
+ }
+ 
+ export function pickRandom(items, seed = null) {
+   if (!Array.isArray(items) || items.length === 0) {
+     throw new Error('No items to pick from');
+   }
+ 
+-  const randomSource = seed === null || seed === undefined ? Math.random : createSeededRandom(Number(seed));
++  const randomSource = seed === null || seed === undefined ? Math.random : createSeededRandom(seed);
+   const index = Math.floor(randomSource() * items.length) % items.length;
+   return items[index];
+ }
+ 
+ export function selectQuote(quotes, options = {}) {
+   const normalized = normalizeQuotes(quotes);
+ 
+   if (normalized.length === 0) {
+     throw createQuoteError('No quotes available.', 'no-quotes');
+   }
+ 
+   let filtered = normalized;
+ 
+   if (options.author) {
+     filtered = filterNormalizedQuotes(filtered, { author: options.author });
+     if (filtered.length === 0) {
+       throw createQuoteError(`No quotes found for author "${options.author}".`, 'author-not-found');
+     }
+   }
+ 
+   if (options.tag) {
+     filtered = filterNormalizedQuotes(filtered, { tag: options.tag });
+     if (filtered.length === 0) {
+       throw createQuoteError(`No quotes found with tag "${options.tag}".`, 'tag-not-found');
+     }
+diff --git a/src/quote/core.ts b/src/quote/core.ts
+index 919c67b1ddfaf817873c3dc27631b044fb5b7709..92a0d44db59c267c118db7fbde02159915146d33 100644
+--- a/src/quote/core.ts
++++ b/src/quote/core.ts
+@@ -160,60 +160,87 @@ function normalizeTags(value: unknown): string[] {
+ 
+   const text = String(value);
+   if (!text.trim()) {
+     return [];
+   }
+ 
+   return text
+     .split(/[;|]/)
+     .map((tag) => tag.trim())
+     .filter((tag) => tag.length > 0);
+ }
+ 
+ export function filterQuotes(quotes: QuoteRecord[], filters: QuoteFilters = {}): QuoteRecord[] {
+   const normalizedAuthor = filters.author ? filters.author.trim().toLowerCase() : null;
+   const normalizedTag = filters.tag ? filters.tag.trim().toLowerCase() : null;
+ 
+   return quotes.filter((quote) => {
+     const matchesAuthor =
+       !normalizedAuthor || quote.author.trim().toLowerCase() === normalizedAuthor;
+     const matchesTag =
+       !normalizedTag || quote.tags.some((tag) => tag.trim().toLowerCase() === normalizedTag);
+     return matchesAuthor && matchesTag;
+   });
+ }
+ 
+-function createSeededRandom(seed: number): () => number {
+-  let state = (seed >>> 0) || 1;
++function toSeedValue(seed: number | string | undefined | null): number {
++  if (seed === undefined || seed === null) {
++    return 1;
++  }
++
++  if (typeof seed === 'number') {
++    if (!Number.isFinite(seed)) {
++      throw new Error('Seed must be a finite number.');
++    }
++    const normalized = Math.floor(Math.abs(seed));
++    return normalized === 0 ? 1 : normalized;
++  }
++
++  const text = seed.trim();
++  if (text.length === 0) {
++    return 1;
++  }
++
++  let hash = 0;
++  for (let index = 0; index < text.length; index += 1) {
++    hash = (hash * 31 + text.charCodeAt(index)) | 0;
++  }
++  const normalized = Math.abs(hash);
++  return normalized === 0 ? 1 : normalized;
++}
++
++function createSeededRandom(seed: number | string | undefined | null): () => number {
++  const seedValue = toSeedValue(seed);
++  let state = seedValue >>> 0;
+   return () => {
+     state = (state * 1664525 + 1013904223) % 0x100000000;
+     return state / 0x100000000;
+   };
+ }
+ 
+ export interface QuoteSelectionOptions extends QuoteFilters {
+-  seed?: number;
++  seed?: number | string | null;
+   random?: () => number;
+ }
+ 
+ export function selectQuote(quotes: QuoteRecord[], options: QuoteSelectionOptions = {}): QuoteRecord {
+   if (quotes.length === 0) {
+     throw createQuoteError('No quotes available.', 'no-quotes');
+   }
+ 
+   let filtered = quotes;
+ 
+   if (options.author) {
+     filtered = filterQuotes(filtered, { author: options.author });
+     if (filtered.length === 0) {
+       throw createQuoteError(`No quotes found for author "${options.author}".`, 'author-not-found');
+     }
+   }
+ 
+   if (options.tag) {
+     filtered = filterQuotes(filtered, { tag: options.tag });
+     if (filtered.length === 0) {
+       throw createQuoteError(`No quotes found with tag "${options.tag}".`, 'tag-not-found');
+     }
+   }
+ 
+   if (filtered.length === 0) {
+diff --git a/tests/quote/cli.test.ts b/tests/quote/cli.test.ts
+index eb7719b9aefac3890647f424f6af926e7380dadc..5c9c2c6e87fa64f320fbabfc36b5392e079f5379 100644
+--- a/tests/quote/cli.test.ts
++++ b/tests/quote/cli.test.ts
+@@ -58,50 +58,67 @@ describe('quote CLI', () => {
+       ['--input', 'quotes.json', '--tag', 'Perseverance'],
+       io,
+       {
+         readFile: async () => SAMPLE_DATA,
+       },
+     );
+ 
+     expect(code).toBe(0);
+     expect(io.out[0]).toBe('"It always seems impossible until it is done." — Nelson Mandela (tags: inspiration, perseverance)');
+   });
+ 
+   it('selects a deterministic quote when using a seed without filters', async () => {
+     const io = createIO();
+     const code = await runQuoteCli(
+       ['--input', 'quotes.json', '--seed', '7'],
+       io,
+       {
+         readFile: async () => SAMPLE_DATA,
+       },
+     );
+ 
+     expect(code).toBe(0);
+     expect(io.out[0]).toBe('"Success is liking yourself, liking what you do, and liking how you do it." — Maya Angelou (tags: inspiration, success)');
+   });
+ 
++  it('supports deterministic selection using string seeds', async () => {
++    const firstRun = createIO();
++    const secondRun = createIO();
++
++    const argv = ['--input', 'quotes.json', '--seed', 'quote-demo-seed'];
++    const env = { readFile: async () => SAMPLE_DATA };
++
++    const [firstCode, secondCode] = await Promise.all([
++      runQuoteCli(argv, firstRun, env),
++      runQuoteCli(argv, secondRun, env),
++    ]);
++
++    expect(firstCode).toBe(0);
++    expect(secondCode).toBe(0);
++    expect(firstRun.out[0]).toBe(secondRun.out[0]);
++  });
++
+   it('returns a non-zero exit code when author is not found', async () => {
+     const io = createIO();
+     const code = await runQuoteCli(
+       ['--input', 'quotes.json', '--author', 'Unknown'],
+       io,
+       {
+         readFile: async () => SAMPLE_DATA,
+       },
+     );
+ 
+     expect(code).toBe(1);
+     expect(io.err[0]).toBe('No quotes found for author "Unknown".');
+   });
+ 
+   it('fails when the dataset is empty', async () => {
+     const io = createIO();
+     const code = await runQuoteCli(
+       ['--input', 'quotes.json'],
+       io,
+       {
+         readFile: async () => '[]',
+       },
+     );
+ 
+     expect(code).toBe(2);
+diff --git a/tests/quote/core.test.ts b/tests/quote/core.test.ts
+index 6f0a95aac7237ee347650c1d657709b87276ba3a..26714c3c1ba19ef12f119e05e12934a50fddd8dd 100644
+--- a/tests/quote/core.test.ts
++++ b/tests/quote/core.test.ts
+@@ -28,30 +28,40 @@ describe('quote core', () => {
+     expect(quotes).toHaveLength(2);
+     expect(quotes[0].author).toBe('Maya Angelou');
+     expect(quotes[0].tags).toEqual(['inspiration', 'success']);
+   });
+ 
+   it('parses CSV quotes and trims whitespace', () => {
+     const quotes = parseQuotes(SAMPLE_QUOTES_CSV, 'csv');
+     expect(quotes).toHaveLength(2);
+     expect(quotes[0].text.startsWith('Do not wait')).toBe(true);
+     expect(quotes[0].tags).toEqual(['inspiration', 'action']);
+   });
+ 
+   it('filters quotes by author and tag case-insensitively', () => {
+     const quotes = parseQuotes(SAMPLE_QUOTES_JSON, 'json');
+     const filtered = filterQuotes(quotes, { author: 'maya angelou', tag: 'SUCCESS' });
+     expect(filtered).toHaveLength(1);
+     expect(filtered[0].author).toBe('Maya Angelou');
+   });
+ 
+   it('selects a deterministic quote using a seed when no filters are provided', () => {
+     const quotes = parseQuotes(SAMPLE_QUOTES_JSON, 'json');
+     const quote = selectQuote(quotes, { seed: 42 });
+     expect(formatQuote(quote)).toBe('"Success is liking yourself, liking what you do, and liking how you do it." — Maya Angelou (tags: inspiration, success)');
+   });
+ 
++  it('selects deterministic quotes for string seeds and varies across different seeds', () => {
++    const quotes = parseQuotes(SAMPLE_QUOTES_JSON, 'json');
++    const first = selectQuote(quotes, { seed: 'demo-seed' });
++    const second = selectQuote(quotes, { seed: 'demo-seed' });
++    const different = selectQuote(quotes, { seed: 'another-seed' });
++
++    expect(first).toEqual(second);
++    expect(formatQuote(different)).not.toBe(formatQuote(first));
++  });
++
+   it('throws a helpful error when author is not found', () => {
+     const quotes: QuoteRecord[] = parseQuotes(SAMPLE_QUOTES_JSON, 'json');
+     expect(() => selectQuote(quotes, { author: 'Unknown' })).toThrow('No quotes found for author "Unknown".');
+   });
+ });

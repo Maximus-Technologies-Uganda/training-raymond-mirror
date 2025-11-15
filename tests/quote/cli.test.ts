@@ -80,6 +80,23 @@ describe('quote CLI', () => {
     expect(io.out[0]).toBe('"Success is liking yourself, liking what you do, and liking how you do it." — Maya Angelou (tags: inspiration, success)');
   });
 
+  it('supports deterministic selection using string seeds', async () => {
+    const firstRun = createIO();
+    const secondRun = createIO();
+
+    const argv = ['--input', 'quotes.json', '--seed', 'quote-demo-seed'];
+    const env = { readFile: async () => SAMPLE_DATA };
+
+    const [firstCode, secondCode] = await Promise.all([
+      runQuoteCli(argv, firstRun, env),
+      runQuoteCli(argv, secondRun, env),
+    ]);
+
+    expect(firstCode).toBe(0);
+    expect(secondCode).toBe(0);
+    expect(firstRun.out[0]).toBe(secondRun.out[0]);
+  });
+
   it('returns a non-zero exit code when author is not found', async () => {
     const io = createIO();
     const code = await runQuoteCli(

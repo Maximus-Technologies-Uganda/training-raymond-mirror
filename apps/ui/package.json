@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage && npm run export:coverage",
     "export:coverage": "node ./scripts/export-coverage.mjs",
+    "pretest:e2e": "npx playwright install chromium",
     "test:e2e": "playwright test --config playwright/playwright.config.ts"
   },
   "dependencies": {
@@ -19,6 +20,7 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.0",
     "@playwright/test": "^1.56.1",
     "@testing-library/jest-dom": "^6.4.2",
     "@testing-library/react": "^16.0.1",

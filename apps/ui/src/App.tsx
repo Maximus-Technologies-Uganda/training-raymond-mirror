@@ -88,16 +88,17 @@ function App(): JSX.Element {
   return (
     <div className="App">
       <div className="app-shell">
-        <header className="app-hero">
-          <h1 className="app-hero__title" data-testid="welcome-title">
-            Training Raymond UI
-          </h1>
-          <p className="app-hero__subtitle">
-            Foundations for the Expenses, ToDo, and Quote experiences.
-          </p>
-        </header>
+        <header className="app-header">
+          <div className="app-hero">
+            <h1 className="app-hero__title" data-testid="welcome-title">
+              Training Raymond UI
+            </h1>
+            <p className="app-hero__subtitle">
+              Foundations for the Expenses, ToDo, and Quote experiences.
+            </p>
+          </div>
 
-        <nav className="app-nav" role="tablist" aria-label="Tool selection">
+          <nav className="app-nav" role="tablist" aria-label="Tool selection">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -118,7 +119,8 @@ function App(): JSX.Element {
               {tab.label}
             </button>
           ))}
-        </nav>
+          </nav>
+        </header>
 
         <main className="app-content">
           <section
